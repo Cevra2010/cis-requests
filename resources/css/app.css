@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+
+
+.cis-form-group {
+    @apply mb-2
+}
+
+.cis-form-group > label {
+    @apply text-xs
+}
+.cis-form-group > input {
+    @apply p-3 rounded border w-full shadow-inner text-sm
+}
+
+.cis-form-group > textarea {
+    @apply p-3 rounded border w-full shadow-inner text-sm
+}
+
+.cis-form-group > select {
+    @apply p-2 rounded border w-full bg-white
+}
+
+.is-invalid {
+    @apply border-red-500
+}
+
+.cis-submit {
+    @apply mt-4  p-2 text-white shadow bg-blue-500 rounded-none hover:bg-blue-600
+}
+
+.cis-success {
+    @apply bg-green-200 border-green-500 border p-2 text-green-800 rounded shadow my-3 text-xs
+}
+
+a {
+    @apply text-blue-500
+}
+
+.cis-table {
+    @apply w-full text-slate-700 font-light text-sm bg-slate-100 shadow border
+}
+
+.cis-table > table {
+    @apply w-full text-left border border-slate-100 border-collapse
+}
+
+.cis-table > table > thead {
+    @apply bg-slate-200
+}
+
+.cis-table > table > thead > tr > th {
+    @apply p-3 text-slate-600 border border-slate-300
+}
+
+.cis-table > table > tbody > tr > td {
+    @apply p-3 text-slate-600 border border-slate-300
+}
+
+.cis-table > table > tbody > tr {
+    @apply hover:bg-slate-200
+}
+
+.cis-search {
+    @apply flex mb-2
+}
+
+.cis-search > div {
+    @apply h-8 border bg-slate-100 px-2 text-sm rounded-l flex items-center
+}
+
+.cis-search > input {
+    @apply border-b border-t w-full pl-2
+}
+
+.cis-search > a {
+    @apply h-8 border-r border-t border-b rounded-r border-l px-2 flex items-center text-slate-700 hover:bg-slate-200 cursor-pointer
+}
+
+.cis-headline {
+    @apply text-2xl font-bold mb-3 text-slate-700
+}
+
+.cis-backlink {
+
+}
+
+@tailwind utilities;
+
