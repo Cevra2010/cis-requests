@@ -8,6 +8,7 @@ use App\Http\Requests\User\DeleteRequest;
 use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateSecurityRequest;
 use App\Http\Requests\User\UpdateUserRequest;
+use App\Http\Requests\User\UpdateMeRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -57,6 +58,17 @@ class UserController extends Controller
         return view("user.edit",[
             'user' => $user,
         ]);
+    }
+
+    public function self() {
+        $user = auth()->user();
+        return view("user.self.edit",[
+            'user' => $user,
+        ]);
+    }
+
+    public function selfStore(UpdateMeRequest $request) {
+
     }
 
     public function roles(User $user) {

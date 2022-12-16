@@ -6,7 +6,7 @@
                 @livewire("role.area-toggle",['area' => $childArea,'role' => $role])
             </div>
             <div style="padding-left: {{ 20*$deep }}px;" class=""></div>
-            <div>{{ $childArea->name }} {{ $deep }}</div>
+            <div>{{ $childArea->name }}</div>
         </div>
 
 

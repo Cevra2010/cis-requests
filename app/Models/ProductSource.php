@@ -9,4 +9,10 @@ use Illuminate\Database\Eloquent\Model;
 class ProductSource extends Model
 {
     use HasFactory, CisUuid;
+
+    protected $fillable = [
+        'name',
+        'created_at',
+        'updated_at',
+    ];
 }

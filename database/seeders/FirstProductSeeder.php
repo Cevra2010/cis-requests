@@ -17,25 +17,17 @@ class FirstProductSeeder extends Seeder
      */
     public function run()
     {
-        DB::table('products')->insert([
-        [
-        'cis_row_id' => Uuid::uuid4(),
-        'name' => 'Demo Produkt 1',
-        'created_at' => Carbon::now(),
-        'updated_at' => Carbon::now(),
-        ],
-        [
-        'cis_row_id' => Uuid::uuid4(),
-        'name' => 'Demo Produkt 2',
-        'created_at' => Carbon::now(),
-        'updated_at' => Carbon::now(),
-        ],
-        [
-        'cis_row_id' => Uuid::uuid4(),
-        'name' => 'Demo Produkt 3',
-        'created_at' => Carbon::now(),
-        'updated_at' => Carbon::now(),
-        ],
-    ]);
+
+        $productsArray = [];
+        for($i = 1; $i < 80; $i++) {
+            $productsArray[] = [
+                'cis_row_id' => Uuid::uuid4(),
+                'name' => 'Demo Produkt '.$i,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ];
+        }
+
+        DB::table('products')->insert($productsArray);
     }
 }

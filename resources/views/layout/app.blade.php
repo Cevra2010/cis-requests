@@ -13,27 +13,34 @@ background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/s
 
 
 <div class="flex h-full">
-    <div class="bg-slate-200 h-full pt-4 border-slate-300 border-r-2">
+    <div class="bg-blue-900 h-full pt-4">
 
-        <div class="text-center uppercase text-xs text-slate-500">
-            MENU
+        <div class="text-center uppercase text-xs font-thin text-slate-50 flex items-center flex-col mb-3">
+            <img src="{{ asset("svg/cr-logo.svg") }}" class="w-12 mb-2">
+            C|S REQUESTS
+        </div>
+
+        <div class="bg-slate-400 w-4/5 mx-auto" style="height: 1px;">
+
         </div>
 
         @foreach(config('menu') as $menuItem)
-            @if(substr(Request::route()->getName(),0,strlen($menuItem["base_route"])) == $menuItem["base_route"])
-                <div class="flex flex-col items-center text-slate-700 w-full pl-4 py-1 translate-x-1">
-                    <div class="flex flex-col items-center p-4 rounded-l -translate-x-0.5 bg-white w-full border-t-2 border-b-2 border-l-2 border-slate-300">
-                        <p class="mb-1"><i class="fa text-blue-500 fa-{{ $menuItem['icon'] }} -translate-x-3"></i></p>
-                        <p class="uppercase text-xs text-blue-500 -translate-x-3">{{ $menuItem['title'] }}</p>
+            @access($menuItem['root_access'])
+                @if(substr(Request::route()->getName(),0,strlen($menuItem["base_route"])) == $menuItem["base_route"])
+                    <div class="flex flex-col items-center text-slate-700 w-full pl-4 py-1 translate-x-1 cursor-pointer" onclick='location.href="{{ route($menuItem["base_route"]) }}"'>
+                        <div class="flex flex-col items-center p-4 rounded-l -translate-x-0.5 bg-white w-full ">
+                            <p class="mb-1"><i class="fa text-blue-900 fa-{{ $menuItem['icon'] }} -translate-x-3"></i></p>
+                            <p class="uppercase text-xs text-blue-900 -translate-x-3">{{ $menuItem['title'] }}</p>
+                        </div>
                     </div>
-                </div>
-            @else
-                <div class="flex flex-col items-center text-slate-700 px-4 py-1" onclick='location.href="{{ route($menuItem["base_route"]) }}"'>
-                    <div class="flex flex-col items-center p-4 w-full rounded hover:bg-slate-300 cursor-pointer">
-                        <p class="mb-1"><i class="fa fa-{{ $menuItem['icon'] }}"></i></p>
-                        <p class="uppercase text-xs">{{ $menuItem['title'] }}</p>
+                @else
+                    <div class="flex flex-col items-center text-slate-50 px-4 py-1" onclick='location.href="{{ route($menuItem["base_route"]) }}"'>
+                        <div class="flex flex-col items-center p-4 w-full rounded hover:bg-blue-500 cursor-pointer">
+                            <p class="mb-1"><i class="fa fa-{{ $menuItem['icon'] }}"></i></p>
+                            <p class="uppercase text-xs">{{ $menuItem['title'] }}</p>
+                        </div>
                     </div>
-                </div>
+                @endif
             @endif
         @endforeach
 
@@ -41,14 +48,14 @@ background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/s
     <div class="w-full">
         <div class="overflow-scroll h-full">
             <div class="sticky mb-10">
-                <div class="p-2 w-full bg-slate-500 fixed text-white text-sm">
+                <div class="p-2 w-full bg-blue-900 fixed text-white text-sm">
                     <div class="w-full flex space-x-2">
                         <div>
-                            <i class="fa fa-user-circle"></i> Willkommen zurück {{ auth()->user()->name() }}
+                            <i class="fa fa-user-circle"></i> {{ auth()->user()->name() }}
                         </div>
                        <div class="">|</div>
                         <div>
-                            <a href="#konto" class="text-white"><i class="fa fa-cog"></i> <span class="decoration-dotted underline underline-offset-4">Mein Konto</span></a>
+                            <a href="{{ route("dashboard.self") }}" class="text-white"><i class="fa fa-cog"></i> <span class="decoration-dotted underline underline-offset-4">Mein Konto</span></a>
                         </div>
                         <div>|</div>
                         <div>

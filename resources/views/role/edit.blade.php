@@ -8,7 +8,7 @@
 <div class="flex space-x-3 mb-4">
     @access("role.edit.delete")
     <a href="{{ route("user.role.edit.delete",$role) }}">
-        <div class="bg-slate-100 hover:bg-slate-200 h-full text-slate-600 w-min p-3 rounded text-center">
+        <div class="h-full btn-delete w-min p-3 text-center">
             <i class="fa fa-trash"></i>
             <p class="text-xs">Rolle löschen</p>
         </div>

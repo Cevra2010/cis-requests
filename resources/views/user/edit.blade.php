@@ -9,21 +9,21 @@
 <div class="flex space-x-3 mb-4">
     @access("user.edit.roles")
     <a href="{{ route("user.edit.roles",$user) }}">
-        <div class="bg-slate-100 hover:bg-slate-200 h-full text-slate-600 w-min p-3 rounded text-center">
+        <div class="btn-nav w-min p-3 text-center">
             <i class="fa fa-scale-balanced"></i>
             <p class="text-xs">Benutzerrolle/n vergeben</p>
         </div>
     </a>
     @endaccess
     <a href="{{ route("user.edit.security",$user) }}">
-        <div class="bg-slate-100 hover:bg-slate-200 h-full text-slate-600 w-min p-3 rounded text-center">
+        <div class="btn-nav w-min p-3 text-center">
             <i class="fa fa-key"></i>
             <p class="text-xs">Kontozugang</p>
         </div>
     </a>
     @access("user.edit.delete")
     <a href="{{ route("user.edit.delete",$user) }}">
-        <div class="bg-slate-100 hover:bg-slate-200 h-full text-slate-600 w-min p-3 rounded text-center">
+        <div class="btn-delete w-min p-3 text-center">
             <i class="fa fa-user-minus"></i>
             <p class="text-xs">Konto löschen</p>
         </div>

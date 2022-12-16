@@ -9,12 +9,12 @@
     @foreach($roles as $role)
             <div class="flex items-center mb-2 space-x-3 bg-slate-100 hover:bg-slate-200 p-2 cursor-pointer" wire:click='changeRole("{{ $role->cis_row_id }}")'>
                 @if($user->roles()->find($role))
-                    <div class="p-4 bg-green-300 text-green-600 text-2xl px-6">
+                    <div class="p-4 bg-gradient-to-tr from-green-700 to-teal-500 text-white text-2xl px-6 rounded shadow">
                         <i class="fa fa-circle-check"></i>
                     </div>
                 @else
-                    <div class="p-4 bg-red-300 text-red-600 text-2xl px-6">
-                        <i class="fa fa-circle-check"></i>
+                    <div class="p-4 bg-gradient-to-tr from-red-700 to-orange-500 text-white text-2xl px-6 rounded shadow">
+                        <i class="fa fa-circle-xmark"></i>
                     </div>
                 @endif
                 <div>

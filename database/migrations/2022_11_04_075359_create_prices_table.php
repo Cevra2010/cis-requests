@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('cis_row_id_product')->key();
             $table->string('cis_row_id_source')->key();
             $table->float('amount');
+            $table->softDeletes();
             $table->timestamps();
         });
     }

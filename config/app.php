@@ -42,6 +42,7 @@ return [
     */
 
     'debug' => (bool) env('APP_DEBUG', false),
+    'autologin' => (bool) env('APP_AUTOLOGIN',false),
 
     /*
     |--------------------------------------------------------------------------

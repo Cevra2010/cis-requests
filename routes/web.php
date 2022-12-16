@@ -2,8 +2,11 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Price\PriceController;
 use App\Http\Controllers\Product\ProductController;
+use App\Http\Controllers\Project\ProjectController;
 use App\Http\Controllers\Role\RoleController;
+use App\Http\Controllers\Source\SourceController;
 use App\Http\Controllers\User\UserController;
 use App\Http\Logic\CisAccess\Facades\Access;
 use App\Models\User;
@@ -46,6 +49,9 @@ Route::middleware(['auth'])->group(function() {
     Route::get('/Dashbaord/Set',[DashboardController::class,'index'])->name("setting");
     Route::get('/Dashbaord/Pat',[DashboardController::class,'index'])->name("pattern");
 
+    Route::get('/Dashboard/Me',[UserController::class,'self'])->name("dashboard.self");
+    Route::post('/Dashbaord/Me',[UserController::class,'selfStore'])->name("dashboard.self.update");
+
     /** User */
     Route::get('/User',[UserController::class,'index'])->name("user")->middleware("area:user");
     Route::get('/User/Create',[UserController::class,'create'])->name("user.create")->middleware("area:user.create");
@@ -79,5 +85,21 @@ Route::middleware(['auth'])->group(function() {
     Route::get('/Products/Price',[ProductController::class,'price'])->name("product.price")->middleware("area:product.edit.price");
 
     /** Productsource */
-    Route::get('/Products/Source',[ProductController::class,'source'])->name("product.source.index")->middleware("area:product.source");
+    Route::get('/Source',[SourceController::class,'index'])->name("source")->middleware("area:source");
+    Route::get('/Source/Create',[SourceController::class,'create'])->name("source.create")->middleware("area:source.create");
+    Route::post('/Source/Create',[SourceController::class,'store'])->name("source.store")->middleware("area:source.create");
+    Route::get('/Source/Edit/{source}',[SourceController::class,'edit'])->name("source.edit")->middleware("area:source.edit");
+    Route::post('/Source/Edit/{source}',[SourceController::class,'update'])->name("source.update")->middleware("area:source.edit");
+    Route::post('/Source/Edit/Delete/{source}',[SourceController::class,'delete'])->name("source.edit.delete")->middleware("area:source.edit.delete");
+
+    /** Price */
+    Route::get('/Price',[PriceController::class,'index'])->name("price")->middleware("area:price");
+
+    /** Projects */
+    Route::get('/Projects',[ProjectController::class,'index'])->name("project")->middleware("area:project");
+    Route::get('/Project/Create',[ProjectController::class,'create'])->name("project.create")->middleware("area:project.create");
+    Route::post('/Project/Create',[ProjectController::class,'store'])->name("project.store")->middleware("area:project.create");
+    Route::get('/Project/Edit/{project}',[ProjectController::class,'edit'])->name("project.edit")->middleware("area:project.edit");
+    Route::get('/Project/Edit/{project}/ProjectMap/Preview',[ProjectController::class,'mapPreview'])->name("project.map.preview")->middleware("area:project.edit");
+    Route::get('/Project/Edit/{project}/Products',[ProjectController::class,'products'])->name("project.edit.products")->middleware("area:project.edit.products");
 });

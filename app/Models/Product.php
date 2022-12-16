@@ -18,7 +18,7 @@ class Product extends Model
 
     public function price() {
         if($this->prices()->count()) {
-            return $this->prices()->orderBy('created_at','DESC')->first();
+            return $this->prices()->with('source')->orderBy('created_at','DESC')->first();
         }
         return null;
     }

@@ -32,6 +32,9 @@
                             @endif
                         @endif
                     </th>
+                    <th>
+                        Lieferant (letzter Preiseintrag)
+                    </th>
                     <th wire:click='order("created_at")' class="cursor-pointer">
                         Erstellt am
                         @if($orderBy == "created_at")
@@ -60,6 +63,13 @@
                             {{ $product->priceForHumans() }}
                         @endif
                     </td>
+                    <td>
+                        @if($product->price())
+                            {{ $product->price()->source->name }}
+                        @else
+                            nicht gesetzt
+                        @endif       
+                    </td>
                     <td>{{ $product->created_at->format("d.m.Y, H:i") }}</td>
                 </tr>
                     @if($product->hasChild())
@@ -67,6 +77,13 @@
                         <tr @access("product.edit") onclick='location.href="{{ route("product.edit",$child) }}";' class="cursor-pointer" @endaccess>
                             <td><i class="fa fa-arrow-right"></i> {{ $child->name }}</td>
                             <td>@if($child->prices()->count()) {{ $child->prices()->first()->amountForHumans() }} @else nicht gesetzt @endif</td>
+                            <td>
+                                @if($child->price())
+                                    {{ $child->price()->source->name }}
+                                @else
+                                    nicht gesetzt
+                                @endif                                
+                            </td>
                             <td>{{ $child->created_at->format("d.m.Y, H:i") }}</td>
                         </tr>
                         @endforeach

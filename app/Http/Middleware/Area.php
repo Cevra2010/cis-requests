@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Http\Logic\CisAccess\Facades\Access;
+use App\Models\Area as ModelsArea;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -18,7 +19,8 @@ class Area
     public function handle(Request $request, Closure $next, $area_slug)
     {
         if(!Access::hasAccess($area_slug)) {
-            return abort(403,'Kein Zugriff auf den Bereich "'.$area_slug.'". Bitte kontaktieren Sie den Administrator');
+            $area = ModelsArea::where('slug',$area_slug)->first();
+            return abort(403,'Kein Zugriff auf den Bereich "'.$area->name.' ('.$area_slug.')" - Bitte kontaktieren Sie den Administrator');
         }
         return $next($request);
     }

@@ -1,6 +1,9 @@
 @tailwind base;
 @tailwind components;
 
+body {
+    font-family: 'lato', sans-serif;
+}
 
 .cis-form-group {
     @apply mb-2
@@ -26,7 +29,11 @@
 }
 
 .cis-submit {
-    @apply mt-4  p-2 text-white shadow bg-blue-500 rounded-none hover:bg-blue-600
+    @apply mt-4  p-2 text-white shadow bg-gradient-to-tr from-blue-500 to-cyan-600 rounded hover:ring-2 ring-offset-2 cursor-pointer
+}
+
+.cis-abort {
+    @apply mt-4  p-2 text-white shadow bg-gradient-to-tr from-red-600 to-orange-600 rounded hover:ring-2 ring-red-600 ring-offset-2 cursor-pointer
 }
 
 .cis-success {
@@ -38,27 +45,32 @@ a {
 }
 
 .cis-table {
-    @apply w-full text-slate-700 font-light text-sm bg-slate-100 shadow border
+    @apply border rounded-md bg-slate-100 w-full
 }
 
 .cis-table > table {
-    @apply w-full text-left border border-slate-100 border-collapse
-}
-
-.cis-table > table > thead {
-    @apply bg-slate-200
+    @apply w-full text-sm font-light
 }
 
 .cis-table > table > thead > tr > th {
-    @apply p-3 text-slate-600 border border-slate-300
+    @apply p-4 bg-slate-700 text-white text-left  font-light
 }
 
+.cis-table > table > thead > tr > th:first-child {
+    @apply rounded-tl-md
+}
+
+.cis-table > table > thead > tr > th:last-child {
+    @apply rounded-tr-md
+}
+
+
 .cis-table > table > tbody > tr > td {
-    @apply p-3 text-slate-600 border border-slate-300
+    @apply p-4 border-b text-left
 }
 
 .cis-table > table > tbody > tr {
-    @apply hover:bg-slate-200
+    @apply hover:bg-slate-50
 }
 
 .cis-search {
@@ -83,6 +95,22 @@ a {
 
 .cis-backlink {
 
+}
+
+.btn-add {
+    @apply bg-gradient-to-tr from-green-600 to-teal-600 hover:ring-2 ring-offset-2 ring-green-600 text-white h-full shadow-md border rounded-xl
+}
+
+.btn-delete {
+    @apply bg-gradient-to-tr from-red-600 to-orange-600 hover:ring-2 ring-red-600 ring-offset-2 text-white h-full shadow-md border rounded-xl
+}
+
+.btn-nav {
+    @apply bg-gradient-to-tr from-blue-600 to-indigo-600 hover:ring-2 ring-offset-2 text-white h-full shadow-md border rounded-xl
+}
+
+.btn-edit {
+    @apply bg-gradient-to-tr from-blue-600 to-teal-600 hover:ring-2 ring-offset-2 text-white h-full shadow-md border rounded-xl
 }
 
 @tailwind utilities;

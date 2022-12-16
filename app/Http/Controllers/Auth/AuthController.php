@@ -4,12 +4,18 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
     public function index() {
+        if(config("app.debug") && config("app.autologin")) {
+            $user = User::where('email','admin@istrator.de')->first();
+            Auth::login($user);
+            return redirect()->route("home");
+        }
         return view("auth.index");
     }
 

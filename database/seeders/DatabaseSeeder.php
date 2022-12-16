@@ -24,6 +24,8 @@ class DatabaseSeeder extends Seeder
             FirstRoleSeeder::class,
             FirstAreaSeeder::class,
             FirstProductSeeder::class,
+            FirstProductSourceSeeder::class,
+            FirstProjectSeeder::class,
         ]);
 
         /** Connect first User with first Role */

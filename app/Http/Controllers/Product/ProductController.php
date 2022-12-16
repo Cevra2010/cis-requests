@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Product\StoreProductRequest;
 use App\Models\Price;
 use App\Models\Product;
+use App\Models\ProductSource;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
@@ -15,15 +16,11 @@ class ProductController extends Controller
     }
 
     public function edit(Product $product) {
-        if($product->hasParent()) {
-            $parent = $product->getParent();
-        }
-        else {
-            $parent = null;
-        }
+        $prices = $product->prices()->with('source')->get();
+
         return view("product.edit",[
             'product' => $product,
-            'parent' => $parent,
+            'prices' => $prices,
         ]);
     }
 
@@ -67,13 +64,5 @@ class ProductController extends Controller
         $product->save();
         if($request->get('parent')) {}
         return redirect()->route("product.edit",$product);
-    }
-
-    public function source() {
-
-    }
-
-    public function price() {
-        return view("product.price");
     }
 }
