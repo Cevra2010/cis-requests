@@ -1,0 +1,17 @@
+{
+    "name": "cisfoundation/menumanager",
+    "description": "Menu management for cis foundation",
+    "autoload": {
+        "autoload": {
+            "psr-4": {"CisFoundation\\CisMenuManager\\": "/src/"}
+        }
+    },
+    "authors": [
+        {
+            "name": "Markus Klebsattel",
+            "email": "markusklebsattel@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {}
+}

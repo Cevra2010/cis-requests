@@ -1,0 +1,20 @@
+{
+    "name": "cisfoundation/cis-table-builder",
+    "description": "Table builder for cis foundation",
+    "type": "libraby",
+    "autoload": {
+        "psr-4": {
+            "Cisfoundation\\CisTableBuilder\\": ""
+        }
+    },
+    "authors": [
+        {
+            "name": "Markus Klebsattel",
+            "email": "markusklebsattel@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "livewire/livewire": "^2.10"
+    }
+}
