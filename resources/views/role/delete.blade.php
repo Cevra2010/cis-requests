@@ -1,42 +1,50 @@
-@extends("layout.app")
+@extends('layout.app')
 
-@section("content")
+@section('content')
+<div class="max-w-md">
+    <div class="cis-card border border-red-200">
+        <div class="flex items-start gap-3 mb-4">
+            <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <i class="fa fa-triangle-exclamation text-red-600"></i>
+            </div>
+            <div>
+                <h2 class="text-base font-semibold text-gray-900">Rolle löschen</h2>
+                <p class="text-sm text-gray-500 mt-1">
+                    Die Rolle <strong>{{ $role->name }}</strong> wird dauerhaft gelöscht.
+                </p>
+            </div>
+        </div>
 
-@section("title","Rolle löschen")
-<a href="{{ route("user.role.edit",$role) }}" class="text-slate-700"><i class="fa fa-angles-left"></i> zurück</a>
-<h1 class="cis-headline">Rolle löschen: {{ $role->name }}</h1>
+        @if($users->count())
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                <p class="text-sm font-medium text-amber-800 mb-2">
+                    <i class="fa fa-triangle-exclamation mr-1"></i>
+                    {{ $users->count() }} Benutzer haben diese Rolle zugewiesen:
+                </p>
+                <ul class="text-sm text-amber-700 space-y-0.5">
+                    @foreach($users as $u)
+                        <li>· {{ $u->name() }}</li>
+                    @endforeach
+                </ul>
+                <p class="text-xs text-amber-600 mt-2">Die Rolle wird trotzdem gelöscht. Die Benutzer verlieren die damit verbundenen Rechte.</p>
+            </div>
+        @endif
 
-@include("layout.error_success")
-<form action="{{ route("user.role.edit.delete.store",$role) }}" method="POST">
-    @csrf
-    <div class="flex items-center space-x-5 text-slate-700 mt-4">
-        <i class="fa fa-info-circle text-2xl"></i>
-        <p>
-            Um eine Rolle zu löschen, muss dies mit einer Sicherheitsabfrage bestätigt werden.<br>
-            Tippen Sie in folgends Feld:
-        </p>
+        <form action="{{ route('role.destroy', $role) }}" method="POST">
+            @csrf
+            <div class="mb-4">
+                <label class="cis-label" for="delete_key">
+                    Zur Bestätigung <code class="bg-gray-100 px-1 rounded">DEL-{{ $role->name }}</code> eingeben:
+                </label>
+                <input type="text" id="delete_key" name="delete_key" class="cis-input w-full"
+                       placeholder="DEL-{{ $role->name }}" autocomplete="off">
+                @error('delete_key')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+            <div class="flex items-center gap-3">
+                <button type="submit" class="btn btn-danger">Rolle löschen</button>
+                <a href="{{ route('role.index') }}" class="btn btn-ghost">Abbrechen</a>
+            </div>
+        </form>
     </div>
-
-    @if($users->count())
-    <div class="text-red-700 p-2 bg-slate-100 rounded mt-4">
-        Diese Rolle kann nicht gelöscht werden, da Konten dieser Rolle zugeteilt sind:
-        <ul class="list-disc">
-            @foreach($users as $user)
-                <li class="ml-8">{{ $user->name() }}</li>
-            @endforeach
-        </ul>
-    </div>
-    @else
-
-    <p class="bg-slate-100 p-2 rounded mt-4 mb-4" style="font-family: 'Courier New', Courier, monospace;">
-        DEL-{{ $role->name }}
-    </p>
-    <div class="cis-form-group">
-        <label for="delete_key">Sicherheitsabfrage</label>
-        <input type="text" name="delete_key" value="{{ old("delete_key") }}" @error("delete_key") class="is-invalid" @endif>
-    </div>
-    <button type="submit" class="cis-submit bg-red-700 hover:bg-red-800">Rolle löschen</button>
-</form>
-@endif
-
+</div>
 @endsection

@@ -197,6 +197,14 @@ return [
         App\Providers\RouteServiceProvider::class,
         App\Providers\AccessServiceProvider::class,
 
+
+        /** Cis Base Modules */
+        CisFoundation\CisHookManager\CisHookServiceProvider::class,
+        CisFoundation\CisPermissionManager\CisPermissionServiceProvider::class,
+        CisFoundation\CisCategoryManager\CisCategoryManagerServiceProvider::class,
+        CisFoundation\CisMenuManager\MenuServiceProvider::class,
+        CisFoundation\CisTableBuilder\CisTableServiceProvider::class,
+        CisFoundation\CisFormBuilder\CisFormBuilderServiceProvider::class,
     ],
 
     /*

@@ -1,0 +1,14 @@
+{
+    "name": "Branding",
+    "alias": "branding",
+    "description": "Definiert Kopf- und Fußzeile, Logo sowie Corporate-Identity-Einstellungen für Ausschreibungsdokumente.",
+    "version": "1.0.0",
+    "keywords": ["branding", "layout", "ausschreibung"],
+    "priority": 10,
+    "core": false,
+    "requires_license": true,
+    "providers": [
+        "Modules\\Branding\\Providers\\BrandingServiceProvider"
+    ],
+    "files": []
+}

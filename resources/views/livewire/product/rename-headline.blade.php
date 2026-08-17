@@ -8,11 +8,9 @@
     @else
     <h1 class="cis-headline mb-0">Produkt bearbeiten: {{ $product->name }}
     @endif
-    @access("product.edit.rename")
     @if(!$rename)
         <a href="#rename" class="text-sm ml-4 text-slate-600 font-light underline decoration-dotted underline-offset-2" wire:click='openRename'><i class="fa fa-edit"></i> Umbenennen</a>
     @endif
-    @endaccess
     </h1>
     @if($parent)
     <p>Unterprodukt von [<a href="{{ route("product.edit",$parent) }}">{{ $parent->name }}</a>]</p>

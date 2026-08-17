@@ -35,7 +35,7 @@ class PriceEditor extends Component
     public function selectSource(ProductSource $productSource)
     {
         $this->productSource = $productSource;
-        $this->emit('focusme','product');
+        $this->dispatch('focusme', target: 'product');
     }
 
     public function resetSource() {
@@ -60,7 +60,7 @@ class PriceEditor extends Component
     public function selectProduct(Product $product) {
         $this->productSearchName = null;
         $this->product = $product;
-        $this->emit('focusme','price');
+        $this->dispatch('focusme', target: 'price');
     }
 
     public function selectArrowProduct() {
@@ -79,7 +79,7 @@ class PriceEditor extends Component
         $this->product = null;
         $this->productSearchName = null;
         $this->productSearchResult = null;
-        $this->emit('focusme','product');
+        $this->dispatch('focusme', target: 'product');
     }
 
     public function submitPrice() {
@@ -92,7 +92,7 @@ class PriceEditor extends Component
             $this->price = null;
             $this->productSearchName = null;
             $this->productSearchResult = null;
-            $this->emit("focusme",'product');
+            $this->dispatch('focusme', target: 'product');
         }
         else {
             dd("ERROR");

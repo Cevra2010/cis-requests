@@ -37,7 +37,7 @@
             </thead>
             <tbody>
                 @foreach($roles as $role)
-                <tr @access("role.edit") onclick='location.href="{{ route("user.role.edit",$role) }}";' class="cursor-pointer" @endaccess>
+                <tr onclick='location.href="{{ route("user.role.edit",$role) }}";' class="cursor-pointer">
                     <td>{{ $role->name }}</td>
                     <td>{{ $role->created_at->format("d.m.Y") }}</td>
                 </tr>

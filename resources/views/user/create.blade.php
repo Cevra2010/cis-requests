@@ -1,35 +1,51 @@
-@extends("layout.app")
+@extends('layout.app')
 
-@section("content")
+@section('content')
+<div class="max-w-lg">
+    <div class="cis-card">
+        <h2 class="text-base font-semibold text-gray-900 mb-4">Neues Konto erstellen</h2>
 
-@section("title","Konto erstellen")
-<a href="{{ route("user") }}" class="text-slate-700"><i class="fa fa-angles-left"></i> zurück</a>
-<h1 class="cis-headline">Konto erstellen</h1>
+        <form action="{{ route('user.store') }}" method="POST" class="space-y-4">
+            @csrf
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="cis-label" for="firstname">Vorname <span class="text-red-500">*</span></label>
+                    <input type="text" id="firstname" name="firstname" class="cis-input w-full"
+                           value="{{ old('firstname') }}" required>
+                    @error('firstname')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="cis-label" for="lastname">Nachname <span class="text-red-500">*</span></label>
+                    <input type="text" id="lastname" name="lastname" class="cis-input w-full"
+                           value="{{ old('lastname') }}" required>
+                    @error('lastname')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+            </div>
 
-@include("layout.error_success")
-<form action="{{ route("user.store") }}" method="POST">
-    @csrf
-    <div class="cis-form-group">
-        <label for="firstname">Vorname</label>
-        <input type="text" name="firstname" value="{{ old("firstname") }}" @error("firstname") class="is-invalid" @endif>
-    </div>
-    <div class="cis-form-group">
-        <label for="lastname">Nachname</label>
-        <input type="text" name="lastname" value="{{ old("lastname") }}" @error("lastname") class="is-invalid" @endif>
-    </div>
-    <div class="cis-form-group">
-        <label for="email">E-Mail</label>
-        <input type="text" name="email" value="{{ old("email") }}" @error("email") class="is-invalid" @endif>
-    </div>
-    <div class="cis-form-group">
-        <label for="password">Passwort</label>
-        <input type="password" name="password" value="{{ old("password") }}" @error("password") class="is-invalid" @endif>
-    </div>
-    <div class="cis-form-group">
-        <label for="password_confirmation">Passwort wiederholen</label>
-        <input type="password" name="password_confirmation" value="{{ old("password_confirmation") }}" @error("password_confirmation") class="is-invalid" @endif>
-    </div>
-    <button type="submit" class="cis-submit">Konto erstellen</button>
-</form>
+            <div>
+                <label class="cis-label" for="email">E-Mail <span class="text-red-500">*</span></label>
+                <input type="email" id="email" name="email" class="cis-input w-full"
+                       value="{{ old('email') }}" required>
+                @error('email')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
 
+            <div>
+                <label class="cis-label" for="password">Passwort <span class="text-red-500">*</span></label>
+                <input type="password" id="password" name="password" class="cis-input w-full"
+                       placeholder="Mindestens 8 Zeichen" required>
+                @error('password')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+
+            <div>
+                <label class="cis-label" for="password_confirmation">Passwort bestätigen <span class="text-red-500">*</span></label>
+                <input type="password" id="password_confirmation" name="password_confirmation" class="cis-input w-full" required>
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+                <button type="submit" class="btn btn-primary">Konto erstellen</button>
+                <a href="{{ route('user') }}" class="btn btn-ghost">Abbrechen</a>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection

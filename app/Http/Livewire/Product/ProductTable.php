@@ -3,6 +3,7 @@
 namespace App\Http\Livewire\Product;
 
 use App\Models\Product;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class ProductTable extends Component
@@ -10,36 +11,36 @@ class ProductTable extends Component
     public $searchString;
     public $orderBy = 'name';
     public $orderDirection = 'ASC';
-    protected $queryString = [
-        'searchString',
-    ];
+
+    protected $queryString = ['searchString'];
 
     public function render()
     {
-        if($this->searchString)
-        {
-            $products = Product::where('name','like','%'.$this->searchString.'%')->with('prices')->orderBy($this->orderBy,$this->orderDirection)->get();
+        $query = Product::query()->with(['prices', 'childs']);
+
+        if ($this->searchString) {
+            // Bei Suche alle Produkte (inkl. Unterprodukte)
+            $query->where('name', 'like', '%' . $this->searchString . '%');
+        } else {
+            // Nur Oberprodukte: nicht als Kind in product_child eingetragen
+            $childIds = DB::table('product_child')->pluck('cis_row_id_child');
+            if ($childIds->isNotEmpty()) {
+                $query->whereNotIn('cis_row_id', $childIds);
+            }
         }
-        else {
-            $products = Product::where('name','like','%'.$this->searchString.'%')->where('parent',null)->with('prices')->orderBy($this->orderBy,$this->orderDirection)->get();
-        }
-        return view('livewire.product.product-table',[
-            'products' => $products,
-        ]);
+
+        $products = $query->orderBy($this->orderBy, $this->orderDirection)->get();
+
+        return view('livewire.product.product-table', compact('products'));
     }
 
-    public function order($orderName) {
-        if($orderName == $this->orderBy) {
-            if($this->orderDirection == "ASC") {
-                $this->orderDirection = "DESC";
-            }
-            else {
-                $this->orderDirection = "ASC";
-            }
-        }
-        else {
-            $this->orderDirection = "ASC";
-            $this->orderBy = $orderName;
+    public function order($orderName)
+    {
+        if ($orderName === $this->orderBy) {
+            $this->orderDirection = $this->orderDirection === 'ASC' ? 'DESC' : 'ASC';
+        } else {
+            $this->orderBy        = $orderName;
+            $this->orderDirection = 'ASC';
         }
     }
 }

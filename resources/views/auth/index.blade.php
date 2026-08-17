@@ -1,33 +1,35 @@
-@extends("layout.auth")
+@extends('layout.auth')
 
-@section("content")
-    <div>
-        <div class="bg-slate-700 text-slate-100 py-5 px-10 rounded-t shadow">
-            CIS-Requests
-        </div>
-        <div class="bg-slate-100 p-10 rounded-b w-full">
-            @include("layout.error_success")
-            <form action="{{ route("auth.login.submit") }}" method="POST">
-                @csrf
-                <div class="cis-form-group">
-                    <label for="email">E-Mail Adresse</label>
-                    <input type="text" name="email" @error("email") class="is-invalid" @enderror value="{{ old("email") }}" id="email">
-                </div>
-                <div class="cis-form-group mt-6">
-                    <label for="password">Passwort</label>
-                    <input type="password" @error("password") class="is-invalid" @enderror value="{{ old("password") }}" name="password" id="password">
-                </div>
-                <button class="cis-submit w-full" type="submit">Anmelden</button>
-            </form>
+@section('title', 'Anmelden')
 
-            <div class="mt-8 text-sm">
-                <div>
-                    <a href="#forgetPassword"><i class="fa fa-key"></i>  Passwort vergessen?</a>
-                </div>
-            </div>
+@section('content')
+    <h2 class="text-lg font-semibold text-gray-900 mb-1">Willkommen zurück</h2>
+    <p class="text-sm text-gray-500 mb-6">Bitte melden Sie sich an, um fortzufahren.</p>
+
+    @if($errors->any())
+        <div class="cis-error mb-4">
+            <i class="fa fa-exclamation-circle"></i>
+            <span>{{ $errors->first() }}</span>
         </div>
-        <div class="text-slate-800 text-sm text-center mt-4">
-            CisReports - &copy 2021-{{ Carbon\Carbon::now()->year }}
+    @endif
+
+    <form action="{{ route('auth.login.submit') }}" method="POST" class="space-y-4">
+        @csrf
+        <div class="cis-form-group">
+            <label for="email" class="cis-label">E-Mail Adresse</label>
+            <input type="email" name="email" id="email" autocomplete="email"
+                   value="{{ old('email') }}"
+                   class="cis-input @error('email') is-invalid @enderror"
+                   placeholder="name@firma.de">
         </div>
-    </div>
+        <div class="cis-form-group">
+            <label for="password" class="cis-label">Passwort</label>
+            <input type="password" name="password" id="password" autocomplete="current-password"
+                   class="cis-input @error('password') is-invalid @enderror"
+                   placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn-primary w-full justify-center py-2.5">
+            Anmelden
+        </button>
+    </form>
 @endsection

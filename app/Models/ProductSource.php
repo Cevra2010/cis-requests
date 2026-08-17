@@ -5,14 +5,23 @@ namespace App\Models;
 use App\Models\Traits\CisUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ProductSource extends Model
 {
-    use HasFactory, CisUuid;
+    use HasFactory, CisUuid, SoftDeletes;
 
     protected $fillable = [
         'name',
-        'created_at',
-        'updated_at',
+        'url',
+        'contact_name',
+        'contact_email',
+        'contact_phone',
+        'notes',
     ];
+
+    public function prices()
+    {
+        return $this->hasMany(Price::class, 'cis_row_id_source', 'cis_row_id');
+    }
 }

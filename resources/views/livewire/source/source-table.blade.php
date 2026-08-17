@@ -36,7 +36,7 @@
             </thead>
             <tbody>
                 @foreach($sources as $source)
-                <tr @access("source.edit") onclick='location.href="{{ route("source.edit",$source) }}";' class="cursor-pointer" @endaccess>
+                <tr onclick='location.href="{{ route("source.edit",$source) }}";' class="cursor-pointer">
                     <td>
                         {{ $source->name }}
                     </td>

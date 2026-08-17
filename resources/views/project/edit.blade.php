@@ -1,42 +1,110 @@
-@extends("layout.app")
+@extends('layout.app')
 
-@section("content")
+@section('title', $project->name)
 
-@section("title",$project->name)
+@section('header_actions')
+    <form method="POST" action="{{ route('project.duplicate', $project->cis_row_id) }}" class="inline">
+        @csrf
+        <button type="submit" class="btn btn-ghost btn-sm">
+            <i class="fa fa-copy mr-1"></i> Duplizieren
+        </button>
+    </form>
+    <form method="POST" action="{{ route('project.destroy', $project->cis_row_id) }}" class="inline"
+          onsubmit="return confirm('Projekt in den Papierkorb verschieben?')">
+        @csrf
+        @method('DELETE')
+        <button type="submit" class="btn btn-danger btn-sm">
+            <i class="fa fa-trash mr-1"></i> Löschen
+        </button>
+    </form>
+@endsection
 
-<h1 class="cis-headline">Projekt: {{ $project->name }}</h1>
-
-@include("layout.error_success")
-
-<div class="flex space-x-3 mb-4">
-    <a href="{{ route("project.edit.products",$project->cis_row_id) }}">
-        <div class="btn-add w-min p-3 text-center">
-            <i class="fa fa-box-archive"></i>
-            <p class="text-xs">Produkte verwalten</p>
+@section('content')
+<div class="max-w-2xl">
+    <div class="cis-card">
+        <div class="flex items-center gap-3 mb-5">
+            @php $color = $project->statusColor(); @endphp
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                {{ $color === 'green'  ? 'bg-green-100 text-green-700'   : '' }}
+                {{ $color === 'blue'   ? 'bg-blue-100 text-blue-700'     : '' }}
+                {{ $color === 'yellow' ? 'bg-yellow-100 text-yellow-700' : '' }}
+                {{ $color === 'gray'   ? 'bg-gray-100 text-gray-600'     : '' }}
+            ">{{ $project->statusLabel() }}</span>
+            <span class="text-xs text-gray-400">Erstellt {{ $project->created_at->format('d.m.Y') }}</span>
         </div>
-    </a>
-    <a href="{{ route("project.map.preview",$project) }}">
-        <div class="btn-nav h-full text-white w-min p-3 text-center">
-            <i class="fa fa-eye"></i>
-            <p class="text-xs">Projektmappe: Vorschau</p>
-        </div>
-    </a>
-</div>
 
-<div class="bg-slate-200 rounded">
-    <div class="text-slate-700 font-light p-3 border-b border-slate-300 flex items-center">
-        <div>Projektübersicht</div>
-        <div class="ml-auto flex items-center space-x-4">
-            <p>Projektstatus</p>
-            <div class="bg-{{ $project->getStatusColor() }} rounded text-white p-1">
-                {{ $project->getStatusText() }}
+        <form action="{{ route('project.update', $project->cis_row_id) }}" method="POST" class="space-y-5">
+            @csrf
+
+            {{-- Name --}}
+            <div>
+                <label class="cis-label" for="name">Projektname <span class="text-red-500">*</span></label>
+                <input type="text" id="name" name="name" class="cis-input w-full"
+                       value="{{ old('name', $project->name) }}" required>
+                @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
-        </div>
-    </div>
-    <div class="p-3">
-        oiawdjo 
-    </div>
-    
-</div>
 
+            {{-- Beschreibung --}}
+            <div>
+                <label class="cis-label" for="description">Beschreibung</label>
+                <textarea id="description" name="description" class="cis-input w-full" rows="3">{{ old('description', $project->description) }}</textarea>
+            </div>
+
+            {{-- Status + Kategorie --}}
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="cis-label" for="status_code">Status <span class="text-red-500">*</span></label>
+                    <select id="status_code" name="status_code" class="cis-input w-full" required>
+                        @foreach($statuses as $code => $meta)
+                            <option value="{{ $code }}"
+                                {{ old('status_code', $project->status_code) === $code ? 'selected' : '' }}>
+                                {{ $meta['label'] }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label class="cis-label" for="category_id">Kategorie</label>
+                    <x-cis-category-select type="project.category" name="category_id"
+                                           :value="old('category_id', $project->category_id)" />
+                </div>
+            </div>
+
+            {{-- Verantwortlicher --}}
+            <div>
+                <label class="cis-label">Verantwortliche(r)</label>
+                @livewire('project.assignee-search', [
+                    'assigneeType' => old('assignee_type', $project->assignee_type),
+                    'assigneeId'   => old('assignee_id',   $project->assignee_id),
+                ])
+                @error('assignee_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+
+            {{-- Auftraggeber + Jahr + Fälligkeit --}}
+            <div class="grid grid-cols-3 gap-4">
+                <div class="col-span-1">
+                    <label class="cis-label" for="client">Auftraggeber</label>
+                    <input type="text" id="client" name="client" class="cis-input w-full"
+                           value="{{ old('client', $project->client) }}">
+                </div>
+                <div>
+                    <label class="cis-label" for="tender_year">Ausschreibungsjahr</label>
+                    <input type="number" id="tender_year" name="tender_year" class="cis-input w-full"
+                           value="{{ old('tender_year', $project->tender_year) }}" min="2000" max="2100">
+                </div>
+                <div>
+                    <label class="cis-label" for="due_date">Fälligkeitsdatum</label>
+                    <input type="date" id="due_date" name="due_date" class="cis-input w-full"
+                           value="{{ old('due_date', $project->due_date?->format('Y-m-d')) }}">
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+                <button type="submit" class="btn btn-primary">Speichern</button>
+                <a href="{{ route('project') }}" class="btn btn-ghost">Zurück zur Liste</a>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection

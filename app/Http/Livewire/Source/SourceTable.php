@@ -8,7 +8,7 @@ use App\Models\ProductSource;
 class SourceTable extends Component
 {
 
-   public $searchString;
+    public $searchString;
     public $orderBy = 'name';
     public $orderDirection = 'ASC';
     protected $queryString = [

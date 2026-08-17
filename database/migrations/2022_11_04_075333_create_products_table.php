@@ -16,8 +16,6 @@ return new class extends Migration
         Schema::create('products', function (Blueprint $table) {
             $table->string('cis_row_id')->primary();
             $table->string('name');
-            $table->string('parent')->nullable()->key();
-            $table->boolean('price_from_childs')->default(1)->nullable();
             $table->softDeletes();
             $table->timestamps();
         });
