@@ -100,6 +100,20 @@
                 </div>
             </div>
 
+            {{-- Mindestbestellwert --}}
+            <div>
+                <label class="cis-label" for="min_order_value">Mindestbestellwert je Anbieter</label>
+                <div class="relative max-w-xs">
+                    <input type="number" step="0.01" min="0" id="min_order_value" name="min_order_value"
+                           class="cis-input w-full pr-8"
+                           placeholder="Globaler Standard"
+                           value="{{ old('min_order_value', $project->min_order_value) }}">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">€</span>
+                </div>
+                <p class="mt-1 text-xs text-gray-400">Leer lassen, um den globalen Standard aus den Einstellungen zu verwenden.</p>
+                @error('min_order_value')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+
             <div class="flex items-center gap-3 pt-2">
                 <button type="submit" class="btn btn-primary">Speichern</button>
                 <a href="{{ route('project') }}" class="btn btn-ghost">Zurück zur Liste</a>

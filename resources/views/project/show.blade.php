@@ -97,10 +97,27 @@
             <i class="fa fa-file-export mr-1.5"></i>
             Export
         </button>
+        <button type="button"
+                @click="tab = 'angebote'"
+                :class="tab === 'angebote' ? 'border-b-2 border-primary-600 text-primary-600 bg-white' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'"
+                class="px-4 py-2.5 text-sm font-medium transition-colors rounded-t-lg -mb-px">
+            <i class="fa fa-file-invoice-dollar mr-1.5"></i>
+            Angebote
+        </button>
+        <button type="button"
+                @click="tab = 'bestellung'"
+                :class="tab === 'bestellung' ? 'border-b-2 border-primary-600 text-primary-600 bg-white' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'"
+                class="px-4 py-2.5 text-sm font-medium transition-colors rounded-t-lg -mb-px">
+            <i class="fa fa-cart-shopping mr-1.5"></i>
+            Bestellung
+        </button>
     </div>
 
     {{-- Tab: Beladung --}}
     <div x-show="tab === 'beladung'" x-cloak>
+        <div class="flex justify-end mb-3">
+            @livewire('project.import-positions-from-project', ['projectId' => $project->cis_row_id])
+        </div>
         @livewire('project.project-product-manager', ['projectId' => $project->cis_row_id])
     </div>
 
@@ -146,6 +163,16 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    {{-- Tab: Angebote --}}
+    <div x-show="tab === 'angebote'" x-cloak>
+        @livewire('project.offer-comparison', ['projectId' => $project->cis_row_id])
+    </div>
+
+    {{-- Tab: Bestellung --}}
+    <div x-show="tab === 'bestellung'" x-cloak>
+        @livewire('project.award-manager', ['projectId' => $project->cis_row_id])
     </div>
 
 </div>

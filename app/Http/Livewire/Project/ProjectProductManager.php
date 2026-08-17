@@ -4,6 +4,7 @@ namespace App\Http\Livewire\Project;
 
 use App\Models\Product;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 class ProjectProductManager extends Component
@@ -14,6 +15,12 @@ class ProjectProductManager extends Component
     public function mount(string $projectId): void
     {
         $this->projectId = $projectId;
+    }
+
+    #[On('positions-imported')]
+    public function refresh(): void
+    {
+        // Löst lediglich ein Re-Render aus, damit importierte Positionen sichtbar werden.
     }
 
     public function render()

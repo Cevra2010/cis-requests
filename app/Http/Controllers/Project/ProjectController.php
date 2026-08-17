@@ -112,6 +112,7 @@ class ProjectController extends Controller
             'client'        => 'nullable|string|max:255',
             'tender_year'   => 'nullable|digits:4|integer|min:2000|max:2100',
             'due_date'      => 'nullable|date',
+            'min_order_value' => 'nullable|numeric|min:0',
         ]);
 
         if (empty($data['assignee_type']) || empty($data['assignee_id'])) {

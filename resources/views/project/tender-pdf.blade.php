@@ -127,6 +127,30 @@
         color: #d97706;
         margin-bottom: 3px;
     }
+
+    /* Materialliste (Tabelle) */
+    table.material-table { width: 100%; border-collapse: collapse; }
+    table.material-table th {
+        text-align: left;
+        font-size: 7pt;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #9ca3af;
+        border-bottom: 1px solid #d1d5db;
+        padding: 5px 6px;
+    }
+    table.material-table td {
+        padding: 7px 6px;
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 9.5pt;
+        vertical-align: top;
+    }
+    table.material-table td.col-pos { width: 28px; color: #9ca3af; }
+    table.material-table td.col-qty { width: 50px; text-align: center; color: #6b7280; }
+    table.material-table td.col-name { width: 26%; }
+    table.material-table tr.subproduct-row td.col-name { padding-left: 18px; color: #d97706; font-size: 8.5pt; }
+    table.material-table tr.subproduct-row td { border-bottom: 1px dashed #f3f4f6; }
 </style>
 </head>
 <body>
@@ -174,54 +198,84 @@
     @elseif($block->type === 'space')
     <div style="height: {{ (int)($block->config['height'] ?? 40) }}px;"></div>
 
-    @else
+    @elseif($block->type === 'properties')
     @php
-        $isProperties = $block->type === 'properties';
-        $showLabel    = $block->config['show_label'] ?? false;
-        $labelColor   = $isProperties ? '#059669' : '#d97706';
-        $nameClass    = $isProperties ? 'item-name-properties' : 'item-name-products';
+        $showLabel = $block->config['show_label'] ?? false;
     @endphp
     <div class="content-block">
 
         @if($showLabel)
-        <div class="block-section-label" style="color: {{ $labelColor }}">
-            {{ $isProperties ? 'Eigenschaften' : 'Produkte' }}
-        </div>
+        <div class="block-section-label" style="color: #059669">Eigenschaften</div>
         @endif
 
         @if(isset($block->resolvedItems))
         @foreach($block->resolvedItems as $item)
         <div class="item">
-            <div class="item-name {{ $nameClass }}">
-                @if(!$isProperties && $item->product_count > 1){{ $item->product_count }}× @endif
-                {{ $item->name }}
-                @if(!$isProperties && $item->note)
-                    <span class="item-note"> — {{ $item->note }}</span>
-                @endif
-            </div>
+            <div class="item-name item-name-properties">{{ $item->name }}</div>
             @if($item->text)
                 <div class="item-text">{{ $item->text }}</div>
             @else
                 <div class="item-empty">Kein Beschreibungstext vorhanden.</div>
             @endif
-
-            {{-- Unterprodukte --}}
-            @if(!$isProperties && $item->children->count())
-            <div class="subproducts">
-                @foreach($item->children as $child)
-                <div class="subproduct">
-                    <div class="subproduct-name">{{ $child->name }}</div>
-                    @if($child->text)
-                        <div class="item-text">{{ $child->text }}</div>
-                    @else
-                        <div class="item-empty">Kein Beschreibungstext vorhanden.</div>
-                    @endif
-                </div>
-                @endforeach
-            </div>
-            @endif
         </div>
         @endforeach
+        @endif
+
+    </div>
+    @else
+    @php
+        $showLabel = $block->config['show_label'] ?? false;
+    @endphp
+    <div class="content-block">
+
+        @if($showLabel)
+        <div class="block-section-label" style="color: #d97706">Materialliste</div>
+        @endif
+
+        @if(isset($block->resolvedItems) && $block->resolvedItems->count())
+        <table class="material-table">
+            <thead>
+                <tr>
+                    <th class="col-pos">Pos.</th>
+                    <th class="col-qty">Menge</th>
+                    <th class="col-name">Bezeichnung</th>
+                    <th>Beschreibung</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($block->resolvedItems as $item)
+                <tr>
+                    <td class="col-pos">{{ $loop->iteration }}</td>
+                    <td class="col-qty">{{ $item->product_count > 1 ? $item->product_count . '×' : '1×' }}</td>
+                    <td class="col-name">
+                        {{ $item->name }}
+                        @if($item->note)<div class="item-note">{{ $item->note }}</div>@endif
+                    </td>
+                    <td>
+                        @if($item->text)
+                            {{ $item->text }}
+                        @else
+                            <span class="item-empty">Kein Beschreibungstext vorhanden.</span>
+                        @endif
+                    </td>
+                </tr>
+                @foreach($item->children as $child)
+                <tr class="subproduct-row">
+                    <td class="col-pos"></td>
+                    <td class="col-qty"></td>
+                    <td class="col-name">{{ $child->name }}</td>
+                    <td>
+                        @if($child->text)
+                            {{ $child->text }}
+                        @else
+                            <span class="item-empty">Kein Beschreibungstext vorhanden.</span>
+                        @endif
+                    </td>
+                </tr>
+                @endforeach
+                @endforeach
+            </tbody>
+        </table>
         @endif
 
     </div>

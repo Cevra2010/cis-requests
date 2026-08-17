@@ -8,6 +8,7 @@ use App\Http\Controllers\Group\GroupController;
 use App\Http\Controllers\Price\PriceController;
 use App\Http\Controllers\Product\ProductController;
 use App\Http\Controllers\Project\ProjectController;
+use App\Http\Controllers\Project\OfferController;
 use App\Http\Controllers\Role\RoleController;
 use App\Http\Controllers\Source\SourceController;
 use App\Http\Controllers\User\UserController;
@@ -130,6 +131,9 @@ Route::middleware(['auth'])->group(function() {
     Route::post('/Project/{project}/Duplicate',      [ProjectController::class, 'duplicate']) ->name('project.duplicate');
     Route::delete('/Project/{project}',              [ProjectController::class, 'destroy'])   ->name('project.destroy');
     Route::get('/Project/{project}/Export/PDF',      [ProjectController::class, 'exportPdf']) ->name('project.export.pdf');
+
+    /** Angebote & Bestelllisten */
+    Route::get('/Project/{project}/Offers/{offer}/OrderList/PDF',[OfferController::class, 'exportOrderListPdf'])->name('offer.orderlist.pdf');
 
     /** Properties (Eigenschaften) */
     Route::get('/Properties',                        [PropertyController::class, 'index'])   ->name('property.index');

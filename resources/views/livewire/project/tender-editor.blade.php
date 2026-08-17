@@ -220,7 +220,7 @@
                 $focusClasses = $isProperties
                     ? 'focus:ring-emerald-200 focus:border-emerald-400 bg-emerald-50'
                     : 'focus:ring-amber-200 focus:border-amber-400 bg-amber-50';
-                $blockLabel   = $isProperties ? 'Eigenschaften' : 'Produkte';
+                $blockLabel   = $isProperties ? 'Eigenschaften' : 'Materialliste';
 
                 if ($isProperties) {
                     $allBlockItems = DB::table('project_property')
@@ -454,8 +454,11 @@
                              class="group">
 
                             <div class="flex items-baseline gap-2 mb-0.5">
+                                @if($isProducts)
+                                <span class="text-[10px] font-mono text-gray-300 tabular-nums">{{ $loop->iteration }}.</span>
+                                <span class="text-[10px] font-semibold text-gray-400 tabular-nums">{{ $item->product_count }}×</span>
+                                @endif
                                 <p class="text-[10px] font-bold uppercase tracking-[.12em] {{ $accentColor }}">
-                                    @if($isProducts && $item->product_count > 1){{ $item->product_count }}× @endif
                                     {{ $item->name }}
                                 </p>
                                 @if($isProducts && $item->note)

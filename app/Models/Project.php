@@ -22,10 +22,12 @@ class Project extends Model
         'client',
         'tender_year',
         'due_date',
+        'min_order_value',
     ];
 
     protected $casts = [
         'due_date' => 'date',
+        'min_order_value' => 'decimal:2',
     ];
 
     public const STATUSES = [
@@ -108,6 +110,22 @@ class Project extends Model
             'cis_row_id',
             'cis_row_id'
         );
+    }
+
+    public function positions()
+    {
+        return $this->hasMany(ProjectProduct::class, 'cis_row_id_project', 'cis_row_id')
+            ->orderBy('sort_order');
+    }
+
+    public function offers()
+    {
+        return $this->hasMany(Offer::class, 'cis_row_id_project', 'cis_row_id');
+    }
+
+    public function effectiveMinOrderValue(): float
+    {
+        return (float) ($this->min_order_value ?? Setting::get('default_min_order_value', 0));
     }
 
     // Legacy helpers kept for backwards compatibility
