@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use CisFoundation\CisMenuManager\MenuManager;
+use CisFoundation\CisPermissionManager\CisPermissionManager;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -12,6 +13,16 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerMainMenu();
+        $this->registerPermissions();
+    }
+
+    protected function registerPermissions(): void
+    {
+        CisPermissionManager::register(
+            'project.tender.override_lock',
+            'Fixierte Ausschreibung bearbeiten',
+            description: 'Erlaubt das Bearbeiten von Produkten und Ausschreibungstext, nachdem ein Projekt fixiert wurde.'
+        );
     }
 
     protected function registerMainMenu(): void
@@ -41,12 +52,6 @@ class AppServiceProvider extends ServiceProvider
             ->setRoute('source')
             ->setIcon('truck')
             ->setPriority(40);
-
-        $menu->registerEntry('property')
-            ->setText('Eigenschaften')
-            ->setRoute('property.index')
-            ->setIcon('list-check')
-            ->setPriority(45);
 
         $menu->registerEntry('price')
             ->setText('Preispflege')

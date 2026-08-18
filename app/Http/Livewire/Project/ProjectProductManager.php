@@ -2,13 +2,17 @@
 
 namespace App\Http\Livewire\Project;
 
+use App\Http\Livewire\Concerns\RespectsProjectLock;
 use App\Models\Product;
+use App\Models\Project;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
 class ProjectProductManager extends Component
 {
+    use RespectsProjectLock;
+
     public string $projectId;
     public string $search = '';
 
@@ -47,11 +51,18 @@ class ProjectProductManager extends Component
             ->orderBy('name')
             ->get(['cis_row_id', 'name']);
 
-        return view('livewire.project.project-product-manager', compact('assigned', 'available'));
+        $project = Project::where('cis_row_id', $this->projectId)->first();
+        $canEdit = $project?->isEditableBy(auth()->user()) ?? true;
+
+        return view('livewire.project.project-product-manager', compact('assigned', 'available', 'canEdit'));
     }
 
     public function add(string $productId): void
     {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
         $alreadyAdded = DB::table('project_product')
             ->where('cis_row_id_project', $this->projectId)
             ->where('cis_row_id_product', $productId)
@@ -65,19 +76,21 @@ class ProjectProductManager extends Component
             ->where('cis_row_id_project', $this->projectId)
             ->max('sort_order') ?? 0;
 
-        DB::table('project_product')->insert([
+        \App\Models\ProjectProduct::create([
             'cis_row_id_project' => $this->projectId,
             'cis_row_id_product' => $productId,
             'product_count'      => 1,
             'note'               => null,
             'sort_order'         => (int) $maxOrder + 1,
-            'created_at'         => now(),
-            'updated_at'         => now(),
         ]);
     }
 
     public function remove(string $productId): void
     {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
         DB::table('project_product')
             ->where('cis_row_id_project', $this->projectId)
             ->where('cis_row_id_product', $productId)
@@ -96,6 +109,10 @@ class ProjectProductManager extends Component
 
     public function updateCount(string $productId, $value): void
     {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
         DB::table('project_product')
             ->where('cis_row_id_project', $this->projectId)
             ->where('cis_row_id_product', $productId)
@@ -104,6 +121,10 @@ class ProjectProductManager extends Component
 
     public function updateNote(string $productId, string $value): void
     {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
         DB::table('project_product')
             ->where('cis_row_id_project', $this->projectId)
             ->where('cis_row_id_product', $productId)
@@ -112,6 +133,10 @@ class ProjectProductManager extends Component
 
     private function swapOrder(string $productId, string $direction): void
     {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
         $items = DB::table('project_product')
             ->where('cis_row_id_project', $this->projectId)
             ->orderBy('sort_order')

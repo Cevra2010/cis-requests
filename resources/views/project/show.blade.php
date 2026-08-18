@@ -11,6 +11,10 @@
     </a>
 @endsection
 
+@php
+    $canOverrideLock = auth()->user()?->hasPermission(\App\Models\Project::OVERRIDE_LOCK_PERMISSION, $project->cis_row_id) ?? false;
+@endphp
+
 @section('content')
 
 {{-- Project header --}}
@@ -28,11 +32,45 @@
                 @if($project->tender_year)
                     <span class="text-xs text-gray-400">Ausschreibung {{ $project->tender_year }}</span>
                 @endif
+                @if($project->isLocked())
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">
+                        <i class="fa fa-lock"></i> Fixiert
+                    </span>
+                @endif
             </div>
             <h1 class="text-xl font-semibold text-gray-900">{{ $project->name }}</h1>
             @if($project->description)
                 <p class="mt-1 text-sm text-gray-500">{{ $project->description }}</p>
             @endif
+
+            <div class="mt-3">
+                @if(!$project->isLocked())
+                    <form method="POST" action="{{ route('project.lock', $project->cis_row_id) }}"
+                          onsubmit="return confirm('Ausschreibung fixieren? Produkte und Ausschreibungstext können danach nur noch mit erweiterten Rechten geändert werden.')">
+                        @csrf
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="fa fa-lock mr-1.5"></i> Ausschreibung fixieren
+                        </button>
+                    </form>
+                @else
+                    <p class="text-xs text-gray-400">
+                        Fixiert am {{ $project->tender_locked_at->format('d.m.Y H:i') }}
+                        @if($project->lockedByUser())
+                            von {{ $project->lockedByUser()->name() }}
+                        @endif
+                    </p>
+                    @if($canOverrideLock)
+                        <form method="POST" action="{{ route('project.unlock', $project->cis_row_id) }}"
+                              class="mt-1.5"
+                              onsubmit="return confirm('Fixierung aufheben? Produkte und Ausschreibungstext sind danach wieder für alle bearbeitbar.')">
+                            @csrf
+                            <button type="submit" class="btn btn-ghost btn-sm">
+                                <i class="fa fa-lock-open mr-1.5"></i> Entsperren
+                            </button>
+                        </form>
+                    @endif
+                @endif
+            </div>
         </div>
 
         <dl class="grid grid-cols-2 gap-x-8 gap-y-2 text-sm shrink-0">
@@ -65,7 +103,7 @@
 </div>
 
 {{-- Tabs --}}
-<div x-data="{ tab: '{{ request('tab', 'ausschreibung') }}' }">
+<div x-data="{ tab: '{{ request('tab', $project->isLocked() ? 'angebote' : 'ausschreibung') }}' }">
 
     {{-- Tab bar --}}
     <div class="flex gap-1 border-b border-gray-200 mb-5">
@@ -74,14 +112,7 @@
                 :class="tab === 'beladung' ? 'border-b-2 border-primary-600 text-primary-600 bg-white' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'"
                 class="px-4 py-2.5 text-sm font-medium transition-colors rounded-t-lg -mb-px">
             <i class="fa fa-boxes-stacked mr-1.5"></i>
-            Beladung
-        </button>
-        <button type="button"
-                @click="tab = 'eigenschaften'"
-                :class="tab === 'eigenschaften' ? 'border-b-2 border-primary-600 text-primary-600 bg-white' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'"
-                class="px-4 py-2.5 text-sm font-medium transition-colors rounded-t-lg -mb-px">
-            <i class="fa fa-list-check mr-1.5"></i>
-            Eigenschaften
+            Produkte
         </button>
         <button type="button"
                 @click="tab = 'ausschreibung'"
@@ -97,6 +128,7 @@
             <i class="fa fa-file-export mr-1.5"></i>
             Export
         </button>
+        @if($project->isLocked())
         <button type="button"
                 @click="tab = 'angebote'"
                 :class="tab === 'angebote' ? 'border-b-2 border-primary-600 text-primary-600 bg-white' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'"
@@ -111,27 +143,15 @@
             <i class="fa fa-cart-shopping mr-1.5"></i>
             Bestellung
         </button>
+        @endif
     </div>
 
-    {{-- Tab: Beladung --}}
+    {{-- Tab: Produkte --}}
     <div x-show="tab === 'beladung'" x-cloak>
         <div class="flex justify-end mb-3">
             @livewire('project.import-positions-from-project', ['projectId' => $project->cis_row_id])
         </div>
         @livewire('project.project-product-manager', ['projectId' => $project->cis_row_id])
-    </div>
-
-    {{-- Tab: Eigenschaften --}}
-    <div x-show="tab === 'eigenschaften'" x-cloak>
-        <div class="cis-card">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-base font-semibold text-gray-800">Fahrzeugeigenschaften</h2>
-                <a href="{{ route('property.index') }}" class="text-xs text-primary-600 hover:underline">
-                    <i class="fa fa-cog mr-1"></i>Globale Eigenschaften verwalten
-                </a>
-            </div>
-            @livewire('project.property-manager', ['projectId' => $project->cis_row_id])
-        </div>
     </div>
 
     {{-- Tab: Ausschreibung --}}
@@ -165,6 +185,7 @@
         </div>
     </div>
 
+    @if($project->isLocked())
     {{-- Tab: Angebote --}}
     <div x-show="tab === 'angebote'" x-cloak>
         @livewire('project.offer-comparison', ['projectId' => $project->cis_row_id])
@@ -174,6 +195,7 @@
     <div x-show="tab === 'bestellung'" x-cloak>
         @livewire('project.award-manager', ['projectId' => $project->cis_row_id])
     </div>
+    @endif
 
 </div>
 

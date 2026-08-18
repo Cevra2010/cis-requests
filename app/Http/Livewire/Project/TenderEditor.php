@@ -2,7 +2,9 @@
 
 namespace App\Http\Livewire\Project;
 
+use App\Http\Livewire\Concerns\RespectsProjectLock;
 use App\Models\ProductDescription;
+use App\Models\Project;
 use App\Models\ProjectTenderBlock;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -10,6 +12,8 @@ use Livewire\Component;
 
 class TenderEditor extends Component
 {
+    use RespectsProjectLock;
+
     public string $projectId;
 
     public function mount(string $projectId): void
@@ -25,13 +29,20 @@ class TenderEditor extends Component
 
         $validation = $this->computeValidation($blocks);
 
-        return view('livewire.project.tender-editor', compact('blocks', 'validation'));
+        $project = Project::where('cis_row_id', $this->projectId)->first();
+        $canEdit = $project?->isEditableBy(auth()->user()) ?? true;
+
+        return view('livewire.project.tender-editor', compact('blocks', 'validation', 'canEdit'));
     }
 
     // ── Block management ──────────────────────────────────────────────────────
 
     public function addBlock(string $type): void
     {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
         $maxOrder = ProjectTenderBlock::where('cis_row_id_project', $this->projectId)
             ->max('sort_order') ?? 0;
 
@@ -50,6 +61,10 @@ class TenderEditor extends Component
 
     public function addBlockAt(string $type, int $position): void
     {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
         $blocks = ProjectTenderBlock::where('cis_row_id_project', $this->projectId)
             ->orderBy('sort_order')
             ->get();
@@ -74,6 +89,10 @@ class TenderEditor extends Component
 
     public function toggleBlockLabel(string $blockId): void
     {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
         $block = ProjectTenderBlock::where('cis_row_id', $blockId)
             ->where('cis_row_id_project', $this->projectId)
             ->firstOrFail();
@@ -86,6 +105,10 @@ class TenderEditor extends Component
 
     public function removeBlock(string $blockId): void
     {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
         ProjectTenderBlock::where('cis_row_id', $blockId)
             ->where('cis_row_id_project', $this->projectId)
             ->delete();
@@ -93,6 +116,10 @@ class TenderEditor extends Component
 
     public function copyBlock(string $blockId): void
     {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
         $original = ProjectTenderBlock::where('cis_row_id', $blockId)
             ->where('cis_row_id_project', $this->projectId)
             ->firstOrFail();
@@ -110,6 +137,10 @@ class TenderEditor extends Component
 
     public function reorder(array $orderedIds): void
     {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
         foreach ($orderedIds as $index => $id) {
             ProjectTenderBlock::where('cis_row_id', $id)
                 ->where('cis_row_id_project', $this->projectId)
@@ -131,6 +162,10 @@ class TenderEditor extends Component
 
     public function updateHeadingText(string $blockId, string $text): void
     {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
         $block = ProjectTenderBlock::where('cis_row_id', $blockId)
             ->where('cis_row_id_project', $this->projectId)
             ->firstOrFail();
@@ -140,6 +175,10 @@ class TenderEditor extends Component
 
     public function updateTextBlock(string $blockId, string $text): void
     {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
         $block = ProjectTenderBlock::where('cis_row_id', $blockId)
             ->where('cis_row_id_project', $this->projectId)
             ->firstOrFail();
@@ -149,6 +188,10 @@ class TenderEditor extends Component
 
     public function updateSpaceHeight(string $blockId, int $height): void
     {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
         $block = ProjectTenderBlock::where('cis_row_id', $blockId)
             ->where('cis_row_id_project', $this->projectId)
             ->firstOrFail();
@@ -156,16 +199,12 @@ class TenderEditor extends Component
         $block->update(['config' => ['height' => max(10, min(400, $height))]]);
     }
 
-    public function updatePropertyDescription(string $propertyId, string $text): void
-    {
-        DB::table('project_property')
-            ->where('cis_row_id_project', $this->projectId)
-            ->where('cis_row_id_property', $propertyId)
-            ->update(['custom_description' => $text ?: null, 'updated_at' => now()]);
-    }
-
     public function updateProductDescription(string $productId, string $text): void
     {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
         $existing = DB::table('product_descriptions')
             ->where('cis_row_id_product', $productId)
             ->whereNull('deleted_at')
@@ -186,11 +225,15 @@ class TenderEditor extends Component
     // ── Per-block item selection ───────────────────────────────────────────────
 
     /**
-     * Toggle a parent item (property or product) in/out of a block's selection.
+     * Toggle a parent item (product) in/out of a block's selection.
      * null config['selected'] = "all items" (implicit).
      */
     public function toggleBlockItem(string $blockId, string $itemId): void
     {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
         $block = ProjectTenderBlock::where('cis_row_id', $blockId)
             ->where('cis_row_id_project', $this->projectId)
             ->firstOrFail();
@@ -199,7 +242,7 @@ class TenderEditor extends Component
         $selected = $config['selected'] ?? null;
 
         if ($selected === null) {
-            $allIds   = $this->getAllItemIds($block->type);
+            $allIds   = $this->getAllItemIds();
             $selected = array_values(array_filter($allIds, fn($id) => $id !== $itemId));
         } else {
             if (in_array($itemId, $selected, true)) {
@@ -218,6 +261,10 @@ class TenderEditor extends Component
      */
     public function toggleChildItem(string $blockId, string $childId): void
     {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
         $block = ProjectTenderBlock::where('cis_row_id', $blockId)
             ->where('cis_row_id_project', $this->projectId)
             ->firstOrFail();
@@ -238,11 +285,6 @@ class TenderEditor extends Component
 
     private function computeValidation(Collection $blocks): array
     {
-        $allPropIds = DB::table('project_property')
-            ->where('cis_row_id_project', $this->projectId)
-            ->pluck('cis_row_id_property')
-            ->toArray();
-
         $allProdIds = DB::table('project_product')
             ->join('products', 'project_product.cis_row_id_product', '=', 'products.cis_row_id')
             ->where('project_product.cis_row_id_project', $this->projectId)
@@ -250,29 +292,17 @@ class TenderEditor extends Component
             ->pluck('project_product.cis_row_id_product')
             ->toArray();
 
-        $coveredPropIds = [];
         $coveredProdIds = [];
 
         foreach ($blocks as $block) {
-            $selected = $block->config['selected'] ?? null;
-
-            if ($block->type === 'properties') {
-                $coveredPropIds = array_merge($coveredPropIds, $selected ?? $allPropIds);
-            } elseif ($block->type === 'products') {
+            if ($block->type === 'products') {
+                $selected       = $block->config['selected'] ?? null;
                 $coveredProdIds = array_merge($coveredProdIds, $selected ?? $allProdIds);
             }
         }
 
-        $coveredPropIds = array_unique($coveredPropIds);
         $coveredProdIds = array_unique($coveredProdIds);
-
-        $missingPropIds = array_diff($allPropIds, $coveredPropIds);
         $missingProdIds = array_diff($allProdIds, $coveredProdIds);
-
-        $missingPropNames = DB::table('properties')
-            ->whereIn('cis_row_id', $missingPropIds)
-            ->pluck('name')
-            ->toArray();
 
         $missingProdNames = DB::table('products')
             ->whereIn('cis_row_id', $missingProdIds)
@@ -280,27 +310,17 @@ class TenderEditor extends Component
             ->toArray();
 
         return [
-            'total_props'   => count($allPropIds),
-            'covered_props' => count($coveredPropIds),
-            'missing_props' => $missingPropNames,
             'total_prods'   => count($allProdIds),
             'covered_prods' => count($coveredProdIds),
             'missing_prods' => $missingProdNames,
-            'all_ok'        => empty($missingPropIds) && empty($missingProdIds),
+            'all_ok'        => empty($missingProdIds),
         ];
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private function getAllItemIds(string $blockType): array
+    private function getAllItemIds(): array
     {
-        if ($blockType === 'properties') {
-            return DB::table('project_property')
-                ->where('cis_row_id_project', $this->projectId)
-                ->pluck('cis_row_id_property')
-                ->toArray();
-        }
-
         return DB::table('project_product')
             ->join('products', 'project_product.cis_row_id_product', '=', 'products.cis_row_id')
             ->where('project_product.cis_row_id_project', $this->projectId)
@@ -321,6 +341,10 @@ class TenderEditor extends Component
 
     private function swapBlocks(string $blockId, string $direction): void
     {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
         $blocks = ProjectTenderBlock::where('cis_row_id_project', $this->projectId)
             ->orderBy('sort_order')
             ->get();

@@ -28,7 +28,10 @@ class Project extends Model
     protected $casts = [
         'due_date' => 'date',
         'min_order_value' => 'decimal:2',
+        'tender_locked_at' => 'datetime',
     ];
+
+    public const OVERRIDE_LOCK_PERMISSION = 'project.tender.override_lock';
 
     public const STATUSES = [
         'draft'     => ['label' => 'Entwurf',        'color' => 'gray'],
@@ -82,18 +85,6 @@ class Project extends Model
         return $a->name ?? '–';
     }
 
-    public function properties()
-    {
-        return $this->belongsToMany(
-            Property::class,
-            'project_property',
-            'cis_row_id_project',
-            'cis_row_id_property',
-            'cis_row_id',
-            'cis_row_id'
-        )->withPivot(['custom_description', 'sort_order']);
-    }
-
     public function tenderBlocks()
     {
         return $this->hasMany(ProjectTenderBlock::class, 'cis_row_id_project', 'cis_row_id')
@@ -126,6 +117,43 @@ class Project extends Model
     public function effectiveMinOrderValue(): float
     {
         return (float) ($this->min_order_value ?? Setting::get('default_min_order_value', 0));
+    }
+
+    // ── Ausschreibungs-Fixierung ─────────────────────────────────────────────
+
+    public function isLocked(): bool
+    {
+        return $this->tender_locked_at !== null;
+    }
+
+    public function lockedByUser(): ?User
+    {
+        return $this->tender_locked_by ? User::find($this->tender_locked_by) : null;
+    }
+
+    public function lock(User $user): void
+    {
+        $this->forceFill([
+            'tender_locked_at' => now(),
+            'tender_locked_by' => $user->cis_row_id,
+        ])->save();
+    }
+
+    public function unlock(): void
+    {
+        $this->forceFill([
+            'tender_locked_at' => null,
+            'tender_locked_by' => null,
+        ])->save();
+    }
+
+    /** Darf $user Produkte/Ausschreibungstext dieses Projekts aktuell bearbeiten? */
+    public function isEditableBy(?User $user): bool
+    {
+        if (! $this->isLocked()) {
+            return true;
+        }
+        return $user?->hasPermission(self::OVERRIDE_LOCK_PERMISSION, $this->cis_row_id) ?? false;
     }
 
     // Legacy helpers kept for backwards compatibility

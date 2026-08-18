@@ -67,7 +67,7 @@
     }
     .heading-rule { height: 1px; background: #d1d5db; }
 
-    /* Properties / Products */
+    /* Materialliste */
     .content-block { padding: 24px 0; }
     .block-section-label {
         font-size: 7pt;
@@ -76,25 +76,6 @@
         letter-spacing: 0.12em;
         margin-bottom: 16px;
     }
-    .block-section-rule {
-        display: inline-block;
-        width: 100%;
-        height: 1px;
-        background: #f3f4f6;
-        vertical-align: middle;
-    }
-
-    /* Item */
-    .item { margin-bottom: 22px; page-break-inside: avoid; }
-    .item-name {
-        font-size: 7.5pt;
-        font-weight: bold;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        margin-bottom: 4px;
-    }
-    .item-name-properties { color: #059669; }
-    .item-name-products   { color: #d97706; }
     .item-text {
         font-size: 10pt;
         color: #374151;
@@ -109,23 +90,6 @@
         font-size: 9pt;
         color: #9ca3af;
         font-style: italic;
-    }
-
-    /* Sub-products */
-    .subproducts {
-        margin-top: 12px;
-        margin-left: 14px;
-        padding-left: 10px;
-        border-left: 2px solid #fde68a;
-    }
-    .subproduct { margin-bottom: 14px; page-break-inside: avoid; }
-    .subproduct-name {
-        font-size: 7pt;
-        font-weight: bold;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: #d97706;
-        margin-bottom: 3px;
     }
 
     /* Materialliste (Tabelle) */
@@ -198,30 +162,6 @@
     @elseif($block->type === 'space')
     <div style="height: {{ (int)($block->config['height'] ?? 40) }}px;"></div>
 
-    @elseif($block->type === 'properties')
-    @php
-        $showLabel = $block->config['show_label'] ?? false;
-    @endphp
-    <div class="content-block">
-
-        @if($showLabel)
-        <div class="block-section-label" style="color: #059669">Eigenschaften</div>
-        @endif
-
-        @if(isset($block->resolvedItems))
-        @foreach($block->resolvedItems as $item)
-        <div class="item">
-            <div class="item-name item-name-properties">{{ $item->name }}</div>
-            @if($item->text)
-                <div class="item-text">{{ $item->text }}</div>
-            @else
-                <div class="item-empty">Kein Beschreibungstext vorhanden.</div>
-            @endif
-        </div>
-        @endforeach
-        @endif
-
-    </div>
     @else
     @php
         $showLabel = $block->config['show_label'] ?? false;

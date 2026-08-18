@@ -28,7 +28,7 @@
                 <label class="cis-label" for="name">Produktname <span class="text-red-500">*</span></label>
                 <input type="text" id="name" name="name" class="cis-input w-full"
                        value="{{ old('name') }}" required
-                       placeholder="{{ $parent ? 'z.B. Pumpe PN 10-2000' : 'z.B. HLF 20 – Staffellöschfahrzeug' }}">
+                       placeholder="{{ $parent ? 'z.B. Pumpe PN 10-2000' : 'z.B. Hohlstrahlrohr C' }}">
                 @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
 

@@ -75,24 +75,28 @@
             <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Inhaltsverzeichnis</p>
         </div>
 
+        @unless($canEdit)
+        <div class="mx-3 mt-3 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-700 flex items-start gap-1.5">
+            <i class="fa fa-lock mt-0.5"></i>
+            <span>Ausschreibung fixiert – nur noch lesbar.</span>
+        </div>
+        @endunless
+
         {{-- Sortierbare Block-Liste --}}
         <div class="flex-1 overflow-y-auto py-2 px-2" x-ref="tocList">
             @forelse($blocks as $block)
             @php
                 $tocIsHeading    = $block->type === 'heading';
-                $tocIsProperties = $block->type === 'properties';
                 $tocIsText       = $block->type === 'text';
                 $tocIsSpace      = $block->type === 'space';
                 $tocBlockSelected = $block->config['selected'] ?? null;
 
-                $tocIcon  = $tocIsHeading    ? 'fa-heading'
-                          : ($tocIsText       ? 'fa-align-left'
-                          : ($tocIsSpace      ? 'fa-arrows-up-down'
-                          : ($tocIsProperties ? 'fa-list-check' : 'fa-boxes-stacked')));
-                $tocColor = $tocIsHeading    ? 'text-indigo-500'
-                          : ($tocIsText       ? 'text-violet-500'
-                          : ($tocIsSpace      ? 'text-gray-400'
-                          : ($tocIsProperties ? 'text-emerald-500' : 'text-amber-500')));
+                $tocIcon  = $tocIsHeading ? 'fa-heading'
+                          : ($tocIsText    ? 'fa-align-left'
+                          : ($tocIsSpace   ? 'fa-arrows-up-down' : 'fa-boxes-stacked'));
+                $tocColor = $tocIsHeading ? 'text-indigo-500'
+                          : ($tocIsText    ? 'text-violet-500'
+                          : ($tocIsSpace   ? 'text-gray-400' : 'text-amber-500'));
 
                 $rawText  = $block->config['text'] ?? '';
                 $tocLabel = $tocIsHeading
@@ -101,16 +105,14 @@
                         ? (Str::limit(strip_tags($rawText), 28) ?: 'Textblock')
                         : ($tocIsSpace
                             ? (($block->config['height'] ?? 40) . ' px Abstand')
-                            : ($tocIsProperties ? 'Eigenschaften' : 'Produkte')));
+                            : 'Produkte'));
 
                 if (!$tocIsHeading && !$tocIsText && !$tocIsSpace) {
-                    $tocTotal = $tocIsProperties
-                        ? DB::table('project_property')->where('cis_row_id_project', $projectId)->count()
-                        : DB::table('project_product')
-                            ->join('products', 'project_product.cis_row_id_product', '=', 'products.cis_row_id')
-                            ->where('project_product.cis_row_id_project', $projectId)
-                            ->whereNull('products.deleted_at')
-                            ->count();
+                    $tocTotal = DB::table('project_product')
+                        ->join('products', 'project_product.cis_row_id_product', '=', 'products.cis_row_id')
+                        ->where('project_product.cis_row_id_project', $projectId)
+                        ->whereNull('products.deleted_at')
+                        ->count();
                     $tocShown = $tocBlockSelected === null ? $tocTotal : count($tocBlockSelected);
                 }
             @endphp
@@ -120,9 +122,11 @@
                  class="flex items-center gap-2 px-2 py-2 rounded-lg mb-0.5 select-none
                         hover:bg-white hover:shadow-sm transition-all"
                  @click.stop="scrollTo('{{ $block->cis_row_id }}')"
-                 @contextmenu.prevent.stop="showCtx($event, '{{ $block->cis_row_id }}')">
+                 @contextmenu.prevent.stop="{{ $canEdit ? "showCtx(\$event, '{$block->cis_row_id}')" : '' }}">
 
+                @if($canEdit)
                 <i class="fa fa-grip-vertical drag-handle text-gray-300 hover:text-gray-500 text-xs cursor-grab active:cursor-grabbing shrink-0"></i>
+                @endif
                 <i class="fa {{ $tocIcon }} {{ $tocColor }} text-xs shrink-0"></i>
                 <span class="text-xs text-gray-700 truncate flex-1 leading-snug">{{ $tocLabel }}</span>
                 @if(!$tocIsHeading && !$tocIsText && !$tocIsSpace)
@@ -135,6 +139,7 @@
         </div>
 
         {{-- Palette: Blöcke per Drag & Drop hinzufügen --}}
+        @if($canEdit)
         <div class="border-t border-gray-200 p-3">
             <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 px-1 mb-2">Hinzufügen (ziehen)</p>
             <div x-ref="palette" class="space-y-1.5">
@@ -144,13 +149,6 @@
                     <i class="fa fa-grip-vertical text-indigo-300 text-[10px]"></i>
                     <i class="fa fa-heading text-[10px]"></i>
                     Überschrift
-                </div>
-                <div data-block-type="properties"
-                     class="flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium
-                            text-emerald-600 bg-emerald-50 hover:bg-emerald-100 cursor-grab active:cursor-grabbing select-none transition-colors">
-                    <i class="fa fa-grip-vertical text-emerald-300 text-[10px]"></i>
-                    <i class="fa fa-list-check text-[10px]"></i>
-                    Eigenschaften
                 </div>
                 <div data-block-type="products"
                      class="flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium
@@ -175,10 +173,11 @@
                 </div>
             </div>
         </div>
+        @endif
 
         {{-- Validierungs-Status --}}
         <div class="border-t border-gray-200 px-4 py-2.5 text-xs">
-            @if($validation['total_props'] + $validation['total_prods'] === 0)
+            @if($validation['total_prods'] === 0)
                 <span class="text-gray-400 italic">Keine Elemente im Projekt.</span>
             @elseif($validation['all_ok'])
                 <span class="text-emerald-600 flex items-center gap-1.5">
@@ -187,7 +186,7 @@
             @else
                 <span class="text-amber-600 flex items-center gap-1.5">
                     <i class="fa fa-triangle-exclamation"></i>
-                    {{ count($validation['missing_props']) + count($validation['missing_prods']) }} nicht abgedeckt
+                    {{ count($validation['missing_prods']) }} nicht abgedeckt
                 </span>
             @endif
         </div>
@@ -211,30 +210,15 @@
             @foreach($blocks as $block)
             @php
                 $isHeading    = $block->type === 'heading';
-                $isProperties = $block->type === 'properties';
                 $isProducts   = $block->type === 'products';
                 $blockSelected = $block->config['selected'] ?? null;
                 $showLabel    = $block->config['show_label'] ?? false;
 
-                $accentColor  = $isProperties ? 'text-emerald-600' : 'text-amber-600';
-                $focusClasses = $isProperties
-                    ? 'focus:ring-emerald-200 focus:border-emerald-400 bg-emerald-50'
-                    : 'focus:ring-amber-200 focus:border-amber-400 bg-amber-50';
-                $blockLabel   = $isProperties ? 'Eigenschaften' : 'Materialliste';
+                $accentColor  = 'text-amber-600';
+                $focusClasses = 'focus:ring-amber-200 focus:border-amber-400 bg-amber-50';
+                $blockLabel   = 'Materialliste';
 
-                if ($isProperties) {
-                    $allBlockItems = DB::table('project_property')
-                        ->join('properties', 'project_property.cis_row_id_property', '=', 'properties.cis_row_id')
-                        ->where('project_property.cis_row_id_project', $projectId)
-                        ->whereNull('properties.deleted_at')
-                        ->orderBy('project_property.sort_order')
-                        ->select('properties.cis_row_id', 'properties.name', 'properties.description',
-                                 'project_property.custom_description')
-                        ->get();
-                    $shownItems = $blockSelected === null
-                        ? $allBlockItems
-                        : $allBlockItems->filter(fn($i) => in_array($i->cis_row_id, $blockSelected));
-                } elseif ($isProducts) {
+                if ($isProducts) {
                     $allBlockItems = DB::table('project_product')
                         ->join('products', 'project_product.cis_row_id_product', '=', 'products.cis_row_id')
                         ->where('project_product.cis_row_id_project', $projectId)
@@ -335,7 +319,7 @@
                     </div>
                 </div>
 
-                {{-- ── Eigenschaften / Produkte ───────────────────────── --}}
+                {{-- ── Materialliste ───────────────────────────────────── --}}
                 @else
                 <div class="py-2">
 
@@ -350,15 +334,17 @@
                         @endif
 
                         {{-- Label ein-/ausblenden --}}
+                        @if($canEdit)
                         <button type="button"
                                 wire:click="toggleBlockLabel('{{ $block->cis_row_id }}')"
                                 title="{{ $showLabel ? 'Abschnittsüberschrift ausblenden' : 'Abschnittsüberschrift einblenden' }}"
                                 class="text-xs transition-colors {{ $showLabel ? 'text-gray-500 hover:text-gray-700' : 'text-gray-300 hover:text-gray-500' }}">
                             <i class="fa {{ $showLabel ? 'fa-eye' : 'fa-eye-slash' }}"></i>
                         </button>
+                        @endif
 
                         {{-- Item-Auswahl-Dropdown --}}
-                        @if(isset($allBlockItems) && $allBlockItems->count())
+                        @if($canEdit && isset($allBlockItems) && $allBlockItems->count())
                         <div x-data="{ open: false, search: '' }"
                              wire:key="dd-{{ $block->cis_row_id }}"
                              class="relative">
@@ -399,15 +385,13 @@
                                             x-show="!search || '{{ addslashes(strtolower($item->name)) }}'.includes(search.toLowerCase())"
                                             class="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-gray-50 transition-colors">
                                         <span class="w-4 h-4 rounded border flex items-center justify-center shrink-0
-                                                     {{ $isChecked
-                                                         ? ($isProperties ? 'bg-emerald-500 border-emerald-500' : 'bg-amber-500 border-amber-500')
-                                                         : 'border-gray-300 bg-white' }}">
+                                                     {{ $isChecked ? 'bg-amber-500 border-amber-500' : 'border-gray-300 bg-white' }}">
                                             @if($isChecked)
                                                 <i class="fa fa-check text-white" style="font-size:8px"></i>
                                             @endif
                                         </span>
                                         <span class="text-xs truncate {{ $isChecked ? 'text-gray-800 font-medium' : 'text-gray-400' }}">
-                                            @if($isProducts && $item->product_count > 1)
+                                            @if($item->product_count > 1)
                                                 <span class="font-bold mr-1">{{ $item->product_count }}×</span>
                                             @endif
                                             {{ $item->name }}
@@ -425,28 +409,19 @@
                     <div class="space-y-3">
                         @foreach($shownItems as $item)
                         @php
-                            if ($isProperties) {
-                                $txt      = $item->custom_description ?? $item->description ?? '';
-                                $rowKey   = "p-{$block->cis_row_id}-{$item->cis_row_id}";
-                                $isCustom = !empty($item->custom_description);
-                                $phText   = $item->description ?? 'Ausschreibungstext eingeben…';
-                                $children = collect();
-                            } else {
-                                $descRow  = DB::table('product_descriptions')
-                                    ->where('cis_row_id_product', $item->cis_row_id)
-                                    ->whereNull('deleted_at')->first();
-                                $txt      = $descRow?->text ?? '';
-                                $rowKey   = "pr-{$block->cis_row_id}-{$item->cis_row_id}";
-                                $isCustom = false;
-                                $phText   = 'Ausschreibungstext für ' . $item->name . '…';
-                                $excludedChildren = $block->config['excluded_children'] ?? [];
-                                $children = DB::table('product_child')
-                                    ->join('products', 'product_child.cis_row_id_child', '=', 'products.cis_row_id')
-                                    ->where('product_child.cis_row_id_parent', $item->cis_row_id)
-                                    ->whereNull('products.deleted_at')
-                                    ->select('products.cis_row_id', 'products.name')
-                                    ->get();
-                            }
+                            $descRow  = DB::table('product_descriptions')
+                                ->where('cis_row_id_product', $item->cis_row_id)
+                                ->whereNull('deleted_at')->first();
+                            $txt      = $descRow?->text ?? '';
+                            $rowKey   = "pr-{$block->cis_row_id}-{$item->cis_row_id}";
+                            $phText   = 'Ausschreibungstext für ' . $item->name . '…';
+                            $excludedChildren = $block->config['excluded_children'] ?? [];
+                            $children = DB::table('product_child')
+                                ->join('products', 'product_child.cis_row_id_child', '=', 'products.cis_row_id')
+                                ->where('product_child.cis_row_id_parent', $item->cis_row_id)
+                                ->whereNull('products.deleted_at')
+                                ->select('products.cis_row_id', 'products.name')
+                                ->get();
                         @endphp
 
                         <div wire:key="{{ $rowKey }}"
@@ -454,18 +429,13 @@
                              class="group">
 
                             <div class="flex items-baseline gap-2 mb-0.5">
-                                @if($isProducts)
                                 <span class="text-[10px] font-mono text-gray-300 tabular-nums">{{ $loop->iteration }}.</span>
                                 <span class="text-[10px] font-semibold text-gray-400 tabular-nums">{{ $item->product_count }}×</span>
-                                @endif
                                 <p class="text-[10px] font-bold uppercase tracking-[.12em] {{ $accentColor }}">
                                     {{ $item->name }}
                                 </p>
-                                @if($isProducts && $item->note)
+                                @if($item->note)
                                     <span class="text-xs text-gray-400 italic">— {{ $item->note }}</span>
-                                @endif
-                                @if($isCustom)
-                                    <span class="text-[9px] text-amber-500 italic">angepasst</span>
                                 @endif
                             </div>
 
@@ -475,19 +445,21 @@
                                 @else
                                     <p class="text-sm text-gray-400 italic">Kein Beschreibungstext vorhanden.</p>
                                 @endif
+                                @if($canEdit)
                                 <button type="button"
                                         @click="editing = true"
                                         class="mt-1.5 text-[11px] text-gray-300 hover:text-gray-600 transition-colors
                                                opacity-0 group-hover:opacity-100">
                                     <i class="fa fa-pencil mr-1"></i>Bearbeiten
                                 </button>
+                                @endif
                             </div>
 
                             <div x-show="editing" style="display:none">
                                 <textarea x-ref="ta"
                                           x-effect="editing && $nextTick(() => { const t=$refs.ta; t.focus(); t.style.height='auto'; t.style.height=t.scrollHeight+'px' })"
                                           @blur="editing = false"
-                                          wire:change="{{ $isProperties ? 'updatePropertyDescription' : 'updateProductDescription' }}('{{ $item->cis_row_id }}', $event.target.value)"
+                                          wire:change="updateProductDescription('{{ $item->cis_row_id }}', $event.target.value)"
                                           oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
                                           rows="4"
                                           style="overflow-y:hidden"
@@ -499,7 +471,7 @@
                             </div>
 
                             {{-- ── Unterprodukte ─────────────────────────── --}}
-                            @if($isProducts && $children->count())
+                            @if($children->count())
                             <div class="mt-2 ml-3 space-y-2 border-l-2 border-amber-100 pl-3">
                                 @foreach($children as $child)
                                 @php
@@ -517,6 +489,7 @@
                                         <p class="text-[10px] font-semibold text-amber-500 uppercase tracking-wide flex-1">
                                             {{ $child->name }}
                                         </p>
+                                        @if($canEdit)
                                         <button type="button"
                                                 wire:click="toggleChildItem('{{ $block->cis_row_id }}', '{{ $child->cis_row_id }}')"
                                                 title="{{ $childExcluded ? 'Unterprodukt einblenden' : 'Unterprodukt ausblenden' }}"
@@ -524,6 +497,7 @@
                                                        {{ $childExcluded ? 'text-gray-300 hover:text-gray-500' : 'text-amber-300 hover:text-amber-500' }}">
                                             <i class="fa {{ $childExcluded ? 'fa-eye-slash' : 'fa-eye' }}"></i>
                                         </button>
+                                        @endif
                                     </div>
 
                                     @if(!$childExcluded)
@@ -533,12 +507,14 @@
                                             @else
                                                 <p class="text-sm text-gray-400 italic">Kein Beschreibungstext vorhanden.</p>
                                             @endif
+                                            @if($canEdit)
                                             <button type="button"
                                                     @click="editing = true"
                                                     class="mt-1 text-[11px] text-gray-300 hover:text-gray-600 transition-colors
                                                            opacity-0 group-hover/child:opacity-100">
                                                 <i class="fa fa-pencil mr-1"></i>Bearbeiten
                                             </button>
+                                            @endif
                                         </div>
                                         <div x-show="editing" style="display:none">
                                             <textarea x-ref="cta"
@@ -583,29 +559,16 @@
         {{-- end Papier --}}
 
         {{-- Validierungs-Details --}}
-        @if(!$validation['all_ok'] && $validation['total_props'] + $validation['total_prods'] > 0)
+        @if(!$validation['all_ok'] && $validation['total_prods'] > 0)
         <div class="max-w-2xl mx-auto mt-4 px-5 py-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700">
             <p class="font-semibold mb-3 flex items-center gap-2">
                 <i class="fa fa-triangle-exclamation"></i>
-                Nicht alle Elemente sind in der Ausschreibung abgedeckt:
+                Nicht alle Produkte sind in der Ausschreibung abgedeckt:
             </p>
-            <div class="flex gap-10">
-                @if(!empty($validation['missing_props']))
-                <div>
-                    <p class="text-[10px] uppercase tracking-wider font-bold text-amber-500 mb-1.5">Eigenschaften</p>
-                    @foreach($validation['missing_props'] as $n)
-                        <p class="flex items-center gap-1.5 mb-0.5"><i class="fa fa-circle-minus text-[9px]"></i>{{ $n }}</p>
-                    @endforeach
-                </div>
-                @endif
-                @if(!empty($validation['missing_prods']))
-                <div>
-                    <p class="text-[10px] uppercase tracking-wider font-bold text-amber-500 mb-1.5">Produkte</p>
-                    @foreach($validation['missing_prods'] as $n)
-                        <p class="flex items-center gap-1.5 mb-0.5"><i class="fa fa-circle-minus text-[9px]"></i>{{ $n }}</p>
-                    @endforeach
-                </div>
-                @endif
+            <div>
+                @foreach($validation['missing_prods'] as $n)
+                    <p class="flex items-center gap-1.5 mb-0.5"><i class="fa fa-circle-minus text-[9px]"></i>{{ $n }}</p>
+                @endforeach
             </div>
         </div>
         @endif

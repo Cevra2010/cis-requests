@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Category\CategoryController;
-use App\Http\Controllers\Property\PropertyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Group\GroupController;
 use App\Http\Controllers\Price\PriceController;
@@ -131,18 +130,11 @@ Route::middleware(['auth'])->group(function() {
     Route::post('/Project/{project}/Duplicate',      [ProjectController::class, 'duplicate']) ->name('project.duplicate');
     Route::delete('/Project/{project}',              [ProjectController::class, 'destroy'])   ->name('project.destroy');
     Route::get('/Project/{project}/Export/PDF',      [ProjectController::class, 'exportPdf']) ->name('project.export.pdf');
+    Route::post('/Project/{project}/Lock',           [ProjectController::class, 'lock'])      ->name('project.lock');
+    Route::post('/Project/{project}/Unlock',         [ProjectController::class, 'unlock'])    ->name('project.unlock');
 
     /** Angebote & Bestelllisten */
     Route::get('/Project/{project}/Offers/{offer}/OrderList/PDF',[OfferController::class, 'exportOrderListPdf'])->name('offer.orderlist.pdf');
-
-    /** Properties (Eigenschaften) */
-    Route::get('/Properties',                        [PropertyController::class, 'index'])   ->name('property.index');
-    Route::get('/Properties/Create',                 [PropertyController::class, 'create'])  ->name('property.create');
-    Route::post('/Properties/Create',                [PropertyController::class, 'store'])   ->name('property.store');
-    Route::get('/Properties/{property}',             [PropertyController::class, 'edit'])    ->name('property.edit');
-    Route::post('/Properties/{property}',            [PropertyController::class, 'update'])  ->name('property.update');
-    Route::get('/Properties/{property}/Delete',      [PropertyController::class, 'delete'])  ->name('property.delete');
-    Route::delete('/Properties/{property}',          [PropertyController::class, 'destroy']) ->name('property.destroy');
 
     /** Categories */
     Route::get('/Category',              [CategoryController::class, 'index'])   ->name('category.index');

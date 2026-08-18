@@ -53,6 +53,7 @@
             <tr>
                 <th>Projektname</th>
                 <th>Status</th>
+                <th>Ausschreibung</th>
                 <th>Kategorie</th>
                 <th>Verantwortlich</th>
                 <th>Auftraggeber</th>
@@ -82,6 +83,18 @@
                     ">
                         {{ $project->statusLabel() }}
                     </span>
+                </td>
+                <td>
+                    @if($project->isLocked())
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700"
+                              title="Fixiert am {{ $project->tender_locked_at->format('d.m.Y H:i') }}">
+                            <i class="fa fa-lock"></i> Fixiert
+                        </span>
+                    @else
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">
+                            <i class="fa fa-pencil"></i> In Bearbeitung
+                        </span>
+                    @endif
                 </td>
                 <td class="text-sm text-gray-600">{{ $project->categoryLabel() }}</td>
                 <td class="text-sm text-gray-600">{{ $project->assigneeLabel() }}</td>
@@ -119,7 +132,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="7" class="text-center py-16 text-gray-400">
+                <td colspan="8" class="text-center py-16 text-gray-400">
                     <i class="fa fa-folder-open text-4xl mb-3 block"></i>
                     <p class="text-sm font-medium">Noch keine Projekte vorhanden.</p>
                     <a href="{{ route('project.create') }}" class="btn btn-primary btn-sm mt-4">

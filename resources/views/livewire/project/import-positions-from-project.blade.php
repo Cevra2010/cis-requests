@@ -1,7 +1,9 @@
 <div>
+    @if($canEdit)
     <button type="button" wire:click="openModal" class="btn btn-ghost btn-sm">
         <i class="fa fa-clone mr-1.5"></i> Vorlage aus anderem Projekt übernehmen
     </button>
+    @endif
 
     @if($open)
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" wire:click.self="closeModal">

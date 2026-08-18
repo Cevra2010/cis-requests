@@ -12,7 +12,7 @@
     @if($positions->isEmpty())
         <div class="cis-card text-center py-10 text-gray-400">
             <i class="fa fa-boxes-stacked text-2xl mb-2"></i>
-            <p class="text-sm">Diesem Projekt sind noch keine Positionen (Beladung) zugeordnet.</p>
+            <p class="text-sm">Diesem Projekt sind noch keine Produkte zugeordnet.</p>
         </div>
     @elseif($offers->isEmpty())
         <div class="cis-card text-center py-10 text-gray-400">

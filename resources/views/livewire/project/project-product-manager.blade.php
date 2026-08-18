@@ -1,11 +1,20 @@
-<div class="grid grid-cols-5 gap-5" style="height: 640px;">
+<div>
 
-    {{-- ── Links: Verfügbare Beladung ───────────────────────────────────────── --}}
-    <div class="col-span-2 flex flex-col rounded-xl border border-gray-200 overflow-hidden">
+    @unless($canEdit)
+    <div class="mb-4 px-4 py-2.5 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-700 flex items-center gap-2">
+        <i class="fa fa-lock"></i>
+        Die Ausschreibung ist fixiert. Produkte können nicht mehr geändert werden.
+    </div>
+    @endunless
+
+    <div class="grid grid-cols-5 gap-5" style="height: 640px;">
+
+    {{-- ── Links: Verfügbare Produkte ───────────────────────────────────────── --}}
+    <div class="col-span-2 flex flex-col rounded-xl border border-gray-200 overflow-hidden {{ !$canEdit ? 'opacity-50 pointer-events-none' : '' }}">
 
         {{-- Header + Suche --}}
         <div class="px-4 pt-3 pb-3 border-b border-gray-100 bg-gray-50 shrink-0">
-            <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Verfügbare Beladung</p>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Verfügbare Produkte</p>
             <div class="relative">
                 <i class="fa fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
                 <input type="text"
@@ -51,12 +60,12 @@
         </div>
     </div>
 
-    {{-- ── Rechts: Zugeordnete Beladung ─────────────────────────────────────── --}}
+    {{-- ── Rechts: Zugeordnete Produkte ─────────────────────────────────────── --}}
     <div class="col-span-3 flex flex-col rounded-xl border border-gray-200 overflow-hidden">
 
         {{-- Header --}}
         <div class="px-4 pt-3 pb-3 border-b border-gray-100 bg-gray-50 shrink-0 flex items-center justify-between">
-            <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Zugeordnete Beladung</p>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Zugeordnete Produkte</p>
             <span class="text-[10px] text-gray-400">{{ $assigned->count() }} Produkt(e)</span>
         </div>
 
@@ -70,6 +79,7 @@
                 <div class="flex items-center gap-2 px-4 py-2.5">
 
                     {{-- Sort --}}
+                    @if($canEdit)
                     <div class="flex flex-col gap-0.5 shrink-0">
                         <button type="button"
                                 wire:click="moveUp('{{ $item->cis_row_id }}')"
@@ -84,6 +94,7 @@
                             <i class="fa fa-chevron-down text-[10px]"></i>
                         </button>
                     </div>
+                    @endif
 
                     {{-- Position --}}
                     <span class="text-[10px] text-gray-300 font-mono w-4 text-center shrink-0 tabular-nums">{{ $loop->iteration }}</span>
@@ -101,16 +112,19 @@
                                min="1"
                                value="{{ $item->product_count }}"
                                wire:change="updateCount('{{ $item->cis_row_id }}', $event.target.value)"
-                               class="cis-input py-0.5 px-1.5 text-sm text-center w-14">
+                               {{ !$canEdit ? 'disabled' : '' }}
+                               class="cis-input py-0.5 px-1.5 text-sm text-center w-14 disabled:bg-gray-50">
                     </div>
 
                     {{-- Remove --}}
+                    @if($canEdit)
                     <button type="button"
                             wire:click="remove('{{ $item->cis_row_id }}')"
                             wire:confirm="Produkt aus der Liste entfernen?"
                             class="text-gray-200 hover:text-red-400 transition-colors shrink-0 ml-1 opacity-0 group-hover/row:opacity-100">
                         <i class="fa fa-xmark"></i>
                     </button>
+                    @endif
                 </div>
 
                 {{-- Note --}}
@@ -119,6 +133,7 @@
                            placeholder="Notiz / Bemerkung…"
                            value="{{ $item->note }}"
                            wire:change="updateNote('{{ $item->cis_row_id }}', $event.target.value)"
+                           {{ !$canEdit ? 'disabled' : '' }}
                            class="w-full text-xs text-gray-400 bg-transparent border-0 border-b border-dashed border-gray-100 focus:border-gray-300 focus:ring-0 py-0.5 px-0 placeholder-gray-200 transition-colors">
                 </div>
             </div>
@@ -129,7 +144,7 @@
         {{-- Empty state --}}
         <div class="flex-1 flex flex-col items-center justify-center text-gray-300 bg-white">
             <i class="fa fa-arrow-left text-3xl mb-3"></i>
-            <p class="text-sm font-medium text-gray-400">Noch keine Beladung zugeordnet</p>
+            <p class="text-sm font-medium text-gray-400">Noch keine Produkte zugeordnet</p>
             <p class="text-xs text-gray-300 mt-1">Produkt links anklicken zum Hinzufügen</p>
         </div>
         @endif
@@ -138,6 +153,8 @@
         <div class="px-4 py-2 border-t border-gray-100 bg-gray-50 shrink-0">
             <p class="text-[10px] text-gray-400">Reihenfolge bestimmt die Ausschreibungsstruktur</p>
         </div>
+    </div>
+
     </div>
 
 </div>

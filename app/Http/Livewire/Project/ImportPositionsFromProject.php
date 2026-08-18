@@ -2,6 +2,7 @@
 
 namespace App\Http\Livewire\Project;
 
+use App\Http\Livewire\Concerns\RespectsProjectLock;
 use App\Models\Project;
 use App\Models\ProjectProduct;
 use Illuminate\Support\Facades\DB;
@@ -9,6 +10,8 @@ use Livewire\Component;
 
 class ImportPositionsFromProject extends Component
 {
+    use RespectsProjectLock;
+
     public string $projectId;
     public bool   $open = false;
 
@@ -66,6 +69,10 @@ class ImportPositionsFromProject extends Component
 
     public function import(): void
     {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
         if (! $this->sourceProjectId || empty($this->selected)) {
             return;
         }
@@ -130,6 +137,9 @@ class ImportPositionsFromProject extends Component
 
         $sourcePositions = $this->sourcePositions();
 
-        return view('livewire.project.import-positions-from-project', compact('projects', 'sourcePositions'));
+        $project = Project::where('cis_row_id', $this->projectId)->first();
+        $canEdit = $project?->isEditableBy(auth()->user()) ?? true;
+
+        return view('livewire.project.import-positions-from-project', compact('projects', 'sourcePositions', 'canEdit'));
     }
 }

@@ -130,9 +130,11 @@ class ProjectController extends Controller
     {
         $original = Project::where('cis_row_id', $project)->firstOrFail();
 
-        $copy             = $original->replicate();
-        $copy->name       = 'Kopie von ' . $original->name;
-        $copy->status_code = 'draft';
+        $copy               = $original->replicate();
+        $copy->name         = 'Kopie von ' . $original->name;
+        $copy->status_code  = 'draft';
+        $copy->tender_locked_at = null;
+        $copy->tender_locked_by = null;
         $copy->save();
 
         session()->flash('success', 'Projekt wurde als "' . $copy->name . '" dupliziert.');
@@ -146,6 +148,27 @@ class ProjectController extends Controller
 
         session()->flash('success', 'Projekt "' . $p->name . '" wurde in den Papierkorb verschoben.');
         return redirect()->route('project');
+    }
+
+    public function lock(string $project)
+    {
+        $p = Project::where('cis_row_id', $project)->firstOrFail();
+        $p->lock(auth()->user());
+
+        session()->flash('success', 'Ausschreibung wurde fixiert. Produkte und Ausschreibungstext sind jetzt gesperrt.');
+        return redirect()->route('project.show', $p->cis_row_id);
+    }
+
+    public function unlock(string $project)
+    {
+        $p = Project::where('cis_row_id', $project)->firstOrFail();
+
+        abort_unless(auth()->user()->hasPermission(Project::OVERRIDE_LOCK_PERMISSION, $p->cis_row_id), 403);
+
+        $p->unlock();
+
+        session()->flash('success', 'Fixierung wurde aufgehoben. Produkte und Ausschreibungstext sind wieder bearbeitbar.');
+        return redirect()->route('project.show', $p->cis_row_id);
     }
 
     public function exportPdf(string $project)
@@ -168,55 +191,38 @@ class ProjectController extends Controller
             $selected         = $block->config['selected'] ?? null;
             $excludedChildren = $block->config['excluded_children'] ?? [];
 
-            if ($block->type === 'properties') {
-                $items = DB::table('project_property')
-                    ->join('properties', 'project_property.cis_row_id_property', '=', 'properties.cis_row_id')
-                    ->where('project_property.cis_row_id_project', $p->cis_row_id)
-                    ->whereNull('properties.deleted_at')
-                    ->orderBy('project_property.sort_order')
-                    ->select('properties.cis_row_id', 'properties.name',
-                             'project_property.custom_description', 'properties.description')
-                    ->get()
-                    ->when($selected !== null, fn($q) => $q->filter(fn($i) => in_array($i->cis_row_id, $selected)))
-                    ->map(function ($item) {
-                        $item->text     = $item->custom_description ?? $item->description ?? '';
-                        $item->children = collect();
-                        return $item;
-                    });
-            } else {
-                $items = DB::table('project_product')
-                    ->join('products', 'project_product.cis_row_id_product', '=', 'products.cis_row_id')
-                    ->where('project_product.cis_row_id_project', $p->cis_row_id)
-                    ->whereNull('products.deleted_at')
-                    ->orderBy('project_product.sort_order')
-                    ->select('products.cis_row_id', 'products.name',
-                             'project_product.product_count', 'project_product.note')
-                    ->get()
-                    ->when($selected !== null, fn($q) => $q->filter(fn($i) => in_array($i->cis_row_id, $selected)))
-                    ->map(function ($item) use ($excludedChildren) {
-                        $desc       = DB::table('product_descriptions')
-                            ->where('cis_row_id_product', $item->cis_row_id)
-                            ->whereNull('deleted_at')->first();
-                        $item->text = $desc?->text ?? '';
+            $items = DB::table('project_product')
+                ->join('products', 'project_product.cis_row_id_product', '=', 'products.cis_row_id')
+                ->where('project_product.cis_row_id_project', $p->cis_row_id)
+                ->whereNull('products.deleted_at')
+                ->orderBy('project_product.sort_order')
+                ->select('products.cis_row_id', 'products.name',
+                         'project_product.product_count', 'project_product.note')
+                ->get()
+                ->when($selected !== null, fn($q) => $q->filter(fn($i) => in_array($i->cis_row_id, $selected)))
+                ->map(function ($item) use ($excludedChildren) {
+                    $desc       = DB::table('product_descriptions')
+                        ->where('cis_row_id_product', $item->cis_row_id)
+                        ->whereNull('deleted_at')->first();
+                    $item->text = $desc?->text ?? '';
 
-                        $item->children = DB::table('product_child')
-                            ->join('products', 'product_child.cis_row_id_child', '=', 'products.cis_row_id')
-                            ->where('product_child.cis_row_id_parent', $item->cis_row_id)
-                            ->whereNull('products.deleted_at')
-                            ->select('products.cis_row_id', 'products.name')
-                            ->get()
-                            ->reject(fn($c) => in_array($c->cis_row_id, $excludedChildren))
-                            ->map(function ($child) {
-                                $d           = DB::table('product_descriptions')
-                                    ->where('cis_row_id_product', $child->cis_row_id)
-                                    ->whereNull('deleted_at')->first();
-                                $child->text = $d?->text ?? '';
-                                return $child;
-                            });
+                    $item->children = DB::table('product_child')
+                        ->join('products', 'product_child.cis_row_id_child', '=', 'products.cis_row_id')
+                        ->where('product_child.cis_row_id_parent', $item->cis_row_id)
+                        ->whereNull('products.deleted_at')
+                        ->select('products.cis_row_id', 'products.name')
+                        ->get()
+                        ->reject(fn($c) => in_array($c->cis_row_id, $excludedChildren))
+                        ->map(function ($child) {
+                            $d           = DB::table('product_descriptions')
+                                ->where('cis_row_id_product', $child->cis_row_id)
+                                ->whereNull('deleted_at')->first();
+                            $child->text = $d?->text ?? '';
+                            return $child;
+                        });
 
-                        return $item;
-                    });
-            }
+                    return $item;
+                });
 
             $block->resolvedItems = $items->values();
             return $block;
