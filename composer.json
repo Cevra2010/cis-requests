@@ -28,6 +28,7 @@
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/",
             "Modules\\Branding\\": "Modules/Branding/app/",
+            "Modules\\Wareneingang\\": "Modules/Wareneingang/app/",
             "Modules\\": "Modules/",
             "CisFoundation\\": "CisBaseModules/"
         }

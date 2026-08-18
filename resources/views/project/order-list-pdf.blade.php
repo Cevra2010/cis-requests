@@ -3,7 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, div, p, table, th, td, h1, h2, h3, h4, ul, ol, li, img {
+        margin: 0; padding: 0; box-sizing: border-box;
+    }
+
+    @page {
+        margin: 25mm 20mm 22mm 20mm;
+
+        @bottom-right {
+            content: "Seite " counter(page) " / " counter(pages);
+            font-family: DejaVu Sans, sans-serif;
+            font-size: 8pt;
+            color: #9ca3af;
+        }
+    }
 
     body {
         font-family: DejaVu Sans, sans-serif;

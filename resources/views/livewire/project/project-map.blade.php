@@ -21,8 +21,8 @@
                             </div>
                         </td>
                         <td>
-                            <span class="cis-badge cis-badge-blue">
-                                {{ $project->getStatusText() }}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $project->statusBadgeClasses() }}">
+                                {{ $project->statusLabel() }}
                             </span>
                         </td>
                         <td class="text-gray-500 text-sm">{{ $project->created_at->format('d.m.Y') }}</td>

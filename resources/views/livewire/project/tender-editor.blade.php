@@ -9,7 +9,9 @@
              this.$nextTick(() => this.initSortables());
              const handler = () => this.$nextTick(() => this.initSortables());
              document.addEventListener('livewire:updated', handler);
-             this.$cleanup(() => document.removeEventListener('livewire:updated', handler));
+             if (typeof this.$cleanup === 'function') {
+                 this.$cleanup(() => document.removeEventListener('livewire:updated', handler));
+             }
          },
 
          initSortables() {
@@ -406,7 +408,16 @@
 
                     {{-- Items --}}
                     @if(isset($shownItems) && $shownItems->count())
-                    <div class="space-y-3">
+                    <table class="w-full text-sm border-collapse">
+                        <thead>
+                            <tr class="border-b border-gray-200">
+                                <th class="text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 py-1.5 pr-2 w-8">Pos.</th>
+                                <th class="text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 py-1.5 pr-3 w-14">Menge</th>
+                                <th class="text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 py-1.5 pr-3 w-1/4">Bezeichnung</th>
+                                <th class="text-left text-[10px] font-bold uppercase tracking-wider text-gray-400 py-1.5">Beschreibung</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                         @foreach($shownItems as $item)
                         @php
                             $descRow  = DB::table('product_descriptions')
@@ -424,121 +435,119 @@
                                 ->get();
                         @endphp
 
-                        <div wire:key="{{ $rowKey }}"
-                             x-data="{ editing: false }"
-                             class="group">
-
-                            <div class="flex items-baseline gap-2 mb-0.5">
-                                <span class="text-[10px] font-mono text-gray-300 tabular-nums">{{ $loop->iteration }}.</span>
-                                <span class="text-[10px] font-semibold text-gray-400 tabular-nums">{{ $item->product_count }}×</span>
-                                <p class="text-[10px] font-bold uppercase tracking-[.12em] {{ $accentColor }}">
-                                    {{ $item->name }}
-                                </p>
+                        <tr wire:key="{{ $rowKey }}"
+                            x-data="{ editing: false }"
+                            class="group align-top border-b border-gray-100">
+                            <td class="py-2.5 pr-2 text-[10px] font-mono text-gray-300 tabular-nums">{{ $loop->iteration }}</td>
+                            <td class="py-2.5 pr-3 text-xs font-semibold text-gray-500 tabular-nums">{{ $item->product_count }}×</td>
+                            <td class="py-2.5 pr-3">
+                                <p class="text-[10px] font-bold uppercase tracking-[.12em] {{ $accentColor }}">{{ $item->name }}</p>
                                 @if($item->note)
-                                    <span class="text-xs text-gray-400 italic">— {{ $item->note }}</span>
+                                    <p class="mt-0.5 text-xs text-gray-400 italic">{{ $item->note }}</p>
                                 @endif
-                            </div>
+                            </td>
+                            <td class="py-2.5">
+                                <div x-show="!editing">
+                                    @if($txt)
+                                        <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{{ $txt }}</p>
+                                    @else
+                                        <p class="text-sm text-gray-400 italic">Kein Beschreibungstext vorhanden.</p>
+                                    @endif
+                                    @if($canEdit)
+                                    <button type="button"
+                                            @click="editing = true"
+                                            class="mt-1.5 text-[11px] text-gray-300 hover:text-gray-600 transition-colors
+                                                   opacity-0 group-hover:opacity-100">
+                                        <i class="fa fa-pencil mr-1"></i>Bearbeiten
+                                    </button>
+                                    @endif
+                                </div>
 
-                            <div x-show="!editing">
-                                @if($txt)
-                                    <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{{ $txt }}</p>
-                                @else
-                                    <p class="text-sm text-gray-400 italic">Kein Beschreibungstext vorhanden.</p>
-                                @endif
-                                @if($canEdit)
-                                <button type="button"
-                                        @click="editing = true"
-                                        class="mt-1.5 text-[11px] text-gray-300 hover:text-gray-600 transition-colors
-                                               opacity-0 group-hover:opacity-100">
-                                    <i class="fa fa-pencil mr-1"></i>Bearbeiten
-                                </button>
-                                @endif
-                            </div>
+                                <div x-show="editing" style="display:none">
+                                    <textarea x-ref="ta"
+                                              x-effect="editing && $nextTick(() => { const t=$refs.ta; t.focus(); t.style.height='auto'; t.style.height=t.scrollHeight+'px' })"
+                                              @blur="editing = false"
+                                              wire:change="updateProductDescription('{{ $item->cis_row_id }}', $event.target.value)"
+                                              oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+                                              rows="3"
+                                              style="overflow-y:hidden"
+                                              placeholder="{{ $phText }}"
+                                              class="w-full text-sm text-gray-700 leading-relaxed resize-none rounded-lg
+                                                     border border-gray-200 focus:ring-2 outline-none px-3 py-2.5
+                                                     {{ $focusClasses }}">{{ $txt }}</textarea>
+                                    <p class="mt-1 text-[11px] text-gray-400">Klick außerhalb speichert</p>
+                                </div>
+                            </td>
+                        </tr>
 
-                            <div x-show="editing" style="display:none">
-                                <textarea x-ref="ta"
-                                          x-effect="editing && $nextTick(() => { const t=$refs.ta; t.focus(); t.style.height='auto'; t.style.height=t.scrollHeight+'px' })"
-                                          @blur="editing = false"
-                                          wire:change="updateProductDescription('{{ $item->cis_row_id }}', $event.target.value)"
-                                          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
-                                          rows="4"
-                                          style="overflow-y:hidden"
-                                          placeholder="{{ $phText }}"
-                                          class="w-full text-sm text-gray-700 leading-relaxed resize-none rounded-lg
-                                                 border border-gray-200 focus:ring-2 outline-none px-3 py-2.5
-                                                 {{ $focusClasses }}">{{ $txt }}</textarea>
-                                <p class="mt-1 text-[11px] text-gray-400">Klick außerhalb speichert</p>
-                            </div>
-
-                            {{-- ── Unterprodukte ─────────────────────────── --}}
-                            @if($children->count())
-                            <div class="mt-2 ml-3 space-y-2 border-l-2 border-amber-100 pl-3">
-                                @foreach($children as $child)
-                                @php
-                                    $childExcluded = in_array($child->cis_row_id, $excludedChildren);
-                                    $childDesc = DB::table('product_descriptions')
-                                        ->where('cis_row_id_product', $child->cis_row_id)
-                                        ->whereNull('deleted_at')->first();
-                                    $childTxt = $childDesc?->text ?? '';
-                                @endphp
-                                <div wire:key="child-{{ $block->cis_row_id }}-{{ $child->cis_row_id }}"
-                                     x-data="{ editing: false }"
-                                     class="group/child {{ $childExcluded ? 'opacity-40' : '' }}">
-
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <p class="text-[10px] font-semibold text-amber-500 uppercase tracking-wide flex-1">
-                                            {{ $child->name }}
-                                        </p>
+                        {{-- ── Unterprodukte ─────────────────────────── --}}
+                        @foreach($children as $child)
+                        @php
+                            $childExcluded = in_array($child->cis_row_id, $excludedChildren);
+                            $childDesc = DB::table('product_descriptions')
+                                ->where('cis_row_id_product', $child->cis_row_id)
+                                ->whereNull('deleted_at')->first();
+                            $childTxt = $childDesc?->text ?? '';
+                        @endphp
+                        <tr wire:key="child-{{ $block->cis_row_id }}-{{ $child->cis_row_id }}"
+                            x-data="{ editing: false }"
+                            class="group/child align-top border-b border-dashed border-gray-100 {{ $childExcluded ? 'opacity-40' : '' }}">
+                            <td class="py-2"></td>
+                            <td class="py-2"></td>
+                            <td class="py-2 pr-3">
+                                <div class="flex items-center gap-2 pl-3">
+                                    <p class="text-[10px] font-semibold text-amber-500 uppercase tracking-wide flex-1">
+                                        {{ $child->name }}
+                                    </p>
+                                    @if($canEdit)
+                                    <button type="button"
+                                            wire:click="toggleChildItem('{{ $block->cis_row_id }}', '{{ $child->cis_row_id }}')"
+                                            title="{{ $childExcluded ? 'Unterprodukt einblenden' : 'Unterprodukt ausblenden' }}"
+                                            class="text-[10px] transition-colors opacity-0 group-hover/child:opacity-100
+                                                   {{ $childExcluded ? 'text-gray-300 hover:text-gray-500' : 'text-amber-300 hover:text-amber-500' }}">
+                                        <i class="fa {{ $childExcluded ? 'fa-eye-slash' : 'fa-eye' }}"></i>
+                                    </button>
+                                    @endif
+                                </div>
+                            </td>
+                            <td class="py-2">
+                                @if(!$childExcluded)
+                                    <div x-show="!editing">
+                                        @if($childTxt)
+                                            <p class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{{ $childTxt }}</p>
+                                        @else
+                                            <p class="text-sm text-gray-400 italic">Kein Beschreibungstext vorhanden.</p>
+                                        @endif
                                         @if($canEdit)
                                         <button type="button"
-                                                wire:click="toggleChildItem('{{ $block->cis_row_id }}', '{{ $child->cis_row_id }}')"
-                                                title="{{ $childExcluded ? 'Unterprodukt einblenden' : 'Unterprodukt ausblenden' }}"
-                                                class="text-[10px] transition-colors opacity-0 group-hover/child:opacity-100
-                                                       {{ $childExcluded ? 'text-gray-300 hover:text-gray-500' : 'text-amber-300 hover:text-amber-500' }}">
-                                            <i class="fa {{ $childExcluded ? 'fa-eye-slash' : 'fa-eye' }}"></i>
+                                                @click="editing = true"
+                                                class="mt-1 text-[11px] text-gray-300 hover:text-gray-600 transition-colors
+                                                       opacity-0 group-hover/child:opacity-100">
+                                            <i class="fa fa-pencil mr-1"></i>Bearbeiten
                                         </button>
                                         @endif
                                     </div>
-
-                                    @if(!$childExcluded)
-                                        <div x-show="!editing">
-                                            @if($childTxt)
-                                                <p class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{{ $childTxt }}</p>
-                                            @else
-                                                <p class="text-sm text-gray-400 italic">Kein Beschreibungstext vorhanden.</p>
-                                            @endif
-                                            @if($canEdit)
-                                            <button type="button"
-                                                    @click="editing = true"
-                                                    class="mt-1 text-[11px] text-gray-300 hover:text-gray-600 transition-colors
-                                                           opacity-0 group-hover/child:opacity-100">
-                                                <i class="fa fa-pencil mr-1"></i>Bearbeiten
-                                            </button>
-                                            @endif
-                                        </div>
-                                        <div x-show="editing" style="display:none">
-                                            <textarea x-ref="cta"
-                                                      x-effect="editing && $nextTick(() => { const t=$refs.cta; t.focus(); t.style.height='auto'; t.style.height=t.scrollHeight+'px' })"
-                                                      @blur="editing = false"
-                                                      wire:change="updateProductDescription('{{ $child->cis_row_id }}', $event.target.value)"
-                                                      oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
-                                                      rows="3"
-                                                      style="overflow-y:hidden"
-                                                      placeholder="Ausschreibungstext für {{ $child->name }}…"
-                                                      class="w-full text-sm text-gray-700 leading-relaxed resize-none rounded-lg
-                                                             border border-gray-200 focus:ring-2 focus:ring-amber-200 focus:border-amber-400
-                                                             bg-amber-50 outline-none px-3 py-2">{{ $childTxt }}</textarea>
-                                            <p class="mt-1 text-[11px] text-gray-400">Klick außerhalb speichert</p>
-                                        </div>
-                                    @endif
-                                </div>
-                                @endforeach
-                            </div>
-                            @endif
-
-                        </div>
+                                    <div x-show="editing" style="display:none">
+                                        <textarea x-ref="cta"
+                                                  x-effect="editing && $nextTick(() => { const t=$refs.cta; t.focus(); t.style.height='auto'; t.style.height=t.scrollHeight+'px' })"
+                                                  @blur="editing = false"
+                                                  wire:change="updateProductDescription('{{ $child->cis_row_id }}', $event.target.value)"
+                                                  oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+                                                  rows="2"
+                                                  style="overflow-y:hidden"
+                                                  placeholder="Ausschreibungstext für {{ $child->name }}…"
+                                                  class="w-full text-sm text-gray-700 leading-relaxed resize-none rounded-lg
+                                                         border border-gray-200 focus:ring-2 focus:ring-amber-200 focus:border-amber-400
+                                                         bg-amber-50 outline-none px-3 py-2">{{ $childTxt }}</textarea>
+                                        <p class="mt-1 text-[11px] text-gray-400">Klick außerhalb speichert</p>
+                                    </div>
+                                @endif
+                            </td>
+                        </tr>
                         @endforeach
-                    </div>
+                        @endforeach
+                        </tbody>
+                    </table>
                     @else
                     <p class="text-sm text-gray-400 italic">
                         Wähle {{ $blockLabel }} über den Button oben rechts aus.

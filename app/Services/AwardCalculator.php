@@ -34,10 +34,39 @@ class AwardCalculator
             ->first();
     }
 
-    /** Setzt/aktualisiert die Zuordnung einer einzelnen Position auf das günstigste valide Angebot. */
+    /**
+     * true, wenn unter den (nach Preis sortierten) validen Angeboten ein Gleichstand
+     * beim günstigsten Preis besteht (Position ist damit nicht eindeutig zuordenbar).
+     *
+     * @param Collection<int, OfferItem> $sortedValidItems nach price aufsteigend sortiert
+     */
+    public static function isTiedAtCheapest(Collection $sortedValidItems): bool
+    {
+        if ($sortedValidItems->isEmpty()) {
+            return false;
+        }
+
+        $minPrice = round((float) $sortedValidItems->first()->price, 2);
+
+        return $sortedValidItems->filter(fn (OfferItem $i) => round((float) $i->price, 2) === $minPrice)->count() > 1;
+    }
+
+    /**
+     * Setzt/aktualisiert die Zuordnung einer einzelnen Position auf das günstigste
+     * valide Angebot – nur, wenn dieses eindeutig ist. Bei Preis-Gleichstand wird
+     * bewusst kein Anbieter vorgeschlagen, damit der Nutzer manuell entscheidet.
+     */
     public static function recomputePosition(ProjectProduct $position): void
     {
-        $best = static::cheapestValidItem($position);
+        $validItems = $position->offerItems()
+            ->with('offer')
+            ->where('not_offered', false)
+            ->whereNotNull('price')
+            ->whereHas('offer', fn ($q) => $q->where('active', true))
+            ->get()
+            ->sortBy('price');
+
+        $best = static::isTiedAtCheapest($validItems) ? null : $validItems->first();
 
         PositionAward::updateOrCreate(
             ['cis_row_id_project_product' => $position->cis_row_id],

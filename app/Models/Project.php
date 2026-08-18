@@ -34,21 +34,101 @@ class Project extends Model
     public const OVERRIDE_LOCK_PERMISSION = 'project.tender.override_lock';
 
     public const STATUSES = [
-        'draft'     => ['label' => 'Entwurf',        'color' => 'gray'],
-        'active'    => ['label' => 'Aktiv',           'color' => 'blue'],
-        'review'    => ['label' => 'In Prüfung',      'color' => 'yellow'],
-        'completed' => ['label' => 'Abgeschlossen',   'color' => 'green'],
-        'archived'  => ['label' => 'Archiviert',      'color' => 'gray'],
+        'draft'                => ['label' => 'Entwurf',                   'badge' => 'bg-gray-100 text-gray-600'],
+        'ready_for_tender'     => ['label' => 'Bereit zur Ausschreibung',   'badge' => 'bg-blue-100 text-blue-700'],
+        'tender'               => ['label' => 'Ausschreibung',             'badge' => 'bg-amber-100 text-amber-700'],
+        'ready_for_evaluation' => ['label' => 'Bereit zur Auswertung',     'badge' => 'bg-orange-100 text-orange-700'],
+        'evaluated'            => ['label' => 'Ausgewertet',               'badge' => 'bg-cyan-100 text-cyan-700'],
+        'ordered'              => ['label' => 'Bestellt',                  'badge' => 'bg-indigo-100 text-indigo-700'],
+        'orders_in_revision'   => ['label' => 'Bestellungen in Revision',  'badge' => 'bg-red-100 text-red-700'],
+        'completed'            => ['label' => 'Abgeschlossen',             'badge' => 'bg-green-100 text-green-700'],
     ];
+
+    /** Reihenfolge des Projekt-Workflows. */
+    public const STATUS_ORDER = [
+        'draft', 'ready_for_tender', 'tender', 'ready_for_evaluation',
+        'evaluated', 'ordered', 'orders_in_revision', 'completed',
+    ];
+
+    /** Ab diesem Status (inklusive) gelten Produkte/Ausschreibungstext als fixiert. */
+    public const LOCK_FROM_STATUS = 'tender';
+
+    protected static function booted(): void
+    {
+        static::saving(function (Project $project) {
+            if (! $project->isDirty('status_code')) {
+                return;
+            }
+
+            $wasLocked = self::codeIsLocked($project->getOriginal('status_code'));
+            $nowLocked = $project->isLocked();
+
+            if (! $wasLocked && $nowLocked) {
+                $project->tender_locked_at = now();
+                $project->tender_locked_by = auth()->user()?->cis_row_id;
+            } elseif ($wasLocked && ! $nowLocked) {
+                $project->tender_locked_at = null;
+                $project->tender_locked_by = null;
+            }
+        });
+    }
 
     public function statusLabel(): string
     {
         return self::STATUSES[$this->status_code]['label'] ?? $this->status_code;
     }
 
-    public function statusColor(): string
+    public function statusBadgeClasses(): string
     {
-        return self::STATUSES[$this->status_code]['color'] ?? 'gray';
+        return self::STATUSES[$this->status_code]['badge'] ?? 'bg-gray-100 text-gray-600';
+    }
+
+    public static function codeIsLocked(?string $code): bool
+    {
+        $lockIndex = array_search(self::LOCK_FROM_STATUS, self::STATUS_ORDER, true);
+        $index     = $code !== null ? array_search($code, self::STATUS_ORDER, true) : false;
+
+        return $index !== false && $index >= $lockIndex;
+    }
+
+    public function nextStatusCode(): ?string
+    {
+        $index = array_search($this->status_code, self::STATUS_ORDER, true);
+
+        return $index !== false ? (self::STATUS_ORDER[$index + 1] ?? null) : null;
+    }
+
+    public function previousStatusCode(): ?string
+    {
+        $index = array_search($this->status_code, self::STATUS_ORDER, true);
+
+        return $index !== false && $index > 0 ? self::STATUS_ORDER[$index - 1] : null;
+    }
+
+    /** Rückt das Projekt einen Workflow-Schritt weiter. */
+    public function advanceStatus(): void
+    {
+        $next = $this->nextStatusCode();
+        if ($next) {
+            $this->update(['status_code' => $next]);
+        }
+    }
+
+    /** Setzt das Projekt einen Workflow-Schritt zurück. */
+    public function revertStatus(): void
+    {
+        $prev = $this->previousStatusCode();
+        if ($prev) {
+            $this->update(['status_code' => $prev]);
+        }
+    }
+
+    /** Springt automatisch auf "Bereit zur Auswertung", sobald der Ausschreibungszeitraum überschritten ist. */
+    public function syncAutoStatus(): void
+    {
+        if ($this->status_code === 'tender' && $this->due_date && $this->due_date->isPast()) {
+            $this->update(['status_code' => 'ready_for_evaluation']);
+        }
     }
 
     public function categoryLabel(): string
@@ -120,31 +200,17 @@ class Project extends Model
     }
 
     // ── Ausschreibungs-Fixierung ─────────────────────────────────────────────
+    // Die Fixierung hängt am Status (siehe LOCK_FROM_STATUS) – tender_locked_at/_by
+    // werden automatisch beim Statuswechsel gepflegt (siehe booted()).
 
     public function isLocked(): bool
     {
-        return $this->tender_locked_at !== null;
+        return self::codeIsLocked($this->status_code);
     }
 
     public function lockedByUser(): ?User
     {
         return $this->tender_locked_by ? User::find($this->tender_locked_by) : null;
-    }
-
-    public function lock(User $user): void
-    {
-        $this->forceFill([
-            'tender_locked_at' => now(),
-            'tender_locked_by' => $user->cis_row_id,
-        ])->save();
-    }
-
-    public function unlock(): void
-    {
-        $this->forceFill([
-            'tender_locked_at' => null,
-            'tender_locked_by' => null,
-        ])->save();
     }
 
     /** Darf $user Produkte/Ausschreibungstext dieses Projekts aktuell bearbeiten? */
@@ -155,8 +221,4 @@ class Project extends Model
         }
         return $user?->hasPermission(self::OVERRIDE_LOCK_PERMISSION, $this->cis_row_id) ?? false;
     }
-
-    // Legacy helpers kept for backwards compatibility
-    public function getStatusText(): string { return $this->statusLabel(); }
-    public function getStatusColor(): string { return $this->statusColor(); }
 }

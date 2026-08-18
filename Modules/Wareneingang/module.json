@@ -1,0 +1,14 @@
+{
+    "name": "Wareneingang",
+    "alias": "wareneingang",
+    "description": "Kontrolle des Wareneingangs bestellter Artikel je Hersteller/Anbieter, inklusive login-freier Kommissionieransicht per Link.",
+    "version": "1.0.0",
+    "keywords": ["wareneingang", "kommissionierung", "bestellung"],
+    "priority": 20,
+    "core": false,
+    "requires_license": true,
+    "providers": [
+        "Modules\\Wareneingang\\Providers\\WareneingangServiceProvider"
+    ],
+    "files": []
+}

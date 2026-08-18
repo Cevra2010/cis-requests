@@ -27,7 +27,9 @@ class ProjectController extends Controller
             $query->where('category_id', $categoryFilter);
         }
 
-        $projects   = $query->get();
+        $projects = $query->get();
+        $projects->each->syncAutoStatus();
+
         $categories = CisCategoryManager::forType('project.category');
 
         return view('project.index', compact('projects', 'categories', 'statusFilter', 'categoryFilter'));
@@ -83,6 +85,7 @@ class ProjectController extends Controller
     public function show(string $project)
     {
         $p = Project::where('cis_row_id', $project)->firstOrFail();
+        $p->syncAutoStatus();
         return view('project.show', ['project' => $p]);
     }
 
@@ -130,11 +133,9 @@ class ProjectController extends Controller
     {
         $original = Project::where('cis_row_id', $project)->firstOrFail();
 
-        $copy               = $original->replicate();
-        $copy->name         = 'Kopie von ' . $original->name;
-        $copy->status_code  = 'draft';
-        $copy->tender_locked_at = null;
-        $copy->tender_locked_by = null;
+        $copy              = $original->replicate();
+        $copy->name        = 'Kopie von ' . $original->name;
+        $copy->status_code = 'draft';
         $copy->save();
 
         session()->flash('success', 'Projekt wurde als "' . $copy->name . '" dupliziert.');
@@ -150,24 +151,42 @@ class ProjectController extends Controller
         return redirect()->route('project');
     }
 
-    public function lock(string $project)
+    public function advanceStatus(string $project)
     {
-        $p = Project::where('cis_row_id', $project)->firstOrFail();
-        $p->lock(auth()->user());
+        $p    = Project::where('cis_row_id', $project)->firstOrFail();
+        $next = $p->nextStatusCode();
+        abort_unless($next, 404);
 
-        session()->flash('success', 'Ausschreibung wurde fixiert. Produkte und Ausschreibungstext sind jetzt gesperrt.');
+        $willLock = ! $p->isLocked() && Project::codeIsLocked($next);
+
+        $p->advanceStatus();
+
+        $message = $willLock
+            ? 'Ausschreibung wurde fixiert. Produkte und Ausschreibungstext sind jetzt gesperrt.'
+            : 'Status wurde auf "' . Project::STATUSES[$next]['label'] . '" gesetzt.';
+
+        session()->flash('success', $message);
         return redirect()->route('project.show', $p->cis_row_id);
     }
 
-    public function unlock(string $project)
+    public function revertStatus(string $project)
     {
-        $p = Project::where('cis_row_id', $project)->firstOrFail();
+        $p    = Project::where('cis_row_id', $project)->firstOrFail();
+        $prev = $p->previousStatusCode();
+        abort_unless($prev, 404);
 
-        abort_unless(auth()->user()->hasPermission(Project::OVERRIDE_LOCK_PERMISSION, $p->cis_row_id), 403);
+        $willUnlock = $p->isLocked() && ! Project::codeIsLocked($prev);
+        if ($willUnlock) {
+            abort_unless(auth()->user()->hasPermission(Project::OVERRIDE_LOCK_PERMISSION, $p->cis_row_id), 403);
+        }
 
-        $p->unlock();
+        $p->revertStatus();
 
-        session()->flash('success', 'Fixierung wurde aufgehoben. Produkte und Ausschreibungstext sind wieder bearbeitbar.');
+        $message = $willUnlock
+            ? 'Fixierung wurde aufgehoben. Produkte und Ausschreibungstext sind wieder bearbeitbar.'
+            : 'Status wurde auf "' . Project::STATUSES[$prev]['label'] . '" zurückgesetzt.';
+
+        session()->flash('success', $message);
         return redirect()->route('project.show', $p->cis_row_id);
     }
 

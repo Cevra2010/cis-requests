@@ -13,6 +13,49 @@
 
 @php
     $canOverrideLock = auth()->user()?->hasPermission(\App\Models\Project::OVERRIDE_LOCK_PERMISSION, $project->cis_row_id) ?? false;
+    $nextStatusCode  = $project->nextStatusCode();
+    $prevStatusCode  = $project->previousStatusCode();
+    $nextCrossesLock = $nextStatusCode && ! $project->isLocked() && \App\Models\Project::codeIsLocked($nextStatusCode);
+    $prevUnlocks     = $prevStatusCode && $project->isLocked() && ! \App\Models\Project::codeIsLocked($prevStatusCode);
+    $wareneingangEnabled = \Nwidart\Modules\Facades\Module::find('Wareneingang')?->isEnabled() ?? false;
+
+    // ── Tab-Sichtbarkeit: einmal erreichte Stufen bleiben sichtbar (zurückschauen
+    //    ist immer möglich), noch nicht erreichte Folgestufen bleiben ausgeblendet.
+    $statusOrder = \App\Models\Project::STATUS_ORDER;
+    $statusIndex = array_search($project->status_code, $statusOrder, true);
+    $statusIndex = $statusIndex === false ? 0 : $statusIndex;
+    $reached     = fn (string $code) => $statusIndex >= array_search($code, $statusOrder, true);
+
+    $tabVisibility = [
+        'beladung'      => true,
+        'ausschreibung' => true,
+        'export'        => true,
+        'angebote'      => $reached('tender'),
+        'bestellung'    => $reached('evaluated'),
+        'wareneingang'  => $wareneingangEnabled && $reached('ordered'),
+    ];
+
+    // ── Tab, der beim Öffnen des Projekts automatisch aktiv ist (passend zum Status).
+    $defaultTabByStatus = [
+        'draft'                 => 'beladung',
+        'ready_for_tender'      => 'ausschreibung',
+        'tender'                => 'angebote',
+        'ready_for_evaluation'  => 'angebote',
+        'evaluated'             => 'bestellung',
+        'ordered'               => 'wareneingang',
+        'orders_in_revision'    => 'wareneingang',
+        'completed'             => 'wareneingang',
+    ];
+    $suggestedTab = $defaultTabByStatus[$project->status_code] ?? 'beladung';
+    if (empty($tabVisibility[$suggestedTab])) {
+        foreach (['wareneingang', 'bestellung', 'angebote', 'ausschreibung', 'beladung'] as $fallback) {
+            if ($tabVisibility[$fallback]) {
+                $suggestedTab = $fallback;
+                break;
+            }
+        }
+    }
+    $initialTab = request('tab', $suggestedTab);
 @endphp
 
 @section('content')
@@ -22,13 +65,9 @@
     <div class="flex items-start justify-between gap-6">
         <div class="flex-1 min-w-0">
             <div class="flex items-center gap-3 mb-2">
-                @php $color = $project->statusColor(); @endphp
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
-                    {{ $color === 'green'  ? 'bg-green-100 text-green-700'   : '' }}
-                    {{ $color === 'blue'   ? 'bg-blue-100 text-blue-700'     : '' }}
-                    {{ $color === 'yellow' ? 'bg-yellow-100 text-yellow-700' : '' }}
-                    {{ $color === 'gray'   ? 'bg-gray-100 text-gray-600'     : '' }}
-                ">{{ $project->statusLabel() }}</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $project->statusBadgeClasses() }}">
+                    {{ $project->statusLabel() }}
+                </span>
                 @if($project->tender_year)
                     <span class="text-xs text-gray-400">Ausschreibung {{ $project->tender_year }}</span>
                 @endif
@@ -43,34 +82,39 @@
                 <p class="mt-1 text-sm text-gray-500">{{ $project->description }}</p>
             @endif
 
-            <div class="mt-3">
-                @if(!$project->isLocked())
-                    <form method="POST" action="{{ route('project.lock', $project->cis_row_id) }}"
-                          onsubmit="return confirm('Ausschreibung fixieren? Produkte und Ausschreibungstext können danach nur noch mit erweiterten Rechten geändert werden.')">
+            <div class="mt-3 flex items-center gap-2 flex-wrap">
+                @if($nextStatusCode)
+                    <form method="POST" action="{{ route('project.status.advance', $project->cis_row_id) }}"
+                          onsubmit="return confirm('{{ $nextCrossesLock
+                                ? 'Ausschreibung fixieren? Produkte und Ausschreibungstext können danach nur noch mit erweiterten Rechten geändert werden.'
+                                : 'Status auf „' . addslashes(\App\Models\Project::STATUSES[$nextStatusCode]['label']) . '“ setzen?' }}')">
                         @csrf
                         <button type="submit" class="btn btn-primary btn-sm">
-                            <i class="fa fa-lock mr-1.5"></i> Ausschreibung fixieren
+                            @if($nextCrossesLock)<i class="fa fa-lock mr-1.5"></i>@else<i class="fa fa-arrow-right mr-1.5"></i>@endif
+                            {{ $project->statusLabel() }} → {{ \App\Models\Project::STATUSES[$nextStatusCode]['label'] }}
                         </button>
                     </form>
-                @else
-                    <p class="text-xs text-gray-400">
-                        Fixiert am {{ $project->tender_locked_at->format('d.m.Y H:i') }}
-                        @if($project->lockedByUser())
-                            von {{ $project->lockedByUser()->name() }}
-                        @endif
-                    </p>
-                    @if($canOverrideLock)
-                        <form method="POST" action="{{ route('project.unlock', $project->cis_row_id) }}"
-                              class="mt-1.5"
-                              onsubmit="return confirm('Fixierung aufheben? Produkte und Ausschreibungstext sind danach wieder für alle bearbeitbar.')">
-                            @csrf
-                            <button type="submit" class="btn btn-ghost btn-sm">
-                                <i class="fa fa-lock-open mr-1.5"></i> Entsperren
-                            </button>
-                        </form>
-                    @endif
+                @endif
+
+                @if($prevStatusCode && (!$prevUnlocks || $canOverrideLock))
+                    <form method="POST" action="{{ route('project.status.revert', $project->cis_row_id) }}"
+                          onsubmit="return confirm('Status zurück auf „{{ addslashes(\App\Models\Project::STATUSES[$prevStatusCode]['label']) }}“ setzen?{{ $prevUnlocks ? ' Die Fixierung wird dadurch aufgehoben.' : '' }}')">
+                        @csrf
+                        <button type="submit" class="btn btn-ghost btn-sm">
+                            <i class="fa fa-rotate-left mr-1.5"></i> Zurück
+                        </button>
+                    </form>
                 @endif
             </div>
+
+            @if($project->isLocked())
+                <p class="mt-1.5 text-xs text-gray-400">
+                    Fixiert seit {{ $project->tender_locked_at?->format('d.m.Y H:i') }}
+                    @if($project->lockedByUser())
+                        von {{ $project->lockedByUser()->name() }}
+                    @endif
+                </p>
+            @endif
         </div>
 
         <dl class="grid grid-cols-2 gap-x-8 gap-y-2 text-sm shrink-0">
@@ -103,7 +147,7 @@
 </div>
 
 {{-- Tabs --}}
-<div x-data="{ tab: '{{ request('tab', $project->isLocked() ? 'angebote' : 'ausschreibung') }}' }">
+<div x-data="{ tab: '{{ $initialTab }}' }">
 
     {{-- Tab bar --}}
     <div class="flex gap-1 border-b border-gray-200 mb-5">
@@ -128,7 +172,7 @@
             <i class="fa fa-file-export mr-1.5"></i>
             Export
         </button>
-        @if($project->isLocked())
+        @if($tabVisibility['angebote'])
         <button type="button"
                 @click="tab = 'angebote'"
                 :class="tab === 'angebote' ? 'border-b-2 border-primary-600 text-primary-600 bg-white' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'"
@@ -136,12 +180,23 @@
             <i class="fa fa-file-invoice-dollar mr-1.5"></i>
             Angebote
         </button>
+        @endif
+        @if($tabVisibility['bestellung'])
         <button type="button"
                 @click="tab = 'bestellung'"
                 :class="tab === 'bestellung' ? 'border-b-2 border-primary-600 text-primary-600 bg-white' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'"
                 class="px-4 py-2.5 text-sm font-medium transition-colors rounded-t-lg -mb-px">
             <i class="fa fa-cart-shopping mr-1.5"></i>
             Bestellung
+        </button>
+        @endif
+        @if($tabVisibility['wareneingang'])
+        <button type="button"
+                @click="tab = 'wareneingang'"
+                :class="tab === 'wareneingang' ? 'border-b-2 border-primary-600 text-primary-600 bg-white' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'"
+                class="px-4 py-2.5 text-sm font-medium transition-colors rounded-t-lg -mb-px">
+            <i class="fa fa-truck-ramp-box mr-1.5"></i>
+            Wareneingang
         </button>
         @endif
     </div>
@@ -185,15 +240,24 @@
         </div>
     </div>
 
-    @if($project->isLocked())
+    @if($tabVisibility['angebote'])
     {{-- Tab: Angebote --}}
     <div x-show="tab === 'angebote'" x-cloak>
         @livewire('project.offer-comparison', ['projectId' => $project->cis_row_id])
     </div>
+    @endif
 
+    @if($tabVisibility['bestellung'])
     {{-- Tab: Bestellung --}}
     <div x-show="tab === 'bestellung'" x-cloak>
         @livewire('project.award-manager', ['projectId' => $project->cis_row_id])
+    </div>
+    @endif
+
+    @if($tabVisibility['wareneingang'])
+    {{-- Tab: Wareneingang --}}
+    <div x-show="tab === 'wareneingang'" x-cloak>
+        @livewire('wareneingang.goods-receipt-manager', ['projectId' => $project->cis_row_id])
     </div>
     @endif
 

@@ -23,13 +23,9 @@
 <div class="max-w-2xl">
     <div class="cis-card">
         <div class="flex items-center gap-3 mb-5">
-            @php $color = $project->statusColor(); @endphp
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
-                {{ $color === 'green'  ? 'bg-green-100 text-green-700'   : '' }}
-                {{ $color === 'blue'   ? 'bg-blue-100 text-blue-700'     : '' }}
-                {{ $color === 'yellow' ? 'bg-yellow-100 text-yellow-700' : '' }}
-                {{ $color === 'gray'   ? 'bg-gray-100 text-gray-600'     : '' }}
-            ">{{ $project->statusLabel() }}</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $project->statusBadgeClasses() }}">
+                {{ $project->statusLabel() }}
+            </span>
             <span class="text-xs text-gray-400">Erstellt {{ $project->created_at->format('d.m.Y') }}</span>
         </div>
 

@@ -53,6 +53,7 @@
         <table class="min-w-full text-sm">
             <thead>
                 <tr class="border-b border-gray-200 bg-gray-50">
+                    <th class="px-3 py-2.5 w-8"></th>
                     <th class="text-left text-[10px] font-bold uppercase tracking-widest text-gray-400 px-3 py-2.5">Position</th>
                     <th class="text-center text-[10px] font-bold uppercase tracking-widest text-gray-400 px-2 py-2.5 w-16">Menge</th>
                     <th class="text-left text-[10px] font-bold uppercase tracking-widest text-gray-400 px-3 py-2.5">Zugeordneter Anbieter</th>
@@ -70,8 +71,23 @@
                     $awardedItem = $award?->cis_row_id_offer
                         ? $position->offerItems->firstWhere('cis_row_id_offer', $award->cis_row_id_offer)
                         : null;
+
+                    // Status: fehlend (kein valides Angebot) / uneindeutig (Preis-Gleichstand
+                    // beim günstigsten Angebot) / eindeutig (ein klar günstigstes Angebot).
+                    $posStatus = $validItems->isEmpty()
+                        ? 'missing'
+                        : (\App\Services\AwardCalculator::isTiedAtCheapest($validItems) ? 'tied' : 'unique');
                 @endphp
                 <tr>
+                    <td class="px-3 py-2 text-center">
+                        @if($posStatus === 'unique')
+                            <i class="fa fa-circle-check text-emerald-500" title="Eindeutig günstigstes Angebot"></i>
+                        @elseif($posStatus === 'tied')
+                            <i class="fa fa-triangle-exclamation text-amber-500" title="Mehrere Angebote zum gleichen Preis — nicht eindeutig"></i>
+                        @else
+                            <i class="fa fa-circle-xmark text-red-500" title="Kein valides Angebot vorhanden"></i>
+                        @endif
+                    </td>
                     <td class="px-3 py-2">
                         <p class="text-sm font-medium text-gray-800">{{ $position->product->name ?? '–' }}</p>
                     </td>

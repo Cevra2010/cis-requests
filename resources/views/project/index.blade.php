@@ -74,20 +74,14 @@
                     @endif
                 </td>
                 <td>
-                    @php $color = $project->statusColor(); @endphp
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
-                        {{ $color === 'green'  ? 'bg-green-100 text-green-700'   : '' }}
-                        {{ $color === 'blue'   ? 'bg-blue-100 text-blue-700'     : '' }}
-                        {{ $color === 'yellow' ? 'bg-yellow-100 text-yellow-700' : '' }}
-                        {{ $color === 'gray'   ? 'bg-gray-100 text-gray-600'     : '' }}
-                    ">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $project->statusBadgeClasses() }}">
                         {{ $project->statusLabel() }}
                     </span>
                 </td>
                 <td>
                     @if($project->isLocked())
                         <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700"
-                              title="Fixiert am {{ $project->tender_locked_at->format('d.m.Y H:i') }}">
+                              title="Fixiert am {{ $project->tender_locked_at?->format('d.m.Y H:i') }}">
                             <i class="fa fa-lock"></i> Fixiert
                         </span>
                     @else
