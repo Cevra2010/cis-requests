@@ -237,9 +237,13 @@ class ModuleManager extends Component
 
     public function render()
     {
+        $licenseService = app(LicenseService::class);
+
         return view('livewire.modules.module-manager', [
-            'coreModules'      => $this->coreModuleDefinitions,
-            'installedModules' => $this->installedModules(),
+            'coreModules'         => $this->coreModuleDefinitions,
+            'installedModules'    => $this->installedModules(),
+            'hasMasterLicense'    => $licenseService->hasMasterLicense(),
+            'masterLicensee'      => $licenseService->installationLicensee(),
         ]);
     }
 }

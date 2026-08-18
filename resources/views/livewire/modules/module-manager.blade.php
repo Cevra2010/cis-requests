@@ -1,5 +1,18 @@
 <div class="space-y-8">
 
+    {{-- ── Firmenlizenz-Status ─────────────────────────────────────────────────── --}}
+    @if($hasMasterLicense)
+    <div class="px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 flex items-center gap-2">
+        <i class="fa fa-building-shield"></i>
+        Firmenlizenz aktiv für <strong>{{ $masterLicensee }}</strong> — Modul-Lizenzen dieser Firma können aktiviert werden.
+    </div>
+    @else
+    <div class="px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-700 flex items-center gap-2">
+        <i class="fa fa-triangle-exclamation"></i>
+        Keine Firmenlizenz aktiv. Modul-Lizenzen können erst nach Einrichtung der Firmenlizenz (Einrichtungs-Assistent) aktiviert werden.
+    </div>
+    @endif
+
     {{-- ── Core-Module ──────────────────────────────────────────────────────── --}}
     <div>
         <div class="flex items-center gap-3 mb-4">
@@ -44,10 +57,11 @@
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             @foreach($installedModules as $module)
             @php
-                $hasLicense     = $module['license'] !== null;
-                $licenseExpired = $hasLicense && $module['license']->isExpired();
-                $licenseValid   = $hasLicense && !$licenseExpired;
-                $needsLicense   = $module['requires_license'] && !$licenseValid;
+                $hasLicense        = $module['license'] !== null;
+                $licenseExpired    = $hasLicense && $module['license']->isExpired();
+                $licenseMismatched = $hasLicense && !$licenseExpired && !$module['license']->matchesInstallation();
+                $licenseValid      = $hasLicense && $module['license']->isValid();
+                $needsLicense      = $module['requires_license'] && !$licenseValid;
             @endphp
 
             <div class="cis-card flex flex-col gap-4 {{ ($module['enabled'] && !$needsLicense) ? '' : 'opacity-70' }}">
@@ -70,7 +84,11 @@
                                      : ($hasLicense     ? 'bg-red-100 text-red-700'
                                      :                    'bg-amber-100 text-amber-700') }}">
                                     <i class="fa fa-key mr-0.5 text-[9px]"></i>
-                                    {{ $licenseValid ? 'Lizenziert' : ($hasLicense ? 'Abgelaufen' : 'Lizenz erforderlich') }}
+                                    {{ $licenseValid
+                                        ? 'Lizenziert'
+                                        : ($licenseExpired
+                                            ? 'Abgelaufen'
+                                            : ($licenseMismatched ? 'Ungültig' : 'Lizenz erforderlich')) }}
                                 </span>
                             @endif
                             <span class="text-[10px] text-gray-400 ml-auto">v{{ $module['version'] }}</span>
@@ -117,6 +135,11 @@
                         </p>
                         @else
                         <p class="text-[11px] text-gray-400"><i class="fa fa-infinity text-[9px] mr-1"></i>Unbegrenzt gültig</p>
+                        @endif
+                        @if($licenseMismatched)
+                        <p class="text-[11px] text-red-500 mt-0.5">
+                            <i class="fa fa-triangle-exclamation text-[9px] mr-1"></i>Gehört zu einer anderen Firma/Installation
+                        </p>
                         @endif
                     </div>
                     <div class="flex items-center gap-2">
@@ -238,8 +261,9 @@
                 {{-- Info Box --}}
                 <div class="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-xs text-blue-700">
                     <i class="fa fa-circle-info mr-1.5"></i>
-                    Lizenzschlüssel sind modulspezifisch und kryptografisch signiert.
-                    Sie können nicht für andere Module verwendet werden.
+                    Lizenzschlüssel sind modul- und firmenspezifisch (gebunden an die Firmenlizenz dieser
+                    Installation) sowie kryptografisch signiert. Sie können nicht für andere Module oder
+                    andere Firmen/Installationen verwendet werden.
                 </div>
 
                 {{-- Actions --}}

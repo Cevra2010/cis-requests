@@ -23,6 +23,13 @@ class AppServiceProvider extends ServiceProvider
             'Fixierte Ausschreibung bearbeiten',
             description: 'Erlaubt das Bearbeiten von Produkten und Ausschreibungstext, nachdem ein Projekt fixiert wurde.'
         );
+
+        CisPermissionManager::registerGroup('system', 'System');
+        CisPermissionManager::register(
+            'system.reset',
+            'System zurücksetzen',
+            description: 'Erlaubt destruktive Reset-Vorgänge (Preise, Produktdaten, Systemdaten, Werkseinstellung) sowie das Einspielen von Demo-Daten.'
+        );
     }
 
     protected function registerMainMenu(): void

@@ -44,6 +44,9 @@ Route::get('/Auth/Login',[AuthController::class,'index'])->name("auth.login");
 Route::post('/Auth/Login',[AuthController::class,'submit'])->name("auth.login.submit");
 Route::post('/Auth/Logout',[AuthController::class,'logout'])->name("auth.logout");
 
+/** Einrichtungs-Assistent (nur erreichbar solange kein Benutzerkonto existiert) */
+Route::get('/Setup',[\App\Http\Controllers\Setup\SetupController::class,'index'])->name("setup.index");
+
 Route::middleware(['auth'])->group(function() {
     Route::get('/Dashbaord',[DashboardController::class,'index'])->name("dashboard");
     Route::get('/Dashbaord/Pat',[DashboardController::class,'index'])->name("pattern");

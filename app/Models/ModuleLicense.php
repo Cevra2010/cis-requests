@@ -29,8 +29,17 @@ class ModuleLicense extends Model
         return $this->expires_at !== null && $this->expires_at->isPast();
     }
 
+    /** Lizenz gilt nur für die Firma/Installation, für die sie ausgestellt wurde. */
+    public function matchesInstallation(): bool
+    {
+        $installationMasterId = Setting::get('license_master_id');
+
+        return $installationMasterId !== null
+            && ($this->payload['master_id'] ?? null) === $installationMasterId;
+    }
+
     public function isValid(): bool
     {
-        return !$this->isExpired();
+        return ! $this->isExpired() && $this->matchesInstallation();
     }
 }
