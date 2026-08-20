@@ -3,7 +3,7 @@
 @section('title', $product->name)
 
 @section('header_actions')
-    @if(!$product->parent)
+    @if(! $product->hasParent())
         <a href="{{ route('product.create', $product->cis_row_id) }}" class="btn btn-ghost btn-sm">
             <i class="fa fa-plus mr-1"></i> Unterprodukt
         </a>
@@ -17,14 +17,17 @@
 <div class="space-y-5">
 
     {{-- Breadcrumb für Unterprodukte --}}
-    @if($product->parent)
-    <div class="flex items-center gap-2 text-sm text-gray-500">
-        <a href="{{ route('product.edit', $product->getParent()) }}"
-           class="hover:text-primary-600 transition-colors">
-            <i class="fa fa-arrow-turn-up-left mr-1"></i>{{ $product->getParent()->name }}
-        </a>
-        <i class="fa fa-chevron-right text-xs text-gray-300"></i>
-        <span class="text-gray-900 font-medium">{{ $product->name }}</span>
+    @if($product->hasParent())
+    <div class="flex items-center gap-2 text-sm text-gray-500 flex-wrap">
+        <i class="fa fa-arrow-turn-up-left text-xs"></i>
+        <span class="text-xs text-gray-400">Unterprodukt von:</span>
+        @foreach($product->getParents() as $parent)
+            <a href="{{ route('product.edit', $parent) }}"
+               class="hover:text-primary-600 transition-colors">
+                {{ $parent->name }}
+            </a>
+            @if(! $loop->last)<span class="text-gray-300">,</span>@endif
+        @endforeach
     </div>
     @endif
 
@@ -39,6 +42,11 @@
                            class="cis-input flex-1 text-base font-semibold"
                            value="{{ old('name', $product->name) }}"
                            onblur="document.getElementById('rename-form').submit()">
+                    <div class="w-56 shrink-0">
+                        <x-cis-category-select type="product.category" name="category_id"
+                                               :value="old('category_id', $product->category_id)"
+                                               onchange="document.getElementById('rename-form').submit()" />
+                    </div>
                     @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </form>
                 <p class="text-xs text-gray-400 mt-1.5">
@@ -68,14 +76,12 @@
     </div>
 
     {{-- Unterprodukte --}}
-    @if($product->hasChild())
     <div class="cis-card p-0 overflow-hidden">
-        <div class="px-6 py-3.5 border-b border-gray-100 flex items-center justify-between">
-            <h3 class="text-sm font-semibold text-gray-800">Unterprodukte</h3>
-            <a href="{{ route('product.create', $product->cis_row_id) }}" class="btn btn-ghost btn-sm">
-                <i class="fa fa-plus mr-1"></i> Hinzufügen
-            </a>
+        <div class="px-6 py-3.5 border-b border-gray-100">
+            <h3 class="text-sm font-semibold text-gray-800 mb-3">Unterprodukte</h3>
+            @livewire('product.add-child', ['parent' => $product])
         </div>
+        @if($product->hasChild())
         <table class="cis-table">
             <thead>
                 <tr>
@@ -88,7 +94,14 @@
             <tbody>
                 @foreach($product->getChild()->sortBy('name') as $child)
                 <tr class="cursor-pointer" onclick='location.href="{{ route("product.edit", $child) }}"'>
-                    <td class="font-medium text-gray-900">{{ $child->name }}</td>
+                    <td class="font-medium text-gray-900">
+                        {{ $child->name }}
+                        @if($child->getParents()->count() > 1)
+                            <span class="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
+                                auch bei {{ $child->getParents()->where('cis_row_id', '!=', $product->cis_row_id)->pluck('name')->implode(', ') }}
+                            </span>
+                        @endif
+                    </td>
                     <td>{{ $child->priceForHumans() }}</td>
                     <td class="text-gray-500 text-sm">{{ $child->price()?->source?->name ?? '–' }}</td>
                     <td class="text-gray-400 text-sm">{{ $child->updated_at->format('d.m.Y') }}</td>
@@ -96,8 +109,17 @@
                 @endforeach
             </tbody>
         </table>
+        @else
+        <p class="px-6 py-8 text-center text-sm text-gray-400">Noch keine Unterprodukte zugeordnet.</p>
+        @endif
     </div>
-    @endif
+
+    {{-- Preisentwicklung --}}
+    <div class="cis-card">
+        <h3 class="text-sm font-semibold text-gray-800 mb-1">Preisentwicklung</h3>
+        <p class="text-xs text-gray-500 mb-4">Durchschnitt über alle Lieferanten sowie je Lieferant einzeln.</p>
+        <x-product-price-chart :product="$product" />
+    </div>
 
     {{-- Preis erfassen + Preisverlauf --}}
     <div class="grid grid-cols-2 gap-5">

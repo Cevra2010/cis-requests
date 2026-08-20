@@ -7,6 +7,7 @@ use App\Models\Offer;
 use App\Models\OfferItem;
 use App\Models\PositionAward;
 use App\Models\Project;
+use App\Services\ChildProductAggregator;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Nwidart\Modules\Facades\Module;
 
@@ -21,7 +22,7 @@ class OfferController extends Controller
             ->firstOrFail();
 
         $awards = PositionAward::where('cis_row_id_offer', $o->cis_row_id)
-            ->with(['position.product'])
+            ->with(['position.product.childs'])
             ->get();
 
         $rows = $awards->map(function (PositionAward $award) use ($o) {
@@ -41,6 +42,31 @@ class OfferController extends Controller
                 'sum'   => $price * $qty,
             ];
         })->values();
+
+        // Unterprodukte (z.B. gemeinsame Anschlussstücke mehrerer Positionen dieses
+        // Anbieters) als eigenständige Zeilen anhängen, Menge über alle Positionen
+        // dieses Anbieters aufsummiert. Da sie nicht Teil des Angebots sind, wird
+        // hierfür der zuletzt erfasste Katalogpreis verwendet.
+        $childTotals = ChildProductAggregator::aggregate(
+            $awards->map(fn (PositionAward $award) => [
+                'product'  => $award->position->product,
+                'quantity' => $award->position->product_count,
+            ])
+        );
+
+        foreach ($childTotals as $entry) {
+            $child = $entry['product'];
+            $qty   = $entry['quantity'];
+            $price = (float) ($child->price()?->amount ?? 0);
+
+            $rows->push((object) [
+                'name'  => $child->name,
+                'note'  => null,
+                'qty'   => $qty,
+                'price' => $price,
+                'sum'   => $price * $qty,
+            ]);
+        }
 
         $total    = $rows->sum('sum');
         $branding = (Module::find('Branding')?->isEnabled())

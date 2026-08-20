@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Category\CategoryController;
+use App\Http\Controllers\Parameter\ParameterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Group\GroupController;
 use App\Http\Controllers\Price\PriceController;
@@ -140,11 +141,8 @@ Route::middleware(['auth'])->group(function() {
     Route::get('/Project/{project}/Offers/{offer}/OrderList/PDF',[OfferController::class, 'exportOrderListPdf'])->name('offer.orderlist.pdf');
 
     /** Categories */
-    Route::get('/Category',              [CategoryController::class, 'index'])   ->name('category.index');
-    Route::get('/Category/Create',       [CategoryController::class, 'create'])  ->name('category.create');
-    Route::post('/Category/Create',      [CategoryController::class, 'store'])   ->name('category.store');
-    Route::get('/Category/{id}/Edit',    [CategoryController::class, 'edit'])    ->name('category.edit');
-    Route::put('/Category/{id}/Edit',    [CategoryController::class, 'update'])  ->name('category.update');
-    Route::get('/Category/{id}/Delete',  [CategoryController::class, 'delete'])  ->name('category.delete');
-    Route::delete('/Category/{id}',      [CategoryController::class, 'destroy']) ->name('category.destroy');
+    Route::get('/Category', [CategoryController::class, 'index'])->name('category.index');
+
+    /** Parameters */
+    Route::get('/Parameters', [ParameterController::class, 'index'])->name('parameter.index');
 });

@@ -10,8 +10,16 @@
                    placeholder="Produkt suchen…"
                    class="cis-input pl-9">
         </div>
-        @if($searchString)
-            <button wire:click='$set("searchString", null)' class="btn-ghost btn-sm">
+        @if($categoryOptions)
+        <select wire:model.live="categoryFilter" class="cis-input py-1.5 text-sm">
+            <option value="">Alle Kategorien</option>
+            @foreach($categoryOptions as $catId => $catLabel)
+                <option value="{{ $catId }}">{{ $catLabel }}</option>
+            @endforeach
+        </select>
+        @endif
+        @if($searchString || $categoryFilter !== '')
+            <button wire:click="resetFilters" class="btn-ghost btn-sm">
                 <i class="fa fa-xmark"></i>
                 Zurücksetzen
             </button>
@@ -33,6 +41,7 @@
                             @endif
                         </span>
                     </th>
+                    <th>Kategorie</th>
                     <th>Produktpreis</th>
                     <th>Gesamtpreis</th>
                     <th>Lieferant</th>
@@ -60,6 +69,7 @@
                                 <span class="font-medium text-gray-900">{{ $product->name }}</span>
                             </div>
                         </td>
+                        <td class="text-gray-500 text-sm">{{ $product->category?->name ?? '–' }}</td>
                         <td>
                             <span class="font-medium {{ $product->price() ? 'text-gray-900' : 'text-gray-400' }}">
                                 {{ $product->priceForHumans() }}
@@ -88,6 +98,7 @@
                                         {{ $child->name }}
                                     </div>
                                 </td>
+                                <td class="text-gray-500 text-sm">{{ $child->category?->name ?? '–' }}</td>
                                 <td class="text-gray-600">
                                     {{ $child->priceForHumans() }}
                                 </td>
@@ -101,7 +112,7 @@
                     @endif
                 @empty
                     <tr>
-                        <td colspan="5" class="text-center py-12 text-gray-400">
+                        <td colspan="6" class="text-center py-12 text-gray-400">
                             <i class="fa fa-box-open text-3xl mb-3 block"></i>
                             <p class="text-sm">Keine Produkte gefunden.</p>
                         </td>

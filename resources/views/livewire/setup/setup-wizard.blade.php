@@ -31,7 +31,7 @@
     @else
         {{-- ── Schrittanzeige ── --}}
         <div class="flex items-center justify-center gap-2 mb-8">
-            @foreach(['Lizenz', 'Konto', 'Einstellungen'] as $i => $label)
+            @foreach(['Lizenz', 'Konto', 'Firma', 'Einstellungen'] as $i => $label)
             @php $n = $i + 1; @endphp
             <div class="flex items-center gap-2">
                 <div class="flex items-center justify-center w-7 h-7 rounded-full text-xs font-semibold shrink-0
@@ -44,7 +44,7 @@
                 </div>
                 <span class="text-xs font-medium hidden sm:inline {{ $step === $n ? 'text-gray-800' : 'text-gray-400' }}">{{ $label }}</span>
             </div>
-            @if($n < 3)
+            @if($n < 4)
                 <div class="w-8 h-px {{ $step > $n ? 'bg-emerald-400' : 'bg-gray-200' }}"></div>
             @endif
             @endforeach
@@ -118,8 +118,74 @@
         </div>
         @endif
 
-        {{-- ── Schritt 3: Grundeinstellungen & Abschluss ── --}}
+        {{-- ── Schritt 3: Firma & Anschrift ── --}}
         @if($step === 3)
+        <h2 class="text-lg font-semibold text-gray-900 mb-1">Firma &amp; Anschrift</h2>
+        <p class="text-sm text-gray-500 mb-6">Diese Angaben erscheinen u. a. auf Ausschreibungsdokumenten.</p>
+
+        <div class="space-y-4">
+            <div>
+                <label for="companyName" class="cis-label">Firma</label>
+                <input type="text" id="companyName" wire:model="companyName"
+                       class="cis-input w-full @error('companyName') is-invalid @enderror" placeholder="Musterfirma GmbH">
+                @error('companyName')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+
+            <div class="grid grid-cols-3 gap-4">
+                <div class="col-span-2">
+                    <label for="companyStreet" class="cis-label">Straße &amp; Hausnummer</label>
+                    <input type="text" id="companyStreet" wire:model="companyStreet" class="cis-input w-full">
+                </div>
+                <div>
+                    <label for="companyPostalCode" class="cis-label">PLZ</label>
+                    <input type="text" id="companyPostalCode" wire:model="companyPostalCode" class="cis-input w-full">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="companyCity" class="cis-label">Ort</label>
+                    <input type="text" id="companyCity" wire:model="companyCity" class="cis-input w-full">
+                </div>
+                <div>
+                    <label for="companyCountry" class="cis-label">Land</label>
+                    <input type="text" id="companyCountry" wire:model="companyCountry" class="cis-input w-full" placeholder="Deutschland">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="companyVatId" class="cis-label">USt-IdNr.</label>
+                    <input type="text" id="companyVatId" wire:model="companyVatId" class="cis-input w-full" placeholder="DE123456789">
+                </div>
+                <div>
+                    <label for="companyPhone" class="cis-label">Telefon</label>
+                    <input type="text" id="companyPhone" wire:model="companyPhone" class="cis-input w-full">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="companyEmail" class="cis-label">E-Mail</label>
+                    <input type="email" id="companyEmail" wire:model="companyEmail"
+                           class="cis-input w-full @error('companyEmail') is-invalid @enderror">
+                    @error('companyEmail')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label for="companyWebsite" class="cis-label">Website</label>
+                    <input type="text" id="companyWebsite" wire:model="companyWebsite" class="cis-input w-full" placeholder="www.musterfirma.de">
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 mt-6">
+            <button type="button" wire:click="back" class="btn-ghost py-2.5 px-4">Zurück</button>
+            <button type="button" wire:click="nextFromCompany" class="btn-primary flex-1 justify-center py-2.5">Weiter</button>
+        </div>
+        @endif
+
+        {{-- ── Schritt 4: Grundeinstellungen & Abschluss ── --}}
+        @if($step === 4)
         <h2 class="text-lg font-semibold text-gray-900 mb-1">Grundeinstellungen</h2>
         <p class="text-sm text-gray-500 mb-6">Fast fertig — lege noch ein paar Standardwerte fest.</p>
 

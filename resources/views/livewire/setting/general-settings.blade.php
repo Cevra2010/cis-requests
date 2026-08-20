@@ -1,7 +1,7 @@
 <div class="max-w-md">
     <div class="cis-card">
         <h2 class="text-base font-semibold text-gray-800 mb-1">Beschaffung</h2>
-        <p class="text-sm text-gray-500 mb-5">
+        <p class="text-sm text-gray-500 mb-6">
             Globaler Standard für den Mindestbestellwert je Anbieter. Kann je Projekt überschrieben werden.
         </p>
 
@@ -19,7 +19,7 @@
             @error('defaultMinOrderValue')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
         </div>
 
-        <div class="pt-4">
+        <div class="pt-6 mt-6 border-t border-gray-100">
             <button type="button" wire:click="save" class="btn btn-primary btn-sm">Speichern</button>
         </div>
     </div>

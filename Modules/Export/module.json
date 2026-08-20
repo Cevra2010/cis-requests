@@ -1,0 +1,14 @@
+{
+    "name": "Export",
+    "alias": "export",
+    "description": "Konfigurierbare CSV-/Excel-Tabellenexporte für Ausschreibungen mit frei definierbaren Spalten.",
+    "version": "1.0.0",
+    "keywords": ["export", "csv", "excel", "tabelle"],
+    "priority": 30,
+    "core": false,
+    "requires_license": true,
+    "providers": [
+        "Modules\\Export\\Providers\\ExportServiceProvider"
+    ],
+    "files": []
+}

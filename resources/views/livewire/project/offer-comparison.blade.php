@@ -20,6 +20,110 @@
             <p class="text-sm">Noch keine Angebote angelegt.</p>
         </div>
     @else
+    {{-- ── Ansicht umschalten ── --}}
+    <div class="flex items-center gap-1.5 mb-4 border border-gray-200 rounded-lg p-1 bg-gray-50 w-fit">
+        <button type="button" wire:click="setViewMode('overview')"
+                class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors {{ $viewMode === 'overview' ? 'bg-white shadow-sm text-primary-700' : 'text-gray-500' }}">
+            <i class="fa fa-table-cells mr-1.5"></i>Gesamtübersicht
+        </button>
+        <button type="button" wire:click="setViewMode('sequential')"
+                class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors {{ $viewMode === 'sequential' ? 'bg-white shadow-sm text-primary-700' : 'text-gray-500' }}">
+            <i class="fa fa-list-ol mr-1.5"></i>Einzeln bearbeiten
+        </button>
+    </div>
+
+    @if($viewMode === 'sequential')
+        {{-- ── Angebote nacheinander bearbeiten ── --}}
+        <div class="flex items-center gap-1.5 mb-4 flex-wrap">
+            @foreach($offers as $offer)
+            <button type="button" wire:click="selectOffer('{{ $offer->cis_row_id }}')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors
+                        {{ $currentOffer && $currentOffer->cis_row_id === $offer->cis_row_id
+                            ? 'border-primary-500 bg-primary-50 text-primary-700'
+                            : 'border-gray-200 text-gray-500 hover:border-gray-300' }}
+                        {{ !$offer->active ? 'opacity-40' : '' }}">
+                {{ $offer->source->name }}
+                @if(!$offer->active)<i class="fa fa-ban ml-1"></i>@endif
+            </button>
+            @endforeach
+        </div>
+
+        @if($currentOffer)
+        <div class="cis-card">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <p class="text-sm font-semibold text-gray-800">
+                        {{ $currentOffer->source->name }}
+                        <span class="text-xs font-normal text-gray-400 ml-1">Angebot {{ $currentOfferIndex + 1 }} von {{ $offers->count() }}</span>
+                    </p>
+                    @if($currentOffer->reference)
+                        <p class="text-xs text-gray-400">{{ $currentOffer->reference }}</p>
+                    @endif
+                    @if(!$currentOffer->active)
+                        <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">
+                            <i class="fa fa-ban"></i> Ausgeschlossen
+                        </span>
+                    @endif
+                </div>
+                <button type="button" wire:click="toggleActive('{{ $currentOffer->cis_row_id }}')"
+                        class="btn btn-ghost btn-sm">
+                    <i class="fa {{ $currentOffer->active ? 'fa-ban' : 'fa-rotate-left' }} mr-1.5"></i>
+                    {{ $currentOffer->active ? 'Anbieter ausschließen' : 'Anbieter reaktivieren' }}
+                </button>
+            </div>
+
+            <div class="divide-y divide-gray-50 border-t border-gray-100">
+                @foreach($positions as $position)
+                @php
+                    $item = $matrix[$position->cis_row_id][$currentOffer->cis_row_id] ?? null;
+                    $isCheapest = $item && !$item->not_offered && $item->price !== null
+                        && $currentOffer->active
+                        && (float) $item->price === (float) ($cheapestPerPosition[$position->cis_row_id] ?? null);
+                @endphp
+                <div class="flex items-center gap-4 py-3">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-800">{{ $position->product->name ?? '–' }}</p>
+                        @if($position->note)<p class="text-xs text-gray-400">{{ $position->note }}</p>@endif
+                        @if($deviation = $deviations[$position->cis_row_id] ?? null)
+                        <p class="text-[10px] text-amber-600 mt-0.5 flex items-center gap-1">
+                            <i class="fa fa-circle-info"></i>
+                            Abweichend bestellt bei {{ $deviation['source_name'] }} ({{ number_format($deviation['awarded_price'], 2, ',', '.') }} € statt {{ number_format($deviation['cheapest_price'], 2, ',', '.') }} €)
+                        </p>
+                        @endif
+                    </div>
+                    <span class="text-xs text-gray-400 w-14 text-center shrink-0">{{ $position->product_count }} Stk.</span>
+                    @if($item)
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <input type="text"
+                               value="{{ $item->not_offered ? '' : $item->price }}"
+                               {{ $item->not_offered ? 'disabled' : '' }}
+                               placeholder="Preis"
+                               wire:change="saveItemPrice('{{ $currentOffer->cis_row_id }}', '{{ $position->cis_row_id }}', $event.target.value)"
+                               class="cis-input py-1.5 px-2 text-sm w-28 {{ $isCheapest ? 'font-semibold text-emerald-700 border-emerald-300' : '' }} disabled:bg-gray-50 disabled:text-gray-300">
+                        <button type="button"
+                                wire:click="toggleNotOffered('{{ $currentOffer->cis_row_id }}', '{{ $position->cis_row_id }}')"
+                                title="Nicht korrekt angeboten"
+                                class="text-sm {{ $item->not_offered ? 'text-red-500' : 'text-gray-200 hover:text-red-400' }}">
+                            <i class="fa fa-triangle-exclamation"></i>
+                        </button>
+                    </div>
+                    @endif
+                </div>
+                @endforeach
+            </div>
+
+            <div class="flex items-center justify-between mt-5 pt-4 border-t border-gray-100">
+                <button type="button" wire:click="previousOffer" class="btn btn-ghost btn-sm" {{ $currentOfferIndex === 0 ? 'disabled' : '' }}>
+                    <i class="fa fa-arrow-left mr-1.5"></i> Vorheriges Angebot
+                </button>
+                <button type="button" wire:click="nextOffer" class="btn btn-primary btn-sm" {{ $currentOfferIndex === $offers->count() - 1 ? 'disabled' : '' }}>
+                    Nächstes Angebot <i class="fa fa-arrow-right ml-1.5"></i>
+                </button>
+            </div>
+        </div>
+        @endif
+
+    @else
     <div class="cis-card p-0 overflow-x-auto">
         <table class="min-w-full text-sm">
             <thead>
@@ -51,6 +155,12 @@
                     <td class="px-3 py-2 sticky left-0 bg-white">
                         <p class="text-sm font-medium text-gray-800">{{ $position->product->name ?? '–' }}</p>
                         @if($position->note)<p class="text-xs text-gray-400">{{ $position->note }}</p>@endif
+                        @if($deviation = $deviations[$position->cis_row_id] ?? null)
+                        <p class="text-[10px] text-amber-600 mt-0.5 flex items-center gap-1" title="Bestellt bei {{ $deviation['source_name'] }} für {{ number_format($deviation['awarded_price'], 2, ',', '.') }} € — günstigster Preis wäre {{ number_format($deviation['cheapest_price'], 2, ',', '.') }} € gewesen.">
+                            <i class="fa fa-circle-info"></i>
+                            Abweichend bestellt bei {{ $deviation['source_name'] }}
+                        </p>
+                        @endif
                     </td>
                     <td class="px-2 py-2 text-center text-gray-500">{{ $position->product_count }}</td>
                     @foreach($offers as $offer)
@@ -91,6 +201,7 @@
             </tbody>
         </table>
     </div>
+    @endif
     @endif
 
     {{-- ── Angebot anlegen Modal ── --}}

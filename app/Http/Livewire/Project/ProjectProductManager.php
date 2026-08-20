@@ -15,6 +15,7 @@ class ProjectProductManager extends Component
 
     public string $projectId;
     public string $search = '';
+    public string $categoryFilter = '';
 
     public function mount(string $projectId): void
     {
@@ -45,16 +46,31 @@ class ProjectProductManager extends Component
 
         $assignedIds = $assigned->pluck('cis_row_id')->toArray();
 
+        // Unterprodukte je zugeordnetem Produkt nachladen (für Anzeige + Preis-Rollup).
+        $productsById = Product::whereIn('cis_row_id', $assignedIds)
+            ->with('childs')
+            ->get()
+            ->keyBy('cis_row_id');
+
+        foreach ($assigned as $item) {
+            $product        = $productsById->get($item->cis_row_id);
+            $item->children = $product?->childs ?? collect();
+            $item->group_price = $product?->getGroupPrice() ?? 0.0;
+        }
+
         $available = Product::whereNull('deleted_at')
             ->whereNotIn('cis_row_id', $assignedIds)
             ->when(trim($this->search), fn($q) => $q->where('name', 'like', '%' . trim($this->search) . '%'))
+            ->when($this->categoryFilter !== '', fn($q) => $q->where('category_id', $this->categoryFilter))
             ->orderBy('name')
             ->get(['cis_row_id', 'name']);
+
+        $categoryOptions = \CisFoundation\CisCategoryManager\CisCategoryManager::optionsForType('product.category');
 
         $project = Project::where('cis_row_id', $this->projectId)->first();
         $canEdit = $project?->isEditableBy(auth()->user()) ?? true;
 
-        return view('livewire.project.project-product-manager', compact('assigned', 'available', 'canEdit'));
+        return view('livewire.project.project-product-manager', compact('assigned', 'available', 'canEdit', 'categoryOptions'));
     }
 
     public function add(string $productId): void

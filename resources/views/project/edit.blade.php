@@ -27,6 +27,7 @@
                 {{ $project->statusLabel() }}
             </span>
             <span class="text-xs text-gray-400">Erstellt {{ $project->created_at->format('d.m.Y') }}</span>
+            <span class="text-xs text-gray-400">· {{ $project->typeLabel() }}</span>
         </div>
 
         <form action="{{ route('project.update', $project->cis_row_id) }}" method="POST" class="space-y-5">

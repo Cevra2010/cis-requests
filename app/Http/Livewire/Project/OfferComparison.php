@@ -20,9 +20,51 @@ class OfferComparison extends Component
     public string $newReference     = '';
     public ?string $newSubmittedAt  = null;
 
+    /** 'overview' = Gesamtübersicht, 'sequential' = Angebote nacheinander bearbeiten */
+    public string $viewMode = 'overview';
+
+    public ?string $currentOfferId = null;
+
     public function mount(string $projectId): void
     {
         $this->projectId = $projectId;
+    }
+
+    // ── Einzeln bearbeiten ───────────────────────────────────────────────────
+
+    public function setViewMode(string $mode): void
+    {
+        $this->viewMode = in_array($mode, ['overview', 'sequential'], true) ? $mode : 'overview';
+    }
+
+    public function selectOffer(string $offerId): void
+    {
+        $this->currentOfferId = $offerId;
+        $this->viewMode = 'sequential';
+    }
+
+    public function nextOffer(): void
+    {
+        $this->stepOffer(1);
+    }
+
+    public function previousOffer(): void
+    {
+        $this->stepOffer(-1);
+    }
+
+    private function stepOffer(int $direction): void
+    {
+        $offerIds = Offer::where('cis_row_id_project', $this->projectId)->orderBy('created_at')->pluck('cis_row_id');
+        if ($offerIds->isEmpty()) {
+            return;
+        }
+
+        $index = $this->currentOfferId ? $offerIds->search($this->currentOfferId) : false;
+        $index = $index === false ? 0 : $index;
+        $newIndex = max(0, min($offerIds->count() - 1, $index + $direction));
+
+        $this->currentOfferId = $offerIds[$newIndex];
     }
 
     #[On('positions-imported')]
@@ -35,7 +77,7 @@ class OfferComparison extends Component
     {
         $project = Project::where('cis_row_id', $this->projectId)->firstOrFail();
 
-        $positions = $project->positions()->with('product')->get();
+        $positions = $project->positions()->with(['product', 'award.offer.source'])->get();
         $offers    = $project->offers()->with('source')->orderBy('created_at')->get();
 
         // Für neu importierte Positionen fehlende OfferItems je bestehendem Angebot nachziehen.
@@ -79,8 +121,42 @@ class OfferComparison extends Component
             ->orderBy('name')
             ->get();
 
+        // Positionen, die abweichend vom günstigsten Preis bestellt wurden (z.B. manuell
+        // unter "Bestellung" einem anderen Anbieter zugeordnet) – für Hinweis in der Übersicht.
+        $deviations = [];
+        foreach ($positions as $position) {
+            $award = $position->award;
+            if (! $award || ! $award->cis_row_id_offer) {
+                continue;
+            }
+
+            $awardedItem  = $matrix[$position->cis_row_id][$award->cis_row_id_offer] ?? null;
+            $awardedPrice = ($awardedItem && ! $awardedItem->not_offered) ? $awardedItem->price : null;
+            $cheapest     = $cheapestPerPosition[$position->cis_row_id] ?? null;
+
+            if ($awardedPrice !== null && $cheapest !== null && (float) $awardedPrice !== (float) $cheapest) {
+                $deviations[$position->cis_row_id] = [
+                    'source_name'    => $award->offer?->source?->name ?? '–',
+                    'awarded_price'  => (float) $awardedPrice,
+                    'cheapest_price' => (float) $cheapest,
+                ];
+            }
+        }
+
+        // ── Für "Einzeln bearbeiten" ─────────────────────────────────────────────
+        $currentOffer      = null;
+        $currentOfferIndex = null;
+        if ($offers->isNotEmpty()) {
+            if (! $this->currentOfferId || ! $offers->contains('cis_row_id', $this->currentOfferId)) {
+                $this->currentOfferId = $offers->first()->cis_row_id;
+            }
+            $currentOffer      = $offers->firstWhere('cis_row_id', $this->currentOfferId);
+            $currentOfferIndex = $offers->search(fn (Offer $o) => $o->cis_row_id === $this->currentOfferId);
+        }
+
         return view('livewire.project.offer-comparison', compact(
-            'project', 'positions', 'offers', 'matrix', 'cheapestPerPosition', 'availableSources'
+            'project', 'positions', 'offers', 'matrix', 'cheapestPerPosition', 'availableSources',
+            'deviations', 'currentOffer', 'currentOfferIndex'
         ));
     }
 

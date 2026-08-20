@@ -30,7 +30,7 @@
             <option value="">Alle Kategorien</option>
             @foreach($categories as $cat)
                 <option value="{{ $cat->id }}" {{ (string)$categoryFilter === (string)$cat->id ? 'selected' : '' }}>
-                    {{ $cat->name }}
+                    {{ str_repeat('— ', $cat->depth) }}{{ $cat->name }}
                 </option>
             @endforeach
         </select>
@@ -67,6 +67,7 @@
                 <td>
                     <a href="{{ route('project.show', $project->cis_row_id) }}"
                        class="font-medium text-gray-900 hover:text-primary-600 transition-colors">
+                        @if($project->isVehicle())<i class="fa fa-truck-fast text-purple-400 mr-1" title="Fahrzeugausschreibung"></i>@endif
                         {{ $project->name }}
                     </a>
                     @if($project->description)

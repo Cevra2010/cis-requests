@@ -1,4 +1,23 @@
-<div class="flex border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm"
+<div>
+
+    {{-- Grobe Kostenschätzung --}}
+    <div class="cis-card mb-4 flex items-center justify-between gap-4">
+        <div>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">Grobe Kostenschätzung</p>
+            <p class="text-xl font-semibold text-gray-900">
+                {{ number_format($estimate['total'], 2, ',', '.') }} €
+            </p>
+            <p class="text-xs text-gray-400 mt-0.5">
+                Auf Basis der zuletzt erfassten Katalogpreise (inkl. Unterprodukte) – ersetzt keine Angebote.
+                @if($estimate['missing_count'] > 0)
+                    {{ $estimate['missing_count'] }} von {{ $estimate['positions_count'] }} Position(en) ohne Preis, nicht enthalten.
+                @endif
+            </p>
+        </div>
+        <i class="fa fa-calculator text-2xl text-gray-200"></i>
+    </div>
+
+    <div class="flex border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm"
      style="min-height: 680px"
      x-data="{
          paletteSortable: null,
@@ -616,4 +635,5 @@
         </div>
     </template>
 
+    </div>
 </div>

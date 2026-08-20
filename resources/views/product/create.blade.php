@@ -32,6 +32,11 @@
                 @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
 
+            <div>
+                <label class="cis-label" for="category_id">Kategorie</label>
+                <x-cis-category-select type="product.category" name="category_id" :value="old('category_id')" />
+            </div>
+
             <div class="flex items-center gap-3 pt-2">
                 <button type="submit" class="btn btn-primary">Produkt erstellen</button>
                 <a href="{{ $parent ? route('product.edit', $parent) : route('product') }}"

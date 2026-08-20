@@ -14,7 +14,7 @@ $categories = CisCategoryManager::forType($type);
     @foreach($categories as $cat)
         <option value="{{ $cat->id }}"
             @if((string)($value ?? '') === (string)$cat->id) selected @endif>
-            {{ $cat->name }}
+            {{ str_repeat('— ', $cat->depth) }}{{ $cat->name }}
         </option>
     @endforeach
 </select>

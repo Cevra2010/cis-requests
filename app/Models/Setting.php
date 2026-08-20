@@ -12,6 +12,22 @@ class Setting extends Model
 
     protected $fillable = ['key', 'value'];
 
+    /**
+     * Firmen-/Anschriftsfelder — zentral definiert, damit Settings-Seite und
+     * Einrichtungs-Assistent dieselben Felder/Labels verwenden.
+     */
+    public const COMPANY_FIELDS = [
+        'company_name'        => 'Firma',
+        'company_street'      => 'Straße & Hausnummer',
+        'company_postal_code' => 'PLZ',
+        'company_city'        => 'Ort',
+        'company_country'     => 'Land',
+        'company_vat_id'      => 'USt-IdNr.',
+        'company_phone'       => 'Telefon',
+        'company_email'       => 'E-Mail',
+        'company_website'     => 'Website',
+    ];
+
     public static function get(string $key, $default = null)
     {
         $row = static::find($key);

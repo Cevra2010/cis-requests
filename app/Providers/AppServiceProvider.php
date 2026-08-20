@@ -24,6 +24,43 @@ class AppServiceProvider extends ServiceProvider
             description: 'Erlaubt das Bearbeiten von Produkten und Ausschreibungstext, nachdem ein Projekt fixiert wurde.'
         );
 
+        CisPermissionManager::registerGroup('project.status', 'Projektstatus-Freigaben');
+        CisPermissionManager::register(
+            'project.status.set.ready_for_tender',
+            "Status „Bereit zur Ausschreibung“ setzen",
+            description: 'Erlaubt das Setzen bzw. Zurücknehmen des Status „Bereit zur Ausschreibung“ (z.B. durch Sachbearbeiter).'
+        );
+        CisPermissionManager::register(
+            'project.status.set.tender',
+            "Status „Ausschreibung“ setzen",
+            description: 'Erlaubt das Eröffnen bzw. Zurücknehmen der förmlichen Ausschreibung – fixiert Produkte/Ausschreibungstext (z.B. nur Sachgebietsleitung).'
+        );
+        CisPermissionManager::register(
+            'project.status.set.ready_for_evaluation',
+            "Status „Bereit zur Auswertung“ setzen",
+            description: 'Erlaubt das Setzen bzw. Zurücknehmen des Status „Bereit zur Auswertung“.'
+        );
+        CisPermissionManager::register(
+            'project.status.set.evaluated',
+            "Status „Ausgewertet“ setzen",
+            description: 'Erlaubt das Setzen bzw. Zurücknehmen des Status „Ausgewertet“.'
+        );
+        CisPermissionManager::register(
+            'project.status.set.ordered',
+            "Status „Bestellt“ setzen",
+            description: 'Erlaubt das Setzen bzw. Zurücknehmen des Status „Bestellt“.'
+        );
+        CisPermissionManager::register(
+            'project.status.set.orders_in_revision',
+            "Status „Bestellungen in Revision“ setzen",
+            description: 'Erlaubt das Setzen bzw. Zurücknehmen des Status „Bestellungen in Revision“.'
+        );
+        CisPermissionManager::register(
+            'project.status.set.completed',
+            "Status „Abgeschlossen“ setzen",
+            description: 'Erlaubt das Setzen bzw. Zurücknehmen des Status „Abgeschlossen“.'
+        );
+
         CisPermissionManager::registerGroup('system', 'System');
         CisPermissionManager::register(
             'system.reset',
@@ -89,6 +126,12 @@ class AppServiceProvider extends ServiceProvider
             ->setRoute('category.index')
             ->setIcon('tag')
             ->setPriority(90);
+
+        $menu->registerEntry('parameter')
+            ->setText('Fahrzeugparameter')
+            ->setRoute('parameter.index')
+            ->setIcon('list-tree')
+            ->setPriority(91);
 
         $menu->registerEntry('modules')
             ->setText('Module')

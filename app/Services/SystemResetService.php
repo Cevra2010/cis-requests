@@ -95,6 +95,8 @@ class SystemResetService
     {
         return [
             'Projekte'               => DB::table('projects')->count(),
+            'Fahrzeug-Konfigurationen' => DB::table('project_vehicle_blocks')->count(),
+            'Parameter'              => DB::table('template_parameters')->count(),
             'Angebote'               => DB::table('offers')->count(),
             'Produkte'               => DB::table('products')->count(),
             'Preise'                 => DB::table('prices')->count(),
@@ -111,6 +113,8 @@ class SystemResetService
         DB::table('offers')->delete();
 
         DB::table('project_tender_blocks')->delete();
+        DB::table('project_vehicle_block_items')->delete();
+        DB::table('project_vehicle_blocks')->delete();
         DB::table('project_product')->delete();
         DB::table('project_last_touch')->delete();
         DB::table('projects')->delete();
@@ -123,6 +127,7 @@ class SystemResetService
         DB::table('product_sources')->delete();
 
         DB::table('categories')->delete();
+        DB::table('template_parameters')->delete();
 
         DB::table('group_permissions')->delete();
         DB::table('user_groups')->delete();

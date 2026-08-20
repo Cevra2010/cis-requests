@@ -21,5 +21,7 @@ class CisCategoryManagerServiceProvider extends ServiceProvider
 
         // Core-Typen registrieren
         CisCategoryManager::registerType('project.category', 'Projektkategorie', module: 'Core');
+        CisCategoryManager::registerType('product.category', 'Produktkategorie', module: 'Core');
+        CisCategoryManager::registerType('vehicle.spec', 'Fahrzeug-Parameter', module: 'Core');
     }
 }

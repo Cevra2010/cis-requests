@@ -9,6 +9,7 @@ use Livewire\Component;
 class ProductTable extends Component
 {
     public $searchString;
+    public $categoryFilter = '';
     public $orderBy = 'name';
     public $orderDirection = 'ASC';
 
@@ -16,7 +17,11 @@ class ProductTable extends Component
 
     public function render()
     {
-        $query = Product::query()->with(['prices', 'childs']);
+        $query = Product::query()->with(['prices', 'childs.category', 'category']);
+
+        if ($this->categoryFilter !== '') {
+            $query->where('category_id', $this->categoryFilter);
+        }
 
         if ($this->searchString) {
             // Bei Suche alle Produkte (inkl. Unterprodukte)
@@ -29,9 +34,16 @@ class ProductTable extends Component
             }
         }
 
-        $products = $query->orderBy($this->orderBy, $this->orderDirection)->get();
+        $products         = $query->orderBy($this->orderBy, $this->orderDirection)->get();
+        $categoryOptions  = \CisFoundation\CisCategoryManager\CisCategoryManager::optionsForType('product.category');
 
-        return view('livewire.product.product-table', compact('products'));
+        return view('livewire.product.product-table', compact('products', 'categoryOptions'));
+    }
+
+    public function resetFilters(): void
+    {
+        $this->searchString   = null;
+        $this->categoryFilter = '';
     }
 
     public function order($orderName)

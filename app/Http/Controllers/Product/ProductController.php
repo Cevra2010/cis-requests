@@ -24,9 +24,15 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate(['name' => 'required|string|max:255']);
+        $data = $request->validate([
+            'name'        => 'required|string|max:255',
+            'category_id' => 'nullable|integer',
+        ]);
 
-        $product = Product::create(['name' => $data['name']]);
+        $product = Product::create([
+            'name'        => $data['name'],
+            'category_id' => $data['category_id'] ?? null,
+        ]);
 
         // Eltern-Kind-Beziehung über Pivot-Tabelle
         if ($request->filled('parent')) {
@@ -52,7 +58,10 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product)
     {
-        $data = $request->validate(['name' => 'required|string|max:255']);
+        $data = $request->validate([
+            'name'        => 'required|string|max:255',
+            'category_id' => 'nullable|integer',
+        ]);
         $product->update($data);
 
         session()->flash('success', 'Produkt wurde umbenannt.');

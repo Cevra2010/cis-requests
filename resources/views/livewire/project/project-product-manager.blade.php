@@ -29,6 +29,14 @@
                 </button>
                 @endif
             </div>
+            @if($categoryOptions)
+            <select wire:model.live="categoryFilter" class="cis-input py-1.5 text-sm w-full mt-2">
+                <option value="">Alle Kategorien</option>
+                @foreach($categoryOptions as $catId => $catLabel)
+                    <option value="{{ $catId }}">{{ $catLabel }}</option>
+                @endforeach
+            </select>
+            @endif
         </div>
 
         {{-- Scrollable list --}}
@@ -100,10 +108,18 @@
                     <span class="text-[10px] text-gray-300 font-mono w-4 text-center shrink-0 tabular-nums">{{ $loop->iteration }}</span>
 
                     {{-- Name --}}
-                    <a href="{{ route('product.edit', $item->cis_row_id) }}"
-                       class="flex-1 text-sm font-medium text-gray-900 hover:text-primary-600 transition-colors truncate min-w-0">
-                        {{ $item->name }}
-                    </a>
+                    <div class="flex-1 min-w-0">
+                        <a href="{{ route('product.edit', $item->cis_row_id) }}"
+                           class="text-sm font-medium text-gray-900 hover:text-primary-600 transition-colors truncate block">
+                            {{ $item->name }}
+                        </a>
+                        @if($item->group_price > 0)
+                            <span class="text-[11px] text-gray-400">
+                                {{ number_format($item->group_price, 2, ',', '.') }} € / Stk.
+                                @if($item->children->isNotEmpty()) inkl. Unterprodukte @endif
+                            </span>
+                        @endif
+                    </div>
 
                     {{-- Count --}}
                     <div class="flex items-center gap-1 shrink-0">
@@ -136,6 +152,23 @@
                            {{ !$canEdit ? 'disabled' : '' }}
                            class="w-full text-xs text-gray-400 bg-transparent border-0 border-b border-dashed border-gray-100 focus:border-gray-300 focus:ring-0 py-0.5 px-0 placeholder-gray-200 transition-colors">
                 </div>
+
+                {{-- Unterprodukte --}}
+                @if($item->children->isNotEmpty())
+                <div class="px-4 pb-2.5 pl-[52px] space-y-1">
+                    @foreach($item->children as $child)
+                    <div class="flex items-center gap-2 text-xs">
+                        <i class="fa fa-arrow-turn-down-right text-gray-300 text-[10px]"></i>
+                        <a href="{{ route('product.edit', $child->cis_row_id) }}"
+                           class="text-gray-500 hover:text-primary-600 transition-colors truncate">
+                            {{ $child->name }}
+                        </a>
+                        <span class="text-gray-300">·</span>
+                        <span class="text-gray-400">{{ $child->priceForHumans() }}</span>
+                    </div>
+                    @endforeach
+                </div>
+                @endif
             </div>
             @endforeach
         </div>

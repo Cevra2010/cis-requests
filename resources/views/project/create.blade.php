@@ -25,6 +25,23 @@
                           placeholder="Optionale Kurzbeschreibung des Projekts…">{{ old('description') }}</textarea>
             </div>
 
+            {{-- Typ --}}
+            <div>
+                <label class="cis-label">Art der Ausschreibung <span class="text-red-500">*</span></label>
+                <div class="grid grid-cols-2 gap-3">
+                    @foreach(\App\Models\Project::TYPES as $typeKey => $typeLabel)
+                    <label class="flex items-center gap-2.5 px-4 py-3 rounded-xl border cursor-pointer transition-colors
+                                  {{ old('type', 'product') === $typeKey ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:bg-gray-50' }}">
+                        <input type="radio" name="type" value="{{ $typeKey }}"
+                               {{ old('type', 'product') === $typeKey ? 'checked' : '' }} class="text-primary-600">
+                        <span class="text-sm font-medium text-gray-800">{{ $typeLabel }}</span>
+                    </label>
+                    @endforeach
+                </div>
+                <p class="mt-1.5 text-xs text-gray-400">Kann nach dem Anlegen nicht mehr geändert werden.</p>
+                @error('type')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+
             {{-- Status + Kategorie --}}
             <div class="grid grid-cols-2 gap-4">
                 <div>

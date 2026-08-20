@@ -84,6 +84,13 @@ class CisPermissionServiceProvider extends ServiceProvider
         CisPermissionManager::register('product.edit',   'Produkte bearbeiten', description: 'Produktdaten ändern');
         CisPermissionManager::register('product.delete', 'Produkte löschen',    description: 'Produkte entfernen');
 
+        // ── Fahrzeugparameter ────────────────────────────────────────────────────
+        CisPermissionManager::registerGroup('parameter', 'Fahrzeugparameter');
+        CisPermissionManager::register('parameter.view',   'Fahrzeugparameter anzeigen',   description: 'Fahrzeugparameter einsehen');
+        CisPermissionManager::register('parameter.create', 'Fahrzeugparameter erstellen',  description: 'Neue Fahrzeugparameter anlegen');
+        CisPermissionManager::register('parameter.edit',   'Fahrzeugparameter bearbeiten', description: 'Fahrzeugparameter ändern');
+        CisPermissionManager::register('parameter.delete', 'Fahrzeugparameter löschen',    description: 'Fahrzeugparameter entfernen');
+
         // ── Quellen ───────────────────────────────────────────────────────────
         CisPermissionManager::register('source.view',   'Quellen anzeigen',   description: 'Produktquellen einsehen');
         CisPermissionManager::register('source.create', 'Quellen erstellen',  description: 'Neue Produktquellen anlegen');

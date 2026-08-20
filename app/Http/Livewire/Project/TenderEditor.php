@@ -5,6 +5,7 @@ namespace App\Http\Livewire\Project;
 use App\Http\Livewire\Concerns\RespectsProjectLock;
 use App\Models\ProductDescription;
 use App\Models\Project;
+use App\Models\ProjectProduct;
 use App\Models\ProjectTenderBlock;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -32,7 +33,9 @@ class TenderEditor extends Component
         $project = Project::where('cis_row_id', $this->projectId)->first();
         $canEdit = $project?->isEditableBy(auth()->user()) ?? true;
 
-        return view('livewire.project.tender-editor', compact('blocks', 'validation', 'canEdit'));
+        $estimate = $this->estimateCost();
+
+        return view('livewire.project.tender-editor', compact('blocks', 'validation', 'canEdit', 'estimate'));
     }
 
     // ── Block management ──────────────────────────────────────────────────────
@@ -314,6 +317,40 @@ class TenderEditor extends Component
             'covered_prods' => count($coveredProdIds),
             'missing_prods' => $missingProdNames,
             'all_ok'        => empty($missingProdIds),
+        ];
+    }
+
+    /**
+     * Grobe Kostenschätzung auf Basis der zuletzt erfassten Katalogpreise
+     * (Produkt + Unterprodukte). Ersetzt keine echten Angebote – dient nur
+     * zur groben Orientierung vor der Ausschreibung.
+     */
+    private function estimateCost(): array
+    {
+        $positions = ProjectProduct::where('cis_row_id_project', $this->projectId)
+            ->with('product')
+            ->get();
+
+        $total          = 0.0;
+        $missingCount   = 0;
+        $positionsCount = $positions->count();
+
+        foreach ($positions as $position) {
+            if (! $position->product) {
+                continue;
+            }
+            $groupPrice = $position->product->getGroupPrice();
+            if ($groupPrice <= 0) {
+                $missingCount++;
+                continue;
+            }
+            $total += $groupPrice * $position->product_count;
+        }
+
+        return [
+            'total'           => $total,
+            'positions_count' => $positionsCount,
+            'missing_count'   => $missingCount,
         ];
     }
 

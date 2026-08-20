@@ -12,9 +12,14 @@ class Product extends Model
 {
     use HasFactory, CisUuid, SoftDeletes;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'category_id'];
 
     // ── Relationships ────────────────────────────────────────────────────────
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class, 'category_id');
+    }
 
     public function prices()
     {
@@ -108,6 +113,12 @@ class Product extends Model
     public function getParent(): ?Product
     {
         return $this->parents()->first();
+    }
+
+    /** Alle Elternprodukte – ein Unterprodukt kann mehreren Produkten zugeordnet sein. */
+    public function getParents()
+    {
+        return $this->parents()->get();
     }
 
     public function hasChild(): bool

@@ -16,6 +16,7 @@ class Project extends Model
         'name',
         'description',
         'status_code',
+        'type',
         'category_id',
         'assignee_type',
         'assignee_id',
@@ -32,6 +33,11 @@ class Project extends Model
     ];
 
     public const OVERRIDE_LOCK_PERMISSION = 'project.tender.override_lock';
+
+    public const TYPES = [
+        'product' => 'Produktausschreibung',
+        'vehicle' => 'Fahrzeugausschreibung',
+    ];
 
     public const STATUSES = [
         'draft'                => ['label' => 'Entwurf',                   'badge' => 'bg-gray-100 text-gray-600'],
@@ -52,6 +58,21 @@ class Project extends Model
 
     /** Ab diesem Status (inklusive) gelten Produkte/Ausschreibungstext als fixiert. */
     public const LOCK_FROM_STATUS = 'tender';
+
+    /**
+     * Berechtigung, die nötig ist, um die Grenze zu diesem Status zu überschreiten
+     * (in beide Richtungen – vorrücken auf diesen Status oder von ihm zurückfallen
+     * auf den vorherigen). "draft" ist der Startzustand und daher nicht gelistet.
+     */
+    public const STATUS_PERMISSIONS = [
+        'ready_for_tender'     => 'project.status.set.ready_for_tender',
+        'tender'                => 'project.status.set.tender',
+        'ready_for_evaluation'  => 'project.status.set.ready_for_evaluation',
+        'evaluated'             => 'project.status.set.evaluated',
+        'ordered'               => 'project.status.set.ordered',
+        'orders_in_revision'    => 'project.status.set.orders_in_revision',
+        'completed'             => 'project.status.set.completed',
+    ];
 
     protected static function booted(): void
     {
@@ -105,6 +126,37 @@ class Project extends Model
         return $index !== false && $index > 0 ? self::STATUS_ORDER[$index - 1] : null;
     }
 
+    /** Berechtigung, die zum Vorrücken auf den nächsten Status nötig ist (falls es einen gibt). */
+    public function nextTransitionPermission(): ?string
+    {
+        $next = $this->nextStatusCode();
+        return $next ? (self::STATUS_PERMISSIONS[$next] ?? null) : null;
+    }
+
+    /** Berechtigung, die zum Zurückfallen auf den vorherigen Status nötig ist. */
+    public function previousTransitionPermission(): ?string
+    {
+        return self::STATUS_PERMISSIONS[$this->status_code] ?? null;
+    }
+
+    public function canAdvanceStatus(?User $user): bool
+    {
+        if (! $this->nextStatusCode()) {
+            return false;
+        }
+        $permission = $this->nextTransitionPermission();
+        return $permission === null || ($user?->hasPermission($permission, $this->cis_row_id) ?? false);
+    }
+
+    public function canRevertStatus(?User $user): bool
+    {
+        if (! $this->previousStatusCode()) {
+            return false;
+        }
+        $permission = $this->previousTransitionPermission();
+        return $permission === null || ($user?->hasPermission($permission, $this->cis_row_id) ?? false);
+    }
+
     /** Rückt das Projekt einen Workflow-Schritt weiter. */
     public function advanceStatus(): void
     {
@@ -131,13 +183,28 @@ class Project extends Model
         }
     }
 
+    public function isVehicle(): bool
+    {
+        return $this->type === 'vehicle';
+    }
+
+    public function typeLabel(): string
+    {
+        return self::TYPES[$this->type] ?? $this->type;
+    }
+
+    public function vehicleBlocks()
+    {
+        return $this->hasMany(ProjectVehicleBlock::class, 'cis_row_id_project', 'cis_row_id')
+            ->orderBy('sort_order');
+    }
+
     public function categoryLabel(): string
     {
         if (! $this->category_id) {
             return '–';
         }
-        $cat = \DB::table('categories')->where('id', $this->category_id)->whereNull('deleted_at')->first();
-        return $cat?->name ?? 'Unbekannt';
+        return Category::find($this->category_id)?->name ?? 'Unbekannt';
     }
 
     public function assignee()

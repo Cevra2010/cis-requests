@@ -1,4 +1,4 @@
-<div class="max-w-2xl mt-8">
+<div class="max-w-2xl">
 
     @if($lastMessage)
     <div class="mb-4 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-sm">
@@ -43,7 +43,7 @@
     </div>
 
     {{-- ── Demo-Daten ── --}}
-    <div class="cis-card mt-4">
+    <div class="cis-card mt-6">
         <h2 class="text-base font-semibold text-gray-800 mb-1">Demo-Daten</h2>
         <p class="text-sm text-gray-500 mb-4">
             Spielt Beispieldaten ein: 5 Benutzer, 2 Gruppen, ein paar Kategorien, 3 Produktquellen, 10 Produkte

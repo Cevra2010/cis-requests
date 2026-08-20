@@ -63,6 +63,7 @@ class ProjectController extends Controller
             'name'          => 'required|string|max:255',
             'description'   => 'nullable|string',
             'status_code'   => 'required|string|in:' . implode(',', array_keys(Project::STATUSES)),
+            'type'          => 'required|string|in:' . implode(',', array_keys(Project::TYPES)),
             'category_id'   => 'nullable|integer',
             'assignee_type' => 'nullable|string|in:user,group',
             'assignee_id'   => 'nullable|string',
@@ -78,8 +79,34 @@ class ProjectController extends Controller
 
         $project = Project::create($data);
 
+        if ($project->isVehicle()) {
+            $this->ensureVehiclePosition($project);
+        }
+
         session()->flash('success', 'Projekt "' . $project->name . '" wurde erstellt.');
         return redirect()->route('project.edit', $project->cis_row_id);
+    }
+
+    /**
+     * Fahrzeugausschreibungen bekommen genau eine synthetische Produktposition
+     * ("Fahrzeug-Gesamtkonfiguration"), damit Angebote/Bestellung/Wareneingang
+     * unverändert genutzt werden können – Anbieter geben hier einen Preis für
+     * das gesamte, im Baukasten konfigurierte Fahrzeug ab.
+     */
+    private function ensureVehiclePosition(Project $project): void
+    {
+        $product = \App\Models\Product::firstOrCreate(['name' => 'Fahrzeug-Gesamtkonfiguration']);
+
+        \App\Models\ProjectProduct::firstOrCreate(
+            [
+                'cis_row_id_project' => $project->cis_row_id,
+                'cis_row_id_product' => $product->cis_row_id,
+            ],
+            [
+                'product_count' => 1,
+                'sort_order'    => 0,
+            ]
+        );
     }
 
     public function show(string $project)
@@ -156,6 +183,7 @@ class ProjectController extends Controller
         $p    = Project::where('cis_row_id', $project)->firstOrFail();
         $next = $p->nextStatusCode();
         abort_unless($next, 404);
+        abort_unless($p->canAdvanceStatus(auth()->user()), 403);
 
         $willLock = ! $p->isLocked() && Project::codeIsLocked($next);
 
@@ -174,6 +202,7 @@ class ProjectController extends Controller
         $p    = Project::where('cis_row_id', $project)->firstOrFail();
         $prev = $p->previousStatusCode();
         abort_unless($prev, 404);
+        abort_unless($p->canRevertStatus(auth()->user()), 403);
 
         $willUnlock = $p->isLocked() && ! Project::codeIsLocked($prev);
         if ($willUnlock) {
