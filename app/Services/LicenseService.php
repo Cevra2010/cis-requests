@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\ModuleLicense;
 use App\Models\Setting;
 use Carbon\Carbon;
-use Illuminate\Support\Str;
 
 /**
  * Zwei Arten signierter Lizenzschlüssel:
@@ -17,29 +16,15 @@ use Illuminate\Support\Str;
  *   master_id, für die er ausgestellt wurde. So kann eine Modul-Lizenz nicht
  *   an eine andere Firma/Installation weitergegeben werden – sie validiert
  *   nur, wenn die master_id im Schlüssel zur master_id dieser Installation passt.
+ *
+ * Diese Klasse PRÜFT Lizenzschlüssel nur noch (Ed25519, öffentlicher Schlüssel
+ * in config/licensing.php). Die Erzeugung von Schlüsseln lebt jetzt
+ * ausschließlich im separaten Tool "cis-requests-license", das den privaten
+ * Signierschlüssel hält.
  */
 class LicenseService
 {
     // ── Master-Lizenz (Firma/Installation) ────────────────────────────────────
-
-    /** @return array{master_id: string, key: string} */
-    public function generateMasterKey(string $licensee, ?string $expiresAt = null): array
-    {
-        $masterId = (string) Str::uuid();
-
-        $payload = [
-            'type'      => 'master',
-            'master_id' => $masterId,
-            'licensee'  => $licensee,
-            'issued'    => now()->toDateString(),
-            'expires'   => $expiresAt,
-        ];
-
-        $encoded   = $this->base64url(json_encode($payload));
-        $signature = $this->sign($encoded);
-
-        return ['master_id' => $masterId, 'key' => "{$encoded}.{$signature}"];
-    }
 
     /** @return array{valid: bool, error?: string, master_id?: string, licensee?: string, expires?: string|null, payload?: array} */
     public function validateMasterKey(string $key): array
@@ -106,24 +91,6 @@ class LicenseService
     }
 
     // ── Modul-Lizenzen ──────────────────────────────────────────────────────────
-
-    /** Für Tooling/Konsole: erzeugt einen Modul-Schlüssel für eine bestimmte master_id. */
-    public function generateKey(string $moduleName, string $masterId, string $licensee, ?string $expiresAt = null): string
-    {
-        $payload = [
-            'type'      => 'module',
-            'module'    => $moduleName,
-            'master_id' => $masterId,
-            'licensee'  => $licensee,
-            'issued'    => now()->toDateString(),
-            'expires'   => $expiresAt,
-        ];
-
-        $encoded   = $this->base64url(json_encode($payload));
-        $signature = $this->sign($encoded);
-
-        return "{$encoded}.{$signature}";
-    }
 
     /**
      * @return array{valid: bool, error?: string, licensee?: string, expires?: string|null, payload?: array}
@@ -215,7 +182,7 @@ class LicenseService
 
         [$encoded, $signature] = $parts;
 
-        if (!hash_equals($this->sign($encoded), $signature)) {
+        if (! $this->verifySignature($encoded, $signature)) {
             return ['valid' => false, 'error' => 'Ungültige Signatur — Schlüssel ist gefälscht oder beschädigt.'];
         }
 
@@ -228,19 +195,22 @@ class LicenseService
         return ['valid' => true, 'payload' => $payload];
     }
 
-    private function secret(): string
+    /**
+     * Ed25519-Prüfung (libsodium) mit dem öffentlichen Schlüssel aus
+     * config/licensing.php. Funktioniert unabhängig von APP_KEY und ohne
+     * Zugriff auf den privaten Signierschlüssel (der lebt nur im separaten
+     * Tool "cis-requests-license").
+     */
+    private function verifySignature(string $data, string $signature): bool
     {
-        return config('app.license_secret', config('app.key'));
-    }
+        $publicKey = base64_decode(config('licensing.public_key'));
+        $decodedSignature = $this->base64urlDecode($signature);
 
-    private function sign(string $data): string
-    {
-        return hash_hmac('sha256', $data, $this->secret());
-    }
+        if (strlen($decodedSignature) !== SODIUM_CRYPTO_SIGN_BYTES) {
+            return false;
+        }
 
-    private function base64url(string $data): string
-    {
-        return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+        return sodium_crypto_sign_verify_detached($decodedSignature, $data, $publicKey);
     }
 
     private function base64urlDecode(string $data): string
