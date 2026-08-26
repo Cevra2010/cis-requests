@@ -17,7 +17,7 @@ return new class extends Migration
             $table->timestamp('frozen_at');
             $table->timestamps();
 
-            $table->unique(['cis_row_id_project', 'cis_row_id_product']);
+            $table->unique(['cis_row_id_project', 'cis_row_id_product'], 'pps_project_product_unique');
             $table->index('cis_row_id_project');
         });
     }
