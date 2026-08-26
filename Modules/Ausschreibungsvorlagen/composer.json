@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/ausschreibungsvorlagen",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Ausschreibungsvorlagen\\": "app/",
+            "Modules\\Ausschreibungsvorlagen\\Database\\Factories\\": "database/factories/",
+            "Modules\\Ausschreibungsvorlagen\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Ausschreibungsvorlagen\\Tests\\": "tests/"
+        }
+    }
+}

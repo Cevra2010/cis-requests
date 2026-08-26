@@ -110,6 +110,39 @@
                     @endif
                 </div>
                 @endforeach
+
+                @foreach($childPositions as $childPosition)
+                @php
+                    $childProduct = $childPosition['product'];
+                    $item = $childMatrix[$childProduct->cis_row_id][$currentOffer->cis_row_id] ?? null;
+                    $isCheapest = $item && !$item->not_offered && $item->price !== null
+                        && $currentOffer->active
+                        && (float) $item->price === (float) ($cheapestPerChildPosition[$childProduct->cis_row_id] ?? null);
+                @endphp
+                <div class="flex items-center gap-4 py-3 bg-amber-50/40 -mx-4 px-4">
+                    <div class="flex-1 min-w-0 pl-3">
+                        <p class="text-[10px] font-bold uppercase tracking-wide text-amber-600 mb-0.5">Unterprodukt</p>
+                        <p class="text-sm font-medium text-gray-800">{{ $childProduct->name }}</p>
+                    </div>
+                    <span class="text-xs text-gray-400 w-14 text-center shrink-0">{{ $childPosition['quantity'] }} Stk.</span>
+                    @if($item)
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <input type="text"
+                               value="{{ $item->not_offered ? '' : $item->price }}"
+                               {{ $item->not_offered ? 'disabled' : '' }}
+                               placeholder="Preis"
+                               wire:change="saveChildItemPrice('{{ $currentOffer->cis_row_id }}', '{{ $childProduct->cis_row_id }}', $event.target.value)"
+                               class="cis-input py-1.5 px-2 text-sm w-28 {{ $isCheapest ? 'font-semibold text-emerald-700 border-emerald-300' : '' }} disabled:bg-gray-50 disabled:text-gray-300">
+                        <button type="button"
+                                wire:click="toggleChildNotOffered('{{ $currentOffer->cis_row_id }}', '{{ $childProduct->cis_row_id }}')"
+                                title="Nicht korrekt angeboten"
+                                class="text-sm {{ $item->not_offered ? 'text-red-500' : 'text-gray-200 hover:text-red-400' }}">
+                            <i class="fa fa-triangle-exclamation"></i>
+                        </button>
+                    </div>
+                    @endif
+                </div>
+                @endforeach
             </div>
 
             <div class="flex items-center justify-between mt-5 pt-4 border-t border-gray-100">
@@ -183,6 +216,50 @@
                                 </div>
                                 <button type="button"
                                         wire:click="toggleNotOffered('{{ $offer->cis_row_id }}', '{{ $position->cis_row_id }}')"
+                                        title="Nicht korrekt angeboten"
+                                        class="text-xs {{ $item->not_offered ? 'text-red-500' : 'text-gray-200 hover:text-red-400' }}">
+                                    <i class="fa fa-triangle-exclamation"></i>
+                                </button>
+                            </div>
+                            @if($item->not_offered)
+                                <p class="text-[10px] text-red-500 mt-0.5">Nicht korrekt angeboten</p>
+                            @endif
+                        @else
+                            <span class="text-xs text-gray-300">–</span>
+                        @endif
+                    </td>
+                    @endforeach
+                </tr>
+                @endforeach
+
+                @foreach($childPositions as $childPosition)
+                @php $childProduct = $childPosition['product']; @endphp
+                <tr class="bg-amber-50/40">
+                    <td class="px-3 py-2 sticky left-0 bg-amber-50/40 pl-6">
+                        <p class="text-[10px] font-bold uppercase tracking-wide text-amber-600 mb-0.5">Unterprodukt</p>
+                        <p class="text-sm font-medium text-gray-800">{{ $childProduct->name }}</p>
+                    </td>
+                    <td class="px-2 py-2 text-center text-gray-500">{{ $childPosition['quantity'] }}</td>
+                    @foreach($offers as $offer)
+                    @php
+                        $item = $childMatrix[$childProduct->cis_row_id][$offer->cis_row_id] ?? null;
+                        $isCheapest = $item && !$item->not_offered && $item->price !== null
+                            && $offer->active
+                            && (float) $item->price === (float) ($cheapestPerChildPosition[$childProduct->cis_row_id] ?? null);
+                    @endphp
+                    <td class="px-3 py-2 {{ !$offer->active ? 'opacity-40' : '' }} {{ $isCheapest ? 'bg-emerald-50' : '' }}">
+                        @if($item)
+                            <div class="flex items-center gap-1.5">
+                                <div class="relative flex-1">
+                                    <input type="text"
+                                           value="{{ $item->not_offered ? '' : $item->price }}"
+                                           {{ $item->not_offered ? 'disabled' : '' }}
+                                           placeholder="Preis"
+                                           wire:change="saveChildItemPrice('{{ $offer->cis_row_id }}', '{{ $childProduct->cis_row_id }}', $event.target.value)"
+                                           class="cis-input py-1 px-2 text-sm w-24 {{ $isCheapest ? 'font-semibold text-emerald-700 border-emerald-300' : '' }} disabled:bg-gray-50 disabled:text-gray-300">
+                                </div>
+                                <button type="button"
+                                        wire:click="toggleChildNotOffered('{{ $offer->cis_row_id }}', '{{ $childProduct->cis_row_id }}')"
                                         title="Nicht korrekt angeboten"
                                         class="text-xs {{ $item->not_offered ? 'text-red-500' : 'text-gray-200 hover:text-red-400' }}">
                                     <i class="fa fa-triangle-exclamation"></i>

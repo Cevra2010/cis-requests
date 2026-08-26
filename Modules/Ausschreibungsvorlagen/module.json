@@ -1,0 +1,14 @@
+{
+    "name": "Ausschreibungsvorlagen",
+    "alias": "ausschreibungsvorlagen",
+    "description": "Wiederverwendbare Vorlagen für Produktausschreibungen (Blöcke aus Überschriften, Text und Materiallisten).",
+    "version": "1.0.0",
+    "keywords": ["ausschreibung", "vorlage", "template"],
+    "priority": 25,
+    "core": false,
+    "requires_license": false,
+    "providers": [
+        "Modules\\Ausschreibungsvorlagen\\Providers\\AusschreibungsvorlagenServiceProvider"
+    ],
+    "files": []
+}

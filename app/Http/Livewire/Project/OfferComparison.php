@@ -3,11 +3,13 @@
 namespace App\Http\Livewire\Project;
 
 use App\Models\Offer;
+use App\Models\OfferChildItem;
 use App\Models\OfferItem;
 use App\Models\Price;
 use App\Models\Product;
 use App\Models\ProductSource;
 use App\Models\Project;
+use App\Services\ChildProductAggregator;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -77,7 +79,7 @@ class OfferComparison extends Component
     {
         $project = Project::where('cis_row_id', $this->projectId)->firstOrFail();
 
-        $positions = $project->positions()->with(['product', 'award.offer.source'])->get();
+        $positions = $project->positions()->with(['product.childs', 'award.offer.source'])->get();
         $offers    = $project->offers()->with('source')->orderBy('created_at')->get();
 
         // Für neu importierte Positionen fehlende OfferItems je bestehendem Angebot nachziehen.
@@ -88,6 +90,25 @@ class OfferComparison extends Component
                     OfferItem::create([
                         'cis_row_id_offer'           => $offer->cis_row_id,
                         'cis_row_id_project_product' => $position->cis_row_id,
+                    ]);
+                }
+            }
+        }
+
+        // Unterprodukte bekommen eine eigene, über alle Positionen aggregierte
+        // Vergleichszeile (z.B. "Neubauschlüssel" 2× statt einmal je Elternprodukt).
+        $childPositions = ChildProductAggregator::aggregate(
+            $positions->map(fn ($p) => ['product' => $p->product, 'quantity' => $p->product_count])
+        );
+
+        foreach ($offers as $offer) {
+            $existingChildProductIds = $offer->childItems()->pluck('cis_row_id_product')->toArray();
+            foreach ($childPositions as $childPosition) {
+                $childId = $childPosition['product']->cis_row_id;
+                if (! in_array($childId, $existingChildProductIds, true)) {
+                    OfferChildItem::create([
+                        'cis_row_id_offer'   => $offer->cis_row_id,
+                        'cis_row_id_product' => $childId,
                     ]);
                 }
             }
@@ -115,6 +136,30 @@ class OfferComparison extends Component
                 }
             }
             $cheapestPerPosition[$position->cis_row_id] = $best;
+        }
+
+        // Matrix für Unterprodukte: [childProductId => [offerId => OfferChildItem]]
+        $childMatrix = [];
+        foreach ($offers as $offer) {
+            foreach ($offer->childItems as $item) {
+                $childMatrix[$item->cis_row_id_product][$offer->cis_row_id] = $item;
+            }
+        }
+
+        $cheapestPerChildPosition = [];
+        foreach ($childPositions as $childPosition) {
+            $childId = $childPosition['product']->cis_row_id;
+            $best    = null;
+            foreach ($childMatrix[$childId] ?? [] as $offerId => $item) {
+                $offer = $offers->firstWhere('cis_row_id', $offerId);
+                if (! $offer || ! $offer->active || $item->not_offered || $item->price === null) {
+                    continue;
+                }
+                if ($best === null || (float) $item->price < (float) $best) {
+                    $best = (float) $item->price;
+                }
+            }
+            $cheapestPerChildPosition[$childId] = $best;
         }
 
         $availableSources = ProductSource::whereNotIn('cis_row_id', $offers->pluck('cis_row_id_source'))
@@ -156,7 +201,8 @@ class OfferComparison extends Component
 
         return view('livewire.project.offer-comparison', compact(
             'project', 'positions', 'offers', 'matrix', 'cheapestPerPosition', 'availableSources',
-            'deviations', 'currentOffer', 'currentOfferIndex'
+            'deviations', 'currentOffer', 'currentOfferIndex',
+            'childPositions', 'childMatrix', 'cheapestPerChildPosition'
         ));
     }
 
@@ -235,6 +281,40 @@ class OfferComparison extends Component
     {
         $item = OfferItem::where('cis_row_id_offer', $offerId)
             ->where('cis_row_id_project_product', $positionId)
+            ->first();
+
+        $item?->update(['not_offered' => ! $item->not_offered]);
+    }
+
+    public function saveChildItemPrice(string $offerId, string $productId, $value): void
+    {
+        $value = trim((string) $value);
+        $price = $value === '' ? null : (float) str_replace(',', '.', $value);
+
+        $item = OfferChildItem::where('cis_row_id_offer', $offerId)
+            ->where('cis_row_id_product', $productId)
+            ->first();
+
+        if (! $item) {
+            return;
+        }
+
+        $item->update(['price' => $price]);
+
+        if ($price !== null) {
+            $offer   = Offer::find($offerId);
+            $product = Product::where('cis_row_id', $productId)->first();
+
+            if ($offer && $product) {
+                Price::add($price, $product, $offer->source);
+            }
+        }
+    }
+
+    public function toggleChildNotOffered(string $offerId, string $productId): void
+    {
+        $item = OfferChildItem::where('cis_row_id_offer', $offerId)
+            ->where('cis_row_id_product', $productId)
             ->first();
 
         $item?->update(['not_offered' => ! $item->not_offered]);

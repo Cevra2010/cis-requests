@@ -41,6 +41,11 @@ class Offer extends Model
         return $this->hasMany(OfferItem::class, 'cis_row_id_offer', 'cis_row_id');
     }
 
+    public function childItems()
+    {
+        return $this->hasMany(OfferChildItem::class, 'cis_row_id_offer', 'cis_row_id');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('active', true);

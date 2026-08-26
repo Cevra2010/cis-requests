@@ -10,6 +10,7 @@ use App\Models\ProjectTenderBlock;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
+use Nwidart\Modules\Facades\Module;
 
 class TenderEditor extends Component
 {
@@ -35,7 +36,43 @@ class TenderEditor extends Component
 
         $estimate = $this->estimateCost($project);
 
-        return view('livewire.project.tender-editor', compact('blocks', 'validation', 'canEdit', 'estimate'));
+        $templates = Module::find('Ausschreibungsvorlagen')?->isEnabled()
+            ? \Modules\Ausschreibungsvorlagen\Models\TenderTemplate::orderBy('name')->get()
+            : collect();
+
+        return view('livewire.project.tender-editor', compact('blocks', 'validation', 'canEdit', 'estimate', 'templates'));
+    }
+
+    /**
+     * Übernimmt die Blöcke einer Ausschreibungsvorlage in dieses Projekt.
+     * Wird immer angehängt (nicht ersetzt), damit bestehender Inhalt erhalten bleibt.
+     */
+    public function applyTemplate(string $templateId): void
+    {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
+        if (! Module::find('Ausschreibungsvorlagen')?->isEnabled()) {
+            return;
+        }
+
+        $template = \Modules\Ausschreibungsvorlagen\Models\TenderTemplate::with('blocks')->find($templateId);
+        if (! $template) {
+            return;
+        }
+
+        $maxOrder = ProjectTenderBlock::where('cis_row_id_project', $this->projectId)->max('sort_order') ?? 0;
+
+        foreach ($template->blocks as $block) {
+            $maxOrder++;
+            ProjectTenderBlock::create([
+                'cis_row_id_project' => $this->projectId,
+                'type'                => $block->type,
+                'sort_order'          => $maxOrder,
+                'config'              => $block->config,
+            ]);
+        }
     }
 
     // ── Block management ──────────────────────────────────────────────────────

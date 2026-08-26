@@ -168,6 +168,28 @@
             @endforelse
         </div>
 
+        {{-- Vorlage laden --}}
+        @if($canEdit && $templates->isNotEmpty())
+        <div class="border-t border-gray-200 p-3" x-data="{ open: false }">
+            <button type="button" @click="open = !open"
+                    class="w-full flex items-center justify-between gap-2 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors">
+                <span><i class="fa fa-file-import mr-1.5 text-gray-400"></i>Vorlage laden</span>
+                <i class="fa fa-chevron-down text-[10px] text-gray-400" :class="{ 'rotate-180': open }"></i>
+            </button>
+            <div x-show="open" x-transition style="display:none" class="mt-2 space-y-1">
+                @foreach($templates as $template)
+                <button type="button"
+                        wire:click="applyTemplate('{{ $template->cis_row_id }}')"
+                        wire:confirm="Blöcke aus „{{ addslashes($template->name) }}“ an das Ende dieser Ausschreibung anhängen?"
+                        @click="open = false"
+                        class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-gray-600 hover:bg-white hover:shadow-sm transition-all truncate">
+                    {{ $template->name }}
+                </button>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
         {{-- Palette: Blöcke per Drag & Drop hinzufügen --}}
         @if($canEdit)
         <div class="border-t border-gray-200 p-3">

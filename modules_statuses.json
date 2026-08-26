@@ -1,5 +1,6 @@
 {
     "Branding": true,
     "Wareneingang": true,
-    "Export": true
+    "Export": true,
+    "Ausschreibungsvorlagen": true
 }

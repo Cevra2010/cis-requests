@@ -31,6 +31,7 @@
             "Modules\\Branding\\": "Modules/Branding/app/",
             "Modules\\Wareneingang\\": "Modules/Wareneingang/app/",
             "Modules\\Export\\": "Modules/Export/app/",
+            "Modules\\Ausschreibungsvorlagen\\": "Modules/Ausschreibungsvorlagen/app/",
             "Modules\\": "Modules/",
             "CisFoundation\\": "CisBaseModules/"
         }
