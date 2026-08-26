@@ -253,16 +253,35 @@ class TenderEditor extends Component
         $block->update(['config' => ['height' => max(10, min(400, $height))]]);
     }
 
-    public function updateProductDescription(string $productId, string $text): void
+    /**
+     * Speichert den Ausschreibungstext eines Produkts für DIESES Projekt.
+     * $scope === 'global' übernimmt den Text zusätzlich als neuen Standardtext
+     * (cis_row_id_project = null) – wirkt sich dann auch auf andere Projekte
+     * aus, die für dieses Produkt noch keinen eigenen, abweichenden Text haben.
+     * $scope === 'project' (Standard) ändert ausschließlich dieses Projekt.
+     */
+    public function updateProductDescription(string $productId, string $text, string $scope = 'project'): void
     {
         if (! $this->assertEditable($this->projectId)) {
             return;
         }
 
-        $existing = DB::table('product_descriptions')
+        $this->upsertDescription($productId, $this->projectId, $text);
+
+        if ($scope === 'global') {
+            $this->upsertDescription($productId, null, $text);
+        }
+    }
+
+    private function upsertDescription(string $productId, ?string $projectId, string $text): void
+    {
+        $query = DB::table('product_descriptions')
             ->where('cis_row_id_product', $productId)
-            ->whereNull('deleted_at')
-            ->first();
+            ->whereNull('deleted_at');
+
+        $query = $projectId === null ? $query->whereNull('cis_row_id_project') : $query->where('cis_row_id_project', $projectId);
+
+        $existing = $query->first();
 
         if ($existing) {
             DB::table('product_descriptions')
@@ -271,6 +290,7 @@ class TenderEditor extends Component
         } else {
             $desc                     = new ProductDescription();
             $desc->cis_row_id_product = $productId;
+            $desc->cis_row_id_project = $projectId;
             $desc->text               = $text;
             $desc->save();
         }
@@ -337,14 +357,42 @@ class TenderEditor extends Component
 
     // ── Validation ────────────────────────────────────────────────────────────
 
-    private function computeValidation(Collection $blocks): array
+    /**
+     * IDs aller Produkte, die in der Ausschreibung als eigene Position auftauchen
+     * (müssen) – Setprodukte selbst erscheinen nie als eigene Position, dafür
+     * treten ihre Mitgliedsprodukte an ihre Stelle (siehe tender-editor.blade.php,
+     * das dieselbe Auflösung für die Materialliste vornimmt).
+     */
+    private function expandedProductIds(): array
     {
-        $allProdIds = DB::table('project_product')
+        $positions = DB::table('project_product')
             ->join('products', 'project_product.cis_row_id_product', '=', 'products.cis_row_id')
             ->where('project_product.cis_row_id_project', $this->projectId)
             ->whereNull('products.deleted_at')
-            ->pluck('project_product.cis_row_id_product')
-            ->toArray();
+            ->where('project_product.is_internal', false)
+            ->select('products.cis_row_id', 'products.is_set')
+            ->get();
+
+        $ids = [];
+        foreach ($positions as $position) {
+            if (! $position->is_set) {
+                $ids[] = $position->cis_row_id;
+                continue;
+            }
+            $ids = array_merge($ids, DB::table('product_child')
+                ->join('products', 'product_child.cis_row_id_child', '=', 'products.cis_row_id')
+                ->where('product_child.cis_row_id_parent', $position->cis_row_id)
+                ->whereNull('products.deleted_at')
+                ->pluck('products.cis_row_id')
+                ->toArray());
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    private function computeValidation(Collection $blocks): array
+    {
+        $allProdIds = $this->expandedProductIds();
 
         $coveredProdIds = [];
 
@@ -378,7 +426,10 @@ class TenderEditor extends Component
      */
     private function estimateCost(?Project $project): array
     {
+        // Hausinterne Positionen (bereits im Haus vorhanden) verursachen keine
+        // Beschaffungskosten und fließen daher nicht in die Schätzung ein.
         $positions = ProjectProduct::where('cis_row_id_project', $this->projectId)
+            ->where('is_internal', false)
             ->with('product')
             ->get();
 
@@ -410,12 +461,7 @@ class TenderEditor extends Component
 
     private function getAllItemIds(): array
     {
-        return DB::table('project_product')
-            ->join('products', 'project_product.cis_row_id_product', '=', 'products.cis_row_id')
-            ->where('project_product.cis_row_id_project', $this->projectId)
-            ->whereNull('products.deleted_at')
-            ->pluck('project_product.cis_row_id_product')
-            ->toArray();
+        return $this->expandedProductIds();
     }
 
     public function childrenForProduct(string $productId): \Illuminate\Support\Collection

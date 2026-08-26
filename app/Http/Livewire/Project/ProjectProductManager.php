@@ -40,7 +40,8 @@ class ProjectProductManager extends Component
                 'products.name',
                 'project_product.product_count',
                 'project_product.note',
-                'project_product.sort_order'
+                'project_product.sort_order',
+                'project_product.is_internal'
             )
             ->get();
 
@@ -98,12 +99,15 @@ class ProjectProductManager extends Component
             ->where('cis_row_id_project', $this->projectId)
             ->max('sort_order') ?? 0;
 
+        $product = Product::find($productId);
+
         \App\Models\ProjectProduct::create([
             'cis_row_id_project' => $this->projectId,
             'cis_row_id_product' => $productId,
             'product_count'      => 1,
             'note'               => null,
             'sort_order'         => (int) $maxOrder + 1,
+            'is_internal'        => $product?->default_is_internal ?? false,
         ]);
 
         $this->dispatch('products-updated');
@@ -157,6 +161,25 @@ class ProjectProductManager extends Component
             ->where('cis_row_id_project', $this->projectId)
             ->where('cis_row_id_product', $productId)
             ->update(['note' => $value ?: null, 'updated_at' => now()]);
+    }
+
+    /**
+     * "Hausintern": Produkt wird nicht ausgeschrieben, da bereits im Haus
+     * vorhanden (z.B. Funkgeräte aus der Funkwerkstatt). Bleibt im Projekt
+     * sichtbar, entfällt aber in Ausschreibung/Angebote/Bestellung/Export.
+     */
+    public function updateInternal(string $productId, bool $value): void
+    {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+
+        DB::table('project_product')
+            ->where('cis_row_id_project', $this->projectId)
+            ->where('cis_row_id_product', $productId)
+            ->update(['is_internal' => $value, 'updated_at' => now()]);
+
+        $this->dispatch('products-updated');
     }
 
     private function swapOrder(string $productId, string $direction): void

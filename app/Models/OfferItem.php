@@ -14,12 +14,19 @@ class OfferItem extends Model
         'cis_row_id_project_product',
         'price',
         'not_offered',
+        'checked_at',
         'note',
     ];
 
     protected $casts = [
         'not_offered' => 'boolean',
+        'checked_at'  => 'datetime',
     ];
+
+    public function isChecked(): bool
+    {
+        return $this->checked_at !== null;
+    }
 
     public function offer()
     {

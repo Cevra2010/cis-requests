@@ -13,6 +13,6 @@
     @endif
     </h1>
     @if($parent)
-    <p>Unterprodukt von [<a href="{{ route("product.edit",$parent) }}">{{ $parent->name }}</a>]</p>
+    <p>Verknüpftes Produkt von [<a href="{{ route("product.edit",$parent) }}">{{ $parent->name }}</a>]</p>
     @endif
 </div>

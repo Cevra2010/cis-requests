@@ -17,6 +17,8 @@ class TemplateManager extends Component
 
     public string $newColumnField = '';
 
+    public string $newColumnStaticValue = '';
+
     public function render()
     {
         return view('export::livewire.template-manager', [
@@ -68,9 +70,10 @@ class TemplateManager extends Component
 
     public function toggleExpanded(string $id): void
     {
-        $this->expandedTemplateId = $this->expandedTemplateId === $id ? null : $id;
-        $this->newColumnLabel     = '';
-        $this->newColumnField     = '';
+        $this->expandedTemplateId   = $this->expandedTemplateId === $id ? null : $id;
+        $this->newColumnLabel       = '';
+        $this->newColumnField       = '';
+        $this->newColumnStaticValue = '';
         $this->resetErrorBag();
     }
 
@@ -81,7 +84,9 @@ class TemplateManager extends Component
             'newColumnField' => 'required|string',
         ]);
 
-        if (! array_key_exists($this->newColumnField, ExportFieldRegistry::FIELDS)) {
+        $isFreeField = $this->newColumnField === 'static_text';
+
+        if (! $isFreeField && ! array_key_exists($this->newColumnField, ExportFieldRegistry::FIELDS)) {
             $this->addError('newColumnField', 'Ungültiges Feld.');
             return;
         }
@@ -92,11 +97,13 @@ class TemplateManager extends Component
             'cis_row_id_template' => $templateId,
             'label'               => $this->newColumnLabel,
             'field_key'           => $this->newColumnField,
+            'static_value'        => $isFreeField ? ($this->newColumnStaticValue ?: null) : null,
             'sort_order'          => $maxOrder + 1,
         ]);
 
-        $this->newColumnLabel = '';
-        $this->newColumnField = '';
+        $this->newColumnLabel       = '';
+        $this->newColumnField       = '';
+        $this->newColumnStaticValue = '';
     }
 
     public function removeColumn(string $columnId): void

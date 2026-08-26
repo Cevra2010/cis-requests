@@ -67,9 +67,15 @@
                     <div wire:key="col-{{ $column->cis_row_id }}"
                          class="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
                         <span class="text-sm font-medium text-gray-800 flex-1 truncate">{{ $column->label }}</span>
-                        <span class="text-[10px] text-gray-400 bg-white border border-gray-200 rounded px-1.5 py-0.5 shrink-0">
-                            {{ $fields[$column->field_key] ?? $column->field_key }}
-                        </span>
+                        @if($column->isFreeField())
+                            <span class="text-[10px] text-indigo-500 bg-indigo-50 border border-indigo-100 rounded px-1.5 py-0.5 shrink-0" title="{{ $column->static_value ? 'Fester Text: ' . $column->static_value : 'Leer – zum manuellen Ausfüllen nach dem Export' }}">
+                                Freifeld{{ $column->static_value ? ': „' . \Illuminate\Support\Str::limit($column->static_value, 20) . '“' : ' (leer)' }}
+                            </span>
+                        @else
+                            <span class="text-[10px] text-gray-400 bg-white border border-gray-200 rounded px-1.5 py-0.5 shrink-0">
+                                {{ $fields[$column->field_key] ?? $column->field_key }}
+                            </span>
+                        @endif
                         <div class="flex items-center gap-1 shrink-0">
                             <button type="button" wire:click="moveColumn('{{ $column->cis_row_id }}', 'up')"
                                     class="text-gray-300 hover:text-gray-600 w-5 text-center"><i class="fa fa-arrow-up text-[10px]"></i></button>
@@ -86,16 +92,22 @@
             <div class="flex items-center gap-2">
                 <input type="text" wire:model="newColumnLabel" placeholder="Spaltenname, z. B. Artikelbezeichnung"
                        class="cis-input flex-1 text-sm @error('newColumnLabel') is-invalid @enderror">
-                <select wire:model="newColumnField" class="cis-input text-sm w-56 shrink-0 @error('newColumnField') is-invalid @enderror">
+                <select wire:model.live="newColumnField" class="cis-input text-sm w-56 shrink-0 @error('newColumnField') is-invalid @enderror">
                     <option value="">– Feld wählen –</option>
                     @foreach($fields as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
+                    <option value="static_text">Freifeld (fester Text oder leer)</option>
                 </select>
                 <button type="button" wire:click="addColumn('{{ $template->cis_row_id }}')" class="btn btn-ghost btn-sm shrink-0">
                     <i class="fa fa-plus mr-1"></i> Hinzufügen
                 </button>
             </div>
+            @if($newColumnField === 'static_text')
+            <input type="text" wire:model="newColumnStaticValue"
+                   placeholder="Fester Text für jede Zeile (leer lassen für eine leere Spalte zum manuellen Ausfüllen)…"
+                   class="cis-input text-sm w-full mt-2">
+            @endif
             @error('newColumnLabel')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             @error('newColumnField')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
         </div>

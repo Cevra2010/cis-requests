@@ -134,6 +134,33 @@
                            class="w-full text-xs border-0 border-b border-gray-200 focus:ring-0 focus:border-gray-400 px-0 py-1">
                 </div>
             </div>
+
+            <div class="mt-2" x-data="{ open: {{ $item->lagerort ? 'true' : 'false' }} }">
+                <button type="button" @click="open = !open" x-show="!open" class="text-xs text-gray-300 hover:text-gray-500">
+                    <i class="fa fa-plus mr-1"></i>Lagerort
+                </button>
+                <div x-show="open" style="{{ $item->lagerort ? '' : 'display:none' }}">
+                    <input type="text" wire:change="updateLagerort('{{ $item->cis_row_id }}', $event.target.value)"
+                           value="{{ $item->lagerort }}"
+                           placeholder="z. B. Regal 3, Fach B…"
+                           class="w-full text-xs border-0 border-b border-gray-200 focus:ring-0 focus:border-gray-400 px-0 py-1">
+                </div>
+            </div>
+
+            @if($checked && $statusCategoryOptions)
+            <div class="mt-2">
+                <label class="text-[11px] text-gray-400 block mb-0.5">Weiterverarbeitung</label>
+                <select wire:change="updateStatusCategory('{{ $item->cis_row_id }}', $event.target.value)"
+                        class="cis-input py-1 px-2 text-xs w-full">
+                    <option value="">– kein Status –</option>
+                    @foreach($statusCategoryOptions as $catId => $catLabel)
+                        <option value="{{ $catId }}" {{ (string) $item->status_category_id === (string) $catId ? 'selected' : '' }}>
+                            {{ $catLabel }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            @endif
         </div>
         @empty
         <p class="text-sm text-gray-400 italic text-center py-8">

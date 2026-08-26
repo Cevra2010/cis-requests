@@ -2,6 +2,7 @@
 
 namespace Modules\Wareneingang\Models;
 
+use App\Models\Category;
 use App\Models\ProjectProduct;
 use App\Models\Traits\CisUuid;
 use Illuminate\Database\Eloquent\Model;
@@ -20,6 +21,8 @@ class GoodsReceiptItem extends Model
         'received_count',
         'note',
         'checked_at',
+        'lagerort',
+        'status_category_id',
     ];
 
     protected $casts = [
@@ -41,6 +44,12 @@ class GoodsReceiptItem extends Model
     public function lastParticipant()
     {
         return $this->belongsTo(GoodsReceiptParticipant::class, 'cis_row_id_last_participant', 'cis_row_id');
+    }
+
+    /** Folgestatus nach kontrolliertem Wareneingang (z.B. "Eingelagert", "Versendet an Fahrzeughersteller"). */
+    public function statusCategory()
+    {
+        return $this->belongsTo(Category::class, 'status_category_id', 'id');
     }
 
     public function isChecked(): bool

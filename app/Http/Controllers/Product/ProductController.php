@@ -27,11 +27,13 @@ class ProductController extends Controller
         $data = $request->validate([
             'name'        => 'required|string|max:255',
             'category_id' => 'nullable|integer',
+            'is_set'      => 'nullable|boolean',
         ]);
 
         $product = Product::create([
             'name'        => $data['name'],
             'category_id' => $data['category_id'] ?? null,
+            'is_set'      => $data['is_set'] ?? false,
         ]);
 
         // Eltern-Kind-Beziehung über Pivot-Tabelle
@@ -61,7 +63,9 @@ class ProductController extends Controller
         $data = $request->validate([
             'name'        => 'required|string|max:255',
             'category_id' => 'nullable|integer',
+            'is_set'      => 'nullable|boolean',
         ]);
+        $data['is_set'] = $data['is_set'] ?? false;
         $product->update($data);
 
         session()->flash('success', 'Produkt wurde umbenannt.');

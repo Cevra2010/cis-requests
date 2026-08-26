@@ -12,7 +12,9 @@ class Product extends Model
 {
     use HasFactory, CisUuid, SoftDeletes;
 
-    protected $fillable = ['name', 'category_id'];
+    protected $fillable = ['name', 'category_id', 'is_set', 'default_is_internal'];
+
+    protected $casts = ['is_set' => 'boolean', 'default_is_internal' => 'boolean'];
 
     // ── Relationships ────────────────────────────────────────────────────────
 
@@ -126,6 +128,17 @@ class Product extends Model
         return $this->childs()->exists();
     }
 
+    /**
+     * Ein Set dient nur der internen Bündelung mehrerer Produkte, hat keinen
+     * eigenen Preis/Beschreibungstext und erscheint auf der Ausschreibung nicht
+     * als eigene Position – nur seine Mitgliedsprodukte (siehe TenderEditor,
+     * TenderExporter, OfferComparison, AwardManager).
+     */
+    public function isSet(): bool
+    {
+        return (bool) $this->is_set;
+    }
+
     public function getChild()
     {
         return $this->childs()->get();
@@ -133,8 +146,11 @@ class Product extends Model
 
     // ── Beschreibung ─────────────────────────────────────────────────────────
 
+    /** Der globale Standardtext dieses Produkts (projektspezifische Abweichungen siehe TenderEditor). */
     public function description(): ?ProductDescription
     {
-        return ProductDescription::where('cis_row_id_product', $this->cis_row_id)->first();
+        return ProductDescription::where('cis_row_id_product', $this->cis_row_id)
+            ->whereNull('cis_row_id_project')
+            ->first();
     }
 }

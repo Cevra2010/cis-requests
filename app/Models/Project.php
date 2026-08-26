@@ -285,7 +285,11 @@ class Project extends Model
      */
     public function aggregatedChildPositions(): \Illuminate\Support\Collection
     {
-        $positions = $this->positions()->with('product.childs')->get();
+        // Hausinterne Positionen (siehe ProjectProduct::is_internal) werden nicht
+        // ausgeschrieben – ihre Unterprodukte gelten daher als bereits vorhanden
+        // und tauchen entsprechend auch nicht in der Aggregation auf.
+        $positions = $this->positions()->with('product.childs')->get()
+            ->reject(fn (ProjectProduct $p) => $p->is_internal);
 
         return \App\Services\ChildProductAggregator::aggregate(
             $positions->map(fn (ProjectProduct $p) => ['product' => $p->product, 'quantity' => $p->product_count])

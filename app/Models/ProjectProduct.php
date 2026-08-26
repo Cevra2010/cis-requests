@@ -17,6 +17,11 @@ class ProjectProduct extends Model
         'product_count',
         'note',
         'sort_order',
+        'is_internal',
+    ];
+
+    protected $casts = [
+        'is_internal' => 'boolean',
     ];
 
     public function project()

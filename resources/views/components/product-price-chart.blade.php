@@ -57,7 +57,9 @@
                       stroke="{{ $palette[$i % count($palette)] }}" stroke-width="1.5" opacity="0.75" />
             @foreach($points as $p)
                 @php [$x, $y] = $toXY($p); @endphp
-                <circle cx="{{ $x }}" cy="{{ $y }}" r="2" fill="{{ $palette[$i % count($palette)] }}" opacity="0.75" />
+                {{-- Einzelner Preispunkt (kein Verlauf möglich): größerer Marker, damit er nicht übersehen wird --}}
+                <circle cx="{{ $x }}" cy="{{ $y }}" r="{{ count($points) === 1 ? 4 : 2 }}"
+                        fill="{{ $palette[$i % count($palette)] }}" opacity="0.75" />
             @endforeach
         @endforeach
 

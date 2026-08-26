@@ -66,14 +66,17 @@ class GoodsReceiptChecklist extends Component
 
         $items = $items->sortBy(fn (GoodsReceiptItem $i) => $i->position?->sort_order ?? 0)->values();
 
+        $statusCategoryOptions = \CisFoundation\CisCategoryManager\CisCategoryManager::optionsForType('wareneingang.item_status');
+
         return view('wareneingang::livewire.goods-receipt-checklist', [
-            'participant'        => $participant,
-            'receipt'            => $receipt,
-            'items'              => $items,
-            'openCount'          => $openCount,
-            'closedCount'        => $closedCount,
-            'totalCount'         => $allItems->count(),
-            'otherParticipants'  => $otherParticipants,
+            'participant'           => $participant,
+            'receipt'               => $receipt,
+            'items'                 => $items,
+            'openCount'             => $openCount,
+            'closedCount'           => $closedCount,
+            'totalCount'            => $allItems->count(),
+            'otherParticipants'     => $otherParticipants,
+            'statusCategoryOptions' => $statusCategoryOptions,
         ]);
     }
 
@@ -140,6 +143,24 @@ class GoodsReceiptChecklist extends Component
         $item->update([
             'note'                         => trim($note) ?: null,
             'cis_row_id_last_participant'  => $this->participant()->cis_row_id,
+        ]);
+    }
+
+    public function updateLagerort(string $itemId, string $value): void
+    {
+        $item = $this->item($itemId);
+        $item->update([
+            'lagerort'                     => trim($value) ?: null,
+            'cis_row_id_last_participant'  => $this->participant()->cis_row_id,
+        ]);
+    }
+
+    public function updateStatusCategory(string $itemId, string $categoryId): void
+    {
+        $item = $this->item($itemId);
+        $item->update([
+            'status_category_id'          => $categoryId !== '' ? $categoryId : null,
+            'cis_row_id_last_participant' => $this->participant()->cis_row_id,
         ]);
     }
 

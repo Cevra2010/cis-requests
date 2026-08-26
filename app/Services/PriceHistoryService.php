@@ -41,6 +41,18 @@ class PriceHistoryService
             ];
         }
 
+        // Eine Lieferanten-Serie mit nur einem Preispunkt ergäbe eine
+        // <polyline> mit einem einzigen Koordinatenpaar – das rendert keine
+        // sichtbare Linie, nur einen leicht zu übersehenden Punkt. Solche
+        // Serien werden daher bis zum rechten Rand der Zeitachse fortgeschrieben
+        // (Treppenfunktion, wie bereits für die Durchschnitts-Serie üblich).
+        $maxDate = $history->last()->created_at;
+        foreach ($bySource as $sourceName => $points) {
+            if (count($points) === 1 && ! $points[0]['date']->equalTo($maxDate)) {
+                $bySource[$sourceName][] = ['date' => $maxDate, 'amount' => $points[0]['amount']];
+            }
+        }
+
         $allAmounts = $history->pluck('amount')->map(fn ($a) => (float) $a);
 
         return [

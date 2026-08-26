@@ -70,13 +70,18 @@
                                     </button>
                                 @endif
                                 <span class="font-medium text-gray-900">{{ $product->name }}</span>
+                                @if($product->isSet())
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600" title="Set: interne Bündelung, erscheint auf der Ausschreibung nicht als eigene Position">
+                                        <i class="fa fa-layer-group mr-0.5"></i>Set
+                                    </span>
+                                @endif
                                 @if($product->hasChild())
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600" title="Verknüpfte Unterprodukte">
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600" title="Verknüpfte Produkte">
                                         <i class="fa fa-boxes-stacked mr-0.5"></i>{{ $product->childs->count() }}
                                     </span>
                                 @endif
                                 @if($product->hasParent())
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500" title="Als Unterprodukt verknüpft bei">
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500" title="Verknüpft bei">
                                         <i class="fa fa-link mr-0.5"></i>{{ $product->getParents()->pluck('name')->implode(', ') }}
                                     </span>
                                 @endif
@@ -84,9 +89,13 @@
                         </td>
                         <td class="text-gray-500 text-sm">{{ $product->category?->name ?? '–' }}</td>
                         <td>
-                            <span class="font-medium {{ $product->price() ? 'text-gray-900' : 'text-gray-400' }}">
-                                {{ $product->priceForHumans() }}
-                            </span>
+                            @if($product->isSet())
+                                <span class="text-gray-400 italic">Set</span>
+                            @else
+                                <span class="font-medium {{ $product->price() ? 'text-gray-900' : 'text-gray-400' }}">
+                                    {{ $product->priceForHumans() }}
+                                </span>
+                            @endif
                         </td>
                         <td>
                             @if($product->hasChild())
@@ -107,7 +116,7 @@
                     @if($product->hasChild())
                     <tr x-show="open" style="display:none" class="bg-gray-50">
                         <td colspan="6" class="py-2 px-4">
-                            <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Unterprodukte</p>
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Verknüpfte Produkte</p>
                             <div class="flex flex-wrap gap-1.5">
                                 @foreach($product->childs as $child)
                                     <span class="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-white border border-gray-200 text-gray-600">

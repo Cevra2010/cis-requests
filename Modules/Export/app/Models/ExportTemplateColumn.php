@@ -11,7 +11,13 @@ class ExportTemplateColumn extends Model
 
     protected $table = 'export_template_columns';
 
-    protected $fillable = ['cis_row_id_template', 'label', 'field_key', 'sort_order'];
+    protected $fillable = ['cis_row_id_template', 'label', 'field_key', 'static_value', 'sort_order'];
+
+    /** "Freifeld": nicht an ein echtes Datenfeld gebunden (fester Text oder leer, siehe static_value). */
+    public function isFreeField(): bool
+    {
+        return $this->field_key === 'static_text';
+    }
 
     public function template()
     {

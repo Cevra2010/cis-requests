@@ -20,7 +20,7 @@
                     <span class="text-gray-800">{{ $product->name }}</span>
                     @if($product->hasParent())
                         <span class="block text-[11px] text-gray-400">
-                            bereits Unterprodukt von {{ $product->getParents()->pluck('name')->implode(', ') }} — kann mehrfach zugeordnet werden
+                            bereits verknüpft mit {{ $product->getParents()->pluck('name')->implode(', ') }} — kann mehrfach zugeordnet werden
                         </span>
                     @endif
                 </li>
@@ -30,10 +30,10 @@
     @endif
 
     <button type="button" wire:click="submitForm" class="btn btn-primary btn-sm mt-2">
-        <i class="fa fa-plus mr-1.5"></i> Als Unterprodukt hinzufügen
+        <i class="fa fa-plus mr-1.5"></i> Als verknüpftes Produkt hinzufügen
     </button>
     <p class="mt-1.5 text-xs text-gray-400">
-        Wird ein bestehendes Produkt ausgewählt, kann es auch bereits Unterprodukt eines anderen Produkts sein
+        Wird ein bestehendes Produkt ausgewählt, kann es auch bereits mit einem anderen Produkt verknüpft sein
         (z.B. ein gemeinsames Übergangsstück).
     </p>
 </div>

@@ -135,13 +135,13 @@
 
     {{-- ── Unterprodukte (projektweit aggregiert) ── --}}
     @if($childPositions->isNotEmpty())
-    <h3 class="text-sm font-semibold text-gray-700 mb-2">Unterprodukte</h3>
+    <h3 class="text-sm font-semibold text-gray-700 mb-2">Verknüpfte Produkte</h3>
     <div class="cis-card p-0 overflow-x-auto mb-6">
         <table class="min-w-full text-sm">
             <thead>
                 <tr class="border-b border-gray-200 bg-gray-50">
                     <th class="px-3 py-2.5 w-8"></th>
-                    <th class="text-left text-[10px] font-bold uppercase tracking-widest text-gray-400 px-3 py-2.5">Unterprodukt</th>
+                    <th class="text-left text-[10px] font-bold uppercase tracking-widest text-gray-400 px-3 py-2.5">Verknüpftes Produkt</th>
                     <th class="text-center text-[10px] font-bold uppercase tracking-widest text-gray-400 px-2 py-2.5 w-16">Menge</th>
                     <th class="text-left text-[10px] font-bold uppercase tracking-widest text-gray-400 px-3 py-2.5">Zugeordneter Anbieter</th>
                     <th class="text-right text-[10px] font-bold uppercase tracking-widest text-gray-400 px-3 py-2.5">Preis</th>
@@ -152,6 +152,7 @@
                 @foreach($childPositions as $childPosition)
                 @php
                     $childProduct = $childPosition['product'];
+                    $fromSet      = $childPosition['from_set_only'] ?? false;
                     $childAward   = $childAwards->get($childProduct->cis_row_id);
                     $childItems   = $childOfferItems->get($childProduct->cis_row_id, collect());
                     $validChildItems = $childItems
@@ -176,7 +177,9 @@
                         @endif
                     </td>
                     <td class="px-3 py-2">
-                        <p class="text-[10px] font-bold uppercase tracking-wide text-amber-600 mb-0.5">Unterprodukt</p>
+                        @unless($fromSet)
+                        <p class="text-[10px] font-bold uppercase tracking-wide text-amber-600 mb-0.5">Verknüpftes Produkt</p>
+                        @endunless
                         <p class="text-sm font-medium text-gray-800">{{ $childProduct->name }}</p>
                     </td>
                     <td class="px-2 py-2 text-center text-gray-500">{{ $childPosition['quantity'] }}</td>

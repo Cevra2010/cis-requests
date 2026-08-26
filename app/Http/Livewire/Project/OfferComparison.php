@@ -78,7 +78,14 @@ class OfferComparison extends Component
     {
         $project = Project::where('cis_row_id', $this->projectId)->firstOrFail();
 
-        $positions = $project->positions()->with(['product.childs', 'award.offer.source'])->get();
+        // Setprodukte erscheinen nie als eigene Position (siehe Product::isSet()) –
+        // nur ihre Mitgliedsprodukte, die über aggregatedChildPositions() unten
+        // ohnehin projektweit erfasst werden. Hausinterne Positionen (bereits im
+        // Haus vorhanden, siehe ProjectProduct::is_internal) werden gar nicht erst
+        // ausgeschrieben und tauchen daher im Angebotsvergleich nicht auf.
+        $positions = $project->positions()->with(['product.childs', 'award.offer.source'])->get()
+            ->reject(fn ($p) => $p->product?->isSet() || $p->is_internal)
+            ->values();
         $offers    = $project->offers()->with('source')->orderBy('created_at')->get();
 
         // Für neu importierte Positionen fehlende OfferItems je bestehendem Angebot nachziehen.
@@ -159,6 +166,45 @@ class OfferComparison extends Component
             $cheapestPerChildPosition[$childId] = $best;
         }
 
+        // Fortschritt "geprüft": zählt je Position (Haupt- und Unterprodukt) mit
+        // mindestens einem validen Angebot, ob das jeweils günstigste davon bereits
+        // als geprüft markiert wurde (oder die Position keinen weiteren Anbieter
+        // braucht, weil sie korrekt als "nicht korrekt angeboten" gekennzeichnet ist,
+        // ist hier bewusst NICHT als "geprüft" gezählt – das Häkchen bestätigt aktiv
+        // die Korrektheit des günstigsten Preises).
+        $reviewTotal   = 0;
+        $reviewChecked = 0;
+        foreach ($positions as $position) {
+            $cheapest = $cheapestPerPosition[$position->cis_row_id] ?? null;
+            if ($cheapest === null) {
+                continue;
+            }
+            $reviewTotal++;
+            foreach ($matrix[$position->cis_row_id] ?? [] as $item) {
+                if (! $item->not_offered && $item->price !== null
+                    && (float) $item->price === (float) $cheapest && $item->isChecked()) {
+                    $reviewChecked++;
+                    break;
+                }
+            }
+        }
+        foreach ($childPositions as $childPosition) {
+            $childId  = $childPosition['product']->cis_row_id;
+            $cheapest = $cheapestPerChildPosition[$childId] ?? null;
+            if ($cheapest === null) {
+                continue;
+            }
+            $reviewTotal++;
+            foreach ($childMatrix[$childId] ?? [] as $item) {
+                if (! $item->not_offered && $item->price !== null
+                    && (float) $item->price === (float) $cheapest && $item->isChecked()) {
+                    $reviewChecked++;
+                    break;
+                }
+            }
+        }
+        $reviewProgress = ['checked' => $reviewChecked, 'total' => $reviewTotal];
+
         $availableSources = ProductSource::whereNotIn('cis_row_id', $offers->pluck('cis_row_id_source'))
             ->orderBy('name')
             ->get();
@@ -199,7 +245,7 @@ class OfferComparison extends Component
         return view('livewire.project.offer-comparison', compact(
             'project', 'positions', 'offers', 'matrix', 'cheapestPerPosition', 'availableSources',
             'deviations', 'currentOffer', 'currentOfferIndex',
-            'childPositions', 'childMatrix', 'cheapestPerChildPosition'
+            'childPositions', 'childMatrix', 'cheapestPerChildPosition', 'reviewProgress'
         ));
     }
 
@@ -280,7 +326,27 @@ class OfferComparison extends Component
             ->where('cis_row_id_project_product', $positionId)
             ->first();
 
-        $item?->update(['not_offered' => ! $item->not_offered]);
+        if (! $item) {
+            return;
+        }
+
+        $notOffered = ! $item->not_offered;
+        // Geprüft/nicht korrekt angeboten schließen sich gegenseitig aus.
+        $item->update(['not_offered' => $notOffered, 'checked_at' => $notOffered ? null : $item->checked_at]);
+    }
+
+    /**
+     * Markiert das jeweils günstigste (valide) Angebot einer Position als geprüft.
+     * Nur für dieses eine Item relevant – siehe Blade: der Button erscheint nur
+     * beim aktuell günstigsten Angebot einer Zeile.
+     */
+    public function toggleChecked(string $offerId, string $positionId): void
+    {
+        $item = OfferItem::where('cis_row_id_offer', $offerId)
+            ->where('cis_row_id_project_product', $positionId)
+            ->first();
+
+        $item?->update(['checked_at' => $item->isChecked() ? null : now()]);
     }
 
     public function saveChildItemPrice(string $offerId, string $productId, $value): void
@@ -314,7 +380,21 @@ class OfferComparison extends Component
             ->where('cis_row_id_product', $productId)
             ->first();
 
-        $item?->update(['not_offered' => ! $item->not_offered]);
+        if (! $item) {
+            return;
+        }
+
+        $notOffered = ! $item->not_offered;
+        $item->update(['not_offered' => $notOffered, 'checked_at' => $notOffered ? null : $item->checked_at]);
+    }
+
+    public function toggleChildChecked(string $offerId, string $productId): void
+    {
+        $item = OfferChildItem::where('cis_row_id_offer', $offerId)
+            ->where('cis_row_id_product', $productId)
+            ->first();
+
+        $item?->update(['checked_at' => $item->isChecked() ? null : now()]);
     }
 
     public function toggleActive(string $offerId): void

@@ -14,6 +14,10 @@ class ProductSource extends Model
     protected $fillable = [
         'name',
         'url',
+        'address_street',
+        'address_postal_code',
+        'address_city',
+        'address_country',
         'contact_name',
         'contact_email',
         'contact_phone',

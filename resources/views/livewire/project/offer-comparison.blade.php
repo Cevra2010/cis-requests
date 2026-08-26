@@ -4,9 +4,18 @@
             <h2 class="text-base font-semibold text-gray-800">Angebote vergleichen</h2>
             <p class="text-xs text-gray-500 mt-0.5">Preise je Position und Anbieter eintragen. Günstigster valider Preis je Zeile ist hervorgehoben.</p>
         </div>
-        <button type="button" wire:click="openCreateModal" class="btn btn-primary btn-sm">
-            <i class="fa fa-plus mr-1.5"></i> Angebot anlegen
-        </button>
+        <div class="flex items-center gap-3">
+            @if($reviewProgress['total'] > 0)
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
+                             {{ $reviewProgress['checked'] === $reviewProgress['total'] ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
+                    <i class="fa {{ $reviewProgress['checked'] === $reviewProgress['total'] ? 'fa-circle-check' : 'fa-magnifying-glass' }}"></i>
+                    {{ $reviewProgress['checked'] }} von {{ $reviewProgress['total'] }} Positionen geprüft
+                </span>
+            @endif
+            <button type="button" wire:click="openCreateModal" class="btn btn-primary btn-sm">
+                <i class="fa fa-plus mr-1.5"></i> Angebot anlegen
+            </button>
+        </div>
     </div>
 
     @if($positions->isEmpty())
@@ -64,6 +73,9 @@
                             <i class="fa fa-ban"></i> Ausgeschlossen
                         </span>
                     @endif
+                    <p class="text-xs text-gray-400 mt-1" title="Summe der aktuell diesem Anbieter zugeordneten Positionen (siehe Bestellung), nicht aller eingetragenen Preise.">
+                        Zugeordnete Summe: <strong class="text-gray-600">{{ number_format($currentOffer->total(), 2, ',', '.') }} €</strong>
+                    </p>
                 </div>
                 <button type="button" wire:click="toggleActive('{{ $currentOffer->cis_row_id }}')"
                         class="btn btn-ghost btn-sm">
@@ -80,7 +92,7 @@
                         && $currentOffer->active
                         && (float) $item->price === (float) ($cheapestPerPosition[$position->cis_row_id] ?? null);
                 @endphp
-                <div class="flex items-center gap-4 py-3">
+                <div wire:key="seq-row-{{ $position->cis_row_id }}" class="flex items-center gap-4 py-3">
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium text-gray-800">{{ $position->product->name ?? '–' }}</p>
                         @if($position->note)<p class="text-xs text-gray-400">{{ $position->note }}</p>@endif
@@ -95,11 +107,20 @@
                     @if($item)
                     <div class="flex items-center gap-1.5 shrink-0">
                         <input type="text"
-                               value="{{ $item->not_offered ? '' : $item->price }}"
+                               wire:key="seq-input-{{ $position->cis_row_id }}"
+                               value="{{ $item->price }}"
                                {{ $item->not_offered ? 'disabled' : '' }}
                                placeholder="Preis"
                                wire:change="saveItemPrice('{{ $currentOffer->cis_row_id }}', '{{ $position->cis_row_id }}', $event.target.value)"
                                class="cis-input py-1.5 px-2 text-sm w-28 {{ $isCheapest ? 'font-semibold text-emerald-700 border-emerald-300' : '' }} disabled:bg-gray-50 disabled:text-gray-300">
+                        @if($isCheapest)
+                        <button type="button"
+                                wire:click="toggleChecked('{{ $currentOffer->cis_row_id }}', '{{ $position->cis_row_id }}')"
+                                title="{{ $item->isChecked() ? 'Geprüft – Preis bestätigt' : 'Als geprüft markieren' }}"
+                                class="text-sm {{ $item->isChecked() ? 'text-emerald-600' : 'text-gray-200 hover:text-emerald-500' }}">
+                            <i class="fa fa-circle-check"></i>
+                        </button>
+                        @endif
                         <button type="button"
                                 wire:click="toggleNotOffered('{{ $currentOffer->cis_row_id }}', '{{ $position->cis_row_id }}')"
                                 title="Nicht korrekt angeboten"
@@ -114,25 +135,38 @@
                 @foreach($childPositions as $childPosition)
                 @php
                     $childProduct = $childPosition['product'];
+                    $fromSet = $childPosition['from_set_only'] ?? false;
                     $item = $childMatrix[$childProduct->cis_row_id][$currentOffer->cis_row_id] ?? null;
                     $isCheapest = $item && !$item->not_offered && $item->price !== null
                         && $currentOffer->active
                         && (float) $item->price === (float) ($cheapestPerChildPosition[$childProduct->cis_row_id] ?? null);
                 @endphp
-                <div class="flex items-center gap-4 py-3 bg-amber-50/40 -mx-4 px-4">
-                    <div class="flex-1 min-w-0 pl-3">
-                        <p class="text-[10px] font-bold uppercase tracking-wide text-amber-600 mb-0.5">Unterprodukt</p>
+                <div wire:key="seq-child-row-{{ $childProduct->cis_row_id }}"
+                     class="flex items-center gap-4 py-3 {{ $fromSet ? '' : 'bg-amber-50/40 -mx-4 px-4' }}">
+                    <div class="flex-1 min-w-0 {{ $fromSet ? '' : 'pl-3' }}">
+                        @unless($fromSet)
+                        <p class="text-[10px] font-bold uppercase tracking-wide text-amber-600 mb-0.5">Verknüpftes Produkt</p>
+                        @endunless
                         <p class="text-sm font-medium text-gray-800">{{ $childProduct->name }}</p>
                     </div>
                     <span class="text-xs text-gray-400 w-14 text-center shrink-0">{{ $childPosition['quantity'] }} Stk.</span>
                     @if($item)
                     <div class="flex items-center gap-1.5 shrink-0">
                         <input type="text"
-                               value="{{ $item->not_offered ? '' : $item->price }}"
+                               wire:key="seq-child-input-{{ $childProduct->cis_row_id }}"
+                               value="{{ $item->price }}"
                                {{ $item->not_offered ? 'disabled' : '' }}
                                placeholder="Preis"
                                wire:change="saveChildItemPrice('{{ $currentOffer->cis_row_id }}', '{{ $childProduct->cis_row_id }}', $event.target.value)"
                                class="cis-input py-1.5 px-2 text-sm w-28 {{ $isCheapest ? 'font-semibold text-emerald-700 border-emerald-300' : '' }} disabled:bg-gray-50 disabled:text-gray-300">
+                        @if($isCheapest)
+                        <button type="button"
+                                wire:click="toggleChildChecked('{{ $currentOffer->cis_row_id }}', '{{ $childProduct->cis_row_id }}')"
+                                title="{{ $item->isChecked() ? 'Geprüft – Preis bestätigt' : 'Als geprüft markieren' }}"
+                                class="text-sm {{ $item->isChecked() ? 'text-emerald-600' : 'text-gray-200 hover:text-emerald-500' }}">
+                            <i class="fa fa-circle-check"></i>
+                        </button>
+                        @endif
                         <button type="button"
                                 wire:click="toggleChildNotOffered('{{ $currentOffer->cis_row_id }}', '{{ $childProduct->cis_row_id }}')"
                                 title="Nicht korrekt angeboten"
@@ -169,7 +203,8 @@
                             <span class="text-xs font-semibold text-gray-700">{{ $offer->source->name }}</span>
                             <button type="button" wire:click="toggleActive('{{ $offer->cis_row_id }}')"
                                     title="{{ $offer->active ? 'Anbieter ausschließen' : 'Anbieter reaktivieren' }}"
-                                    class="text-[10px] {{ $offer->active ? 'text-gray-300 hover:text-red-500' : 'text-amber-500 hover:text-amber-700' }}">
+                                    class="w-6 h-6 flex items-center justify-center rounded-md text-sm transition-colors shrink-0
+                                           {{ $offer->active ? 'text-gray-400 hover:text-red-600 hover:bg-red-50' : 'text-amber-500 hover:text-amber-700 hover:bg-amber-50' }}">
                                 <i class="fa {{ $offer->active ? 'fa-ban' : 'fa-rotate-left' }}"></i>
                             </button>
                         </div>
@@ -178,13 +213,16 @@
                         @elseif($offer->reference)
                             <span class="text-[9px] text-gray-400">{{ $offer->reference }}</span>
                         @endif
+                        <p class="text-[9px] text-gray-400 mt-0.5" title="Summe der aktuell zugeordneten Positionen (siehe Bestellung), nicht aller eingetragenen Preise.">
+                            Zugeordnet: <span class="font-semibold text-gray-500">{{ number_format($offer->total(), 2, ',', '.') }} €</span>
+                        </p>
                     </th>
                     @endforeach
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-50">
                 @foreach($positions as $position)
-                <tr>
+                <tr wire:key="row-{{ $position->cis_row_id }}">
                     <td class="px-3 py-2 sticky left-0 bg-white">
                         <p class="text-sm font-medium text-gray-800">{{ $position->product->name ?? '–' }}</p>
                         @if($position->note)<p class="text-xs text-gray-400">{{ $position->note }}</p>@endif
@@ -203,17 +241,27 @@
                             && $offer->active
                             && (float) $item->price === (float) ($cheapestPerPosition[$position->cis_row_id] ?? null);
                     @endphp
-                    <td class="px-3 py-2 {{ !$offer->active ? 'opacity-40' : '' }} {{ $isCheapest ? 'bg-emerald-50' : '' }}">
+                    <td wire:key="cell-{{ $position->cis_row_id }}-{{ $offer->cis_row_id }}"
+                        class="px-3 py-2 {{ !$offer->active ? 'opacity-40' : '' }} {{ $isCheapest ? 'bg-emerald-50' : '' }}">
                         @if($item)
                             <div class="flex items-center gap-1.5">
                                 <div class="relative flex-1">
                                     <input type="text"
-                                           value="{{ $item->not_offered ? '' : $item->price }}"
+                                           wire:key="input-{{ $position->cis_row_id }}-{{ $offer->cis_row_id }}"
+                                           value="{{ $item->price }}"
                                            {{ $item->not_offered ? 'disabled' : '' }}
                                            placeholder="Preis"
                                            wire:change="saveItemPrice('{{ $offer->cis_row_id }}', '{{ $position->cis_row_id }}', $event.target.value)"
                                            class="cis-input py-1 px-2 text-sm w-24 {{ $isCheapest ? 'font-semibold text-emerald-700 border-emerald-300' : '' }} disabled:bg-gray-50 disabled:text-gray-300">
                                 </div>
+                                @if($isCheapest)
+                                <button type="button"
+                                        wire:click="toggleChecked('{{ $offer->cis_row_id }}', '{{ $position->cis_row_id }}')"
+                                        title="{{ $item->isChecked() ? 'Geprüft – Preis bestätigt' : 'Als geprüft markieren' }}"
+                                        class="text-xs {{ $item->isChecked() ? 'text-emerald-600' : 'text-gray-200 hover:text-emerald-500' }}">
+                                    <i class="fa fa-circle-check"></i>
+                                </button>
+                                @endif
                                 <button type="button"
                                         wire:click="toggleNotOffered('{{ $offer->cis_row_id }}', '{{ $position->cis_row_id }}')"
                                         title="Nicht korrekt angeboten"
@@ -233,10 +281,15 @@
                 @endforeach
 
                 @foreach($childPositions as $childPosition)
-                @php $childProduct = $childPosition['product']; @endphp
-                <tr class="bg-amber-50/40">
-                    <td class="px-3 py-2 sticky left-0 bg-amber-50/40 pl-6">
-                        <p class="text-[10px] font-bold uppercase tracking-wide text-amber-600 mb-0.5">Unterprodukt</p>
+                @php
+                    $childProduct = $childPosition['product'];
+                    $fromSet = $childPosition['from_set_only'] ?? false;
+                @endphp
+                <tr wire:key="child-row-{{ $childProduct->cis_row_id }}" class="{{ $fromSet ? '' : 'bg-amber-50/40' }}">
+                    <td class="px-3 py-2 sticky left-0 {{ $fromSet ? 'bg-white' : 'bg-amber-50/40 pl-6' }}">
+                        @unless($fromSet)
+                        <p class="text-[10px] font-bold uppercase tracking-wide text-amber-600 mb-0.5">Verknüpftes Produkt</p>
+                        @endunless
                         <p class="text-sm font-medium text-gray-800">{{ $childProduct->name }}</p>
                     </td>
                     <td class="px-2 py-2 text-center text-gray-500">{{ $childPosition['quantity'] }}</td>
@@ -247,17 +300,27 @@
                             && $offer->active
                             && (float) $item->price === (float) ($cheapestPerChildPosition[$childProduct->cis_row_id] ?? null);
                     @endphp
-                    <td class="px-3 py-2 {{ !$offer->active ? 'opacity-40' : '' }} {{ $isCheapest ? 'bg-emerald-50' : '' }}">
+                    <td wire:key="child-cell-{{ $childProduct->cis_row_id }}-{{ $offer->cis_row_id }}"
+                        class="px-3 py-2 {{ !$offer->active ? 'opacity-40' : '' }} {{ $isCheapest ? 'bg-emerald-50' : '' }}">
                         @if($item)
                             <div class="flex items-center gap-1.5">
                                 <div class="relative flex-1">
                                     <input type="text"
-                                           value="{{ $item->not_offered ? '' : $item->price }}"
+                                           wire:key="child-input-{{ $childProduct->cis_row_id }}-{{ $offer->cis_row_id }}"
+                                           value="{{ $item->price }}"
                                            {{ $item->not_offered ? 'disabled' : '' }}
                                            placeholder="Preis"
                                            wire:change="saveChildItemPrice('{{ $offer->cis_row_id }}', '{{ $childProduct->cis_row_id }}', $event.target.value)"
                                            class="cis-input py-1 px-2 text-sm w-24 {{ $isCheapest ? 'font-semibold text-emerald-700 border-emerald-300' : '' }} disabled:bg-gray-50 disabled:text-gray-300">
                                 </div>
+                                @if($isCheapest)
+                                <button type="button"
+                                        wire:click="toggleChildChecked('{{ $offer->cis_row_id }}', '{{ $childProduct->cis_row_id }}')"
+                                        title="{{ $item->isChecked() ? 'Geprüft – Preis bestätigt' : 'Als geprüft markieren' }}"
+                                        class="text-xs {{ $item->isChecked() ? 'text-emerald-600' : 'text-gray-200 hover:text-emerald-500' }}">
+                                    <i class="fa fa-circle-check"></i>
+                                </button>
+                                @endif
                                 <button type="button"
                                         wire:click="toggleChildNotOffered('{{ $offer->cis_row_id }}', '{{ $childProduct->cis_row_id }}')"
                                         title="Nicht korrekt angeboten"

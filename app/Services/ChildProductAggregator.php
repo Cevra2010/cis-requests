@@ -16,7 +16,7 @@ class ChildProductAggregator
 {
     /**
      * @param  iterable<array{product: ?Product, quantity: int}>  $items  Positionen mit Menge (Eltern-Produkt muss `childs` geladen haben)
-     * @return Collection<int, array{product: Product, quantity: int}>
+     * @return Collection<int, array{product: Product, quantity: int, from_set_only: bool}>
      */
     public static function aggregate(iterable $items): Collection
     {
@@ -30,14 +30,23 @@ class ChildProductAggregator
                 continue;
             }
 
+            $parentIsSet = $product->isSet();
+
             foreach ($product->childs as $child) {
                 $id = $child->cis_row_id;
 
                 if (! isset($totals[$id])) {
-                    $totals[$id] = ['product' => $child, 'quantity' => 0];
+                    // Solange JEDES bisher gesehene Elternprodukt ein Set ist, gilt das
+                    // Kind als "nur aus Sets stammend" – dann wird es wie eine normale,
+                    // eigenständige Position behandelt statt wie ein echtes Unterprodukt
+                    // (siehe Verwendung in OfferComparison/AwardManager/TenderExporter).
+                    $totals[$id] = ['product' => $child, 'quantity' => 0, 'from_set_only' => true];
                 }
 
                 $totals[$id]['quantity'] += $quantity;
+                if (! $parentIsSet) {
+                    $totals[$id]['from_set_only'] = false;
+                }
             }
         }
 

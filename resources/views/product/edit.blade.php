@@ -5,7 +5,7 @@
 @section('header_actions')
     @if(! $product->hasParent())
         <a href="{{ route('product.create', $product->cis_row_id) }}" class="btn btn-ghost btn-sm">
-            <i class="fa fa-plus mr-1"></i> Unterprodukt
+            <i class="fa fa-plus mr-1"></i> Verknüpftes Produkt
         </a>
     @endif
     <a href="{{ route('product.edit.delete', $product) }}" class="btn btn-danger btn-sm">
@@ -16,11 +16,11 @@
 @section('content')
 <div class="space-y-5">
 
-    {{-- Verknüpfungen: bei welchen Produkten dieses Produkt als Unterprodukt hinterlegt ist --}}
+    {{-- Verknüpfungen: bei welchen Produkten dieses Produkt als verknüpftes Produkt hinterlegt ist --}}
     @if($product->hasParent())
     <div class="flex items-center gap-2 text-sm text-gray-500 flex-wrap">
         <i class="fa fa-link text-xs"></i>
-        <span class="text-xs text-gray-400">Verknüpft als Unterprodukt bei:</span>
+        <span class="text-xs text-gray-400">Verknüpft bei:</span>
         @foreach($product->getParents() as $parent)
             <span class="inline-flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-full pl-2.5 pr-1 py-0.5">
                 <a href="{{ route('product.edit', $parent) }}" class="hover:text-primary-600 transition-colors">
@@ -55,6 +55,20 @@
                                                :value="old('category_id', $product->category_id)"
                                                onchange="document.getElementById('rename-form').submit()" />
                     </div>
+                    <input type="hidden" name="is_set" value="0">
+                    <label class="flex items-center gap-1.5 text-xs text-gray-500 shrink-0 cursor-pointer" title="Set: dient nur der internen Bündelung, hat keinen eigenen Preis/Beschreibungstext und erscheint auf der Ausschreibung nicht als eigene Position — nur seine Mitgliedsprodukte.">
+                        <input type="checkbox" name="is_set" value="1"
+                               {{ old('is_set', $product->is_set) ? 'checked' : '' }}
+                               onchange="document.getElementById('rename-form').submit()">
+                        Set
+                    </label>
+                    <input type="hidden" name="default_is_internal" value="0">
+                    <label class="flex items-center gap-1.5 text-xs text-gray-500 shrink-0 cursor-pointer" title="Wird beim Hinzufügen zu einem Projekt standardmäßig als hausintern markiert (nicht ausgeschrieben) – je Projekt änderbar.">
+                        <input type="checkbox" name="default_is_internal" value="1"
+                               {{ old('default_is_internal', $product->default_is_internal) ? 'checked' : '' }}
+                               onchange="document.getElementById('rename-form').submit()">
+                        Standardmäßig hausintern
+                    </label>
                     @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </form>
                 <p class="text-xs text-gray-400 mt-1.5">
@@ -63,14 +77,20 @@
                 </p>
             </div>
             <div class="shrink-0 text-right">
-                <p class="text-2xl font-bold text-gray-900">{{ $product->priceForHumans() }}</p>
-                @if($product->hasChild())
-                    <p class="text-xs text-gray-400">Gesamt: {{ $product->getGroupPriceForHumans() }}</p>
+                @if($product->isSet())
+                    <p class="text-2xl font-bold text-gray-900">{{ $product->getGroupPriceForHumans() }}</p>
+                    <p class="text-xs text-gray-400">Set – Preis aus Mitgliedsprodukten</p>
+                @else
+                    <p class="text-2xl font-bold text-gray-900">{{ $product->priceForHumans() }}</p>
+                    @if($product->hasChild())
+                        <p class="text-xs text-gray-400">Gesamt: {{ $product->getGroupPriceForHumans() }}</p>
+                    @endif
                 @endif
             </div>
         </div>
     </div>
 
+    @unless($product->isSet())
     {{-- Beschreibung + Parameter --}}
     <div class="grid grid-cols-2 gap-5">
         <div class="cis-card">
@@ -82,11 +102,12 @@
             @livewire('product.product-parameter-editor', ['product' => $product])
         </div>
     </div>
+    @endunless
 
-    {{-- Unterprodukte --}}
+    {{-- Verknüpfte Produkte --}}
     <div class="cis-card p-0 overflow-hidden">
         <div class="px-6 py-3.5 border-b border-gray-100">
-            <h3 class="text-sm font-semibold text-gray-800 mb-3">Unterprodukte</h3>
+            <h3 class="text-sm font-semibold text-gray-800 mb-3">Verknüpfte Produkte</h3>
             @livewire('product.add-child', ['parent' => $product])
         </div>
         @if($product->hasChild())
@@ -128,10 +149,11 @@
             </tbody>
         </table>
         @else
-        <p class="px-6 py-8 text-center text-sm text-gray-400">Noch keine Unterprodukte zugeordnet.</p>
+        <p class="px-6 py-8 text-center text-sm text-gray-400">Noch keine verknüpften Produkte zugeordnet.</p>
         @endif
     </div>
 
+    @unless($product->isSet())
     {{-- Preisentwicklung --}}
     <div class="cis-card">
         <h3 class="text-sm font-semibold text-gray-800 mb-1">Preisentwicklung</h3>
@@ -209,5 +231,6 @@
         </div>
 
     </div>
+    @endunless
 </div>
 @endsection

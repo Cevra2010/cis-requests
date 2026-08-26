@@ -4,15 +4,36 @@
     Gruppe/Rolle: $granted  (slug → bool)
     Benutzer:     $userPerms (slug → UserPermission)
 --}}
+@unless(isset($userPerms))
+<div class="flex items-center justify-end gap-2 mb-4">
+    <button type="button" onclick="document.querySelectorAll('.js-perm-checkbox').forEach(cb => cb.checked = true)"
+            class="btn btn-ghost btn-sm">
+        <i class="fa fa-square-check mr-1.5"></i>Alle auswählen
+    </button>
+    <button type="button" onclick="document.querySelectorAll('.js-perm-checkbox').forEach(cb => cb.checked = false)"
+            class="btn btn-ghost btn-sm">
+        <i class="fa fa-square mr-1.5"></i>Alle abwählen
+    </button>
+</div>
+@endunless
 <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
 @foreach($permissions as $groupLabel => $perms)
 <div class="cis-card">
     {{-- Card-Header mit Gruppenname + Badge --}}
     <div class="flex items-center justify-between mb-3 pb-3 border-b border-gray-100">
         <h3 class="text-sm font-semibold text-gray-800">{{ $groupLabel }}</h3>
-        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-            {{ $perms->count() }}
-        </span>
+        <div class="flex items-center gap-2">
+            @unless(isset($userPerms))
+            <button type="button"
+                    onclick="this.closest('.cis-card').querySelectorAll('.js-perm-checkbox').forEach(cb => cb.checked = true)"
+                    class="text-[10px] text-gray-400 hover:text-primary-600 font-medium uppercase tracking-wide">
+                Alle
+            </button>
+            @endunless
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                {{ $perms->count() }}
+            </span>
+        </div>
     </div>
 
     <div class="divide-y divide-gray-50">
@@ -62,7 +83,7 @@
                     <input type="checkbox"
                            name="permissions[]"
                            value="{{ $perm->slug }}"
-                           class="sr-only peer"
+                           class="sr-only peer js-perm-checkbox"
                            {{ ($granted->get($perm->slug) ?? false) ? 'checked' : '' }}>
                     <div class="w-9 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary-500
                                 rounded-full peer peer-checked:bg-primary-600

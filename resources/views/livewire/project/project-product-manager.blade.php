@@ -109,17 +109,24 @@
 
                     {{-- Name --}}
                     <div class="flex-1 min-w-0">
-                        <a href="{{ route('product.edit', $item->cis_row_id) }}"
-                           class="text-sm font-medium text-gray-900 hover:text-primary-600 transition-colors truncate block">
-                            {{ $item->name }}
-                        </a>
+                        <div class="flex items-center gap-1.5">
+                            <a href="{{ route('product.edit', $item->cis_row_id) }}"
+                               class="text-sm font-medium text-gray-900 hover:text-primary-600 transition-colors truncate">
+                                {{ $item->name }}
+                            </a>
+                            @if($item->is_internal)
+                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-sky-50 text-sky-600 shrink-0" title="Hausintern: wird nicht ausgeschrieben">
+                                    <i class="fa fa-house mr-0.5"></i>Hausintern
+                                </span>
+                            @endif
+                        </div>
                         @if($item->group_price > 0)
                             <span class="text-[11px] text-gray-400">
                                 @if($item->price_is_fixed)
                                     <i class="fa fa-lock text-gray-300" title="Preis zum Fixierungszeitpunkt eingefroren"></i>
                                 @endif
                                 {{ number_format($item->group_price, 2, ',', '.') }} € / Stk.
-                                @if($item->children->isNotEmpty()) inkl. Unterprodukte @endif
+                                @if($item->children->isNotEmpty()) inkl. verknüpfte Produkte @endif
                             </span>
                         @endif
                     </div>
@@ -134,6 +141,16 @@
                                {{ !$canEdit ? 'disabled' : '' }}
                                class="cis-input py-0.5 px-1.5 text-sm text-center w-14 disabled:bg-gray-50">
                     </div>
+
+                    {{-- Hausintern --}}
+                    @if($canEdit)
+                    <button type="button"
+                            wire:click="updateInternal('{{ $item->cis_row_id }}', {{ $item->is_internal ? 'false' : 'true' }})"
+                            title="{{ $item->is_internal ? 'Nicht mehr hausintern' : 'Als hausintern markieren (wird nicht ausgeschrieben)' }}"
+                            class="shrink-0 transition-colors {{ $item->is_internal ? 'text-sky-500 hover:text-sky-700' : 'text-gray-200 hover:text-sky-500 opacity-0 group-hover/row:opacity-100' }}">
+                        <i class="fa fa-house text-xs"></i>
+                    </button>
+                    @endif
 
                     {{-- Remove --}}
                     @if($canEdit)

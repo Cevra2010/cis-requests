@@ -30,7 +30,13 @@ class AwardManager extends Component
     {
         $project = Project::where('cis_row_id', $this->projectId)->firstOrFail();
 
-        $positions = $project->positions()->with(['product', 'award.offer.source', 'offerItems.offer.source'])->get();
+        // Setprodukte erscheinen nie als eigene Position (siehe Product::isSet()) –
+        // nur ihre Mitgliedsprodukte, die über aggregatedChildPositions() unten
+        // ohnehin projektweit erfasst werden. Hausinterne Positionen (bereits im
+        // Haus vorhanden, siehe ProjectProduct::is_internal) werden nicht bestellt.
+        $positions = $project->positions()->with(['product', 'award.offer.source', 'offerItems.offer.source'])->get()
+            ->reject(fn ($p) => $p->product?->isSet() || $p->is_internal)
+            ->values();
         $offers    = $project->offers()->with('source')->orderBy('created_at')->get();
         $conflicts = AwardCalculator::conflicts($project);
 

@@ -16,7 +16,7 @@
                 @if($estimate['fixed'])
                     Preise zum Zeitpunkt der Fixierung eingefroren – ändert sich der Katalogpreis später, bleibt dieser Wert bestehen.
                 @else
-                    Auf Basis der zuletzt erfassten Katalogpreise (inkl. Unterprodukte) – ersetzt keine Angebote.
+                    Auf Basis der zuletzt erfassten Katalogpreise (inkl. verknüpfte Produkte) – ersetzt keine Angebote.
                 @endif
                 @if($estimate['missing_count'] > 0)
                     {{ $estimate['missing_count'] }} von {{ $estimate['positions_count'] }} Position(en) ohne Preis, nicht enthalten.
@@ -271,14 +271,44 @@
                 $blockLabel   = 'Materialliste';
 
                 if ($isProducts) {
-                    $allBlockItems = DB::table('project_product')
+                    // Setprodukte dienen nur der internen Bündelung und erscheinen selbst
+                    // nie als eigene Position in der Ausschreibung – stattdessen werden
+                    // ihre Mitgliedsprodukte hier direkt als eigenständige Positionen
+                    // eingesetzt (mit der Menge des Sets), so als wären sie normal
+                    // hinzugefügt worden.
+                    $rawPositions = DB::table('project_product')
                         ->join('products', 'project_product.cis_row_id_product', '=', 'products.cis_row_id')
                         ->where('project_product.cis_row_id_project', $projectId)
                         ->whereNull('products.deleted_at')
+                        ->where('project_product.is_internal', false)
                         ->orderBy('project_product.sort_order')
-                        ->select('products.cis_row_id', 'products.name',
+                        ->select('products.cis_row_id', 'products.name', 'products.is_set',
                                  'project_product.product_count', 'project_product.note')
                         ->get();
+
+                    $allBlockItems = collect();
+                    foreach ($rawPositions as $rawPosition) {
+                        if (! $rawPosition->is_set) {
+                            $allBlockItems->push($rawPosition);
+                            continue;
+                        }
+                        $setMembers = DB::table('product_child')
+                            ->join('products', 'product_child.cis_row_id_child', '=', 'products.cis_row_id')
+                            ->where('product_child.cis_row_id_parent', $rawPosition->cis_row_id)
+                            ->whereNull('products.deleted_at')
+                            ->select('products.cis_row_id', 'products.name')
+                            ->get();
+                        foreach ($setMembers as $member) {
+                            $allBlockItems->push((object) [
+                                'cis_row_id'    => $member->cis_row_id,
+                                'name'          => $member->name,
+                                'is_set'        => false,
+                                'product_count' => $rawPosition->product_count,
+                                'note'          => null,
+                            ]);
+                        }
+                    }
+
                     $shownItems = $blockSelected === null
                         ? $allBlockItems
                         : $allBlockItems->filter(fn($i) => in_array($i->cis_row_id, $blockSelected));
@@ -470,9 +500,16 @@
                         <tbody>
                         @foreach($shownItems as $item)
                         @php
+                            // Projektspezifischer Text hat Vorrang; ohne eigenen Text greift
+                            // der globale Standardtext des Produkts (siehe updateProductDescription()).
                             $descRow  = DB::table('product_descriptions')
                                 ->where('cis_row_id_product', $item->cis_row_id)
-                                ->whereNull('deleted_at')->first();
+                                ->where('cis_row_id_project', $projectId)
+                                ->whereNull('deleted_at')->first()
+                                ?? DB::table('product_descriptions')
+                                    ->where('cis_row_id_product', $item->cis_row_id)
+                                    ->whereNull('cis_row_id_project')
+                                    ->whereNull('deleted_at')->first();
                             $txt      = $descRow?->text ?? '';
                             $rowKey   = "pr-{$block->cis_row_id}-{$item->cis_row_id}";
                             $phText   = 'Ausschreibungstext für ' . $item->name . '…';
@@ -487,6 +524,7 @@
 
                         <tr wire:key="{{ $rowKey }}"
                             x-data="{ editing: false }"
+                            @click.outside="editing = false"
                             class="group align-top border-b border-gray-100">
                             <td class="py-2.5 pr-2 text-[10px] font-mono text-gray-300 tabular-nums">{{ $loop->iteration }}</td>
                             <td class="py-2.5 pr-3 text-xs font-semibold text-gray-500 tabular-nums">{{ $item->product_count }}×</td>
@@ -516,8 +554,6 @@
                                 <div x-show="editing" style="display:none">
                                     <textarea x-ref="ta"
                                               x-effect="editing && $nextTick(() => { const t=$refs.ta; t.focus(); t.style.height='auto'; t.style.height=t.scrollHeight+'px' })"
-                                              @blur="editing = false"
-                                              wire:change="updateProductDescription('{{ $item->cis_row_id }}', $event.target.value)"
                                               oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
                                               rows="3"
                                               style="overflow-y:hidden"
@@ -525,7 +561,21 @@
                                               class="w-full text-sm text-gray-700 leading-relaxed resize-none rounded-lg
                                                      border border-gray-200 focus:ring-2 outline-none px-3 py-2.5
                                                      {{ $focusClasses }}">{{ $txt }}</textarea>
-                                    <p class="mt-1 text-[11px] text-gray-400">Klick außerhalb speichert</p>
+                                    <div class="flex items-center gap-2 mt-1.5">
+                                        <button type="button"
+                                                @click="editing = false"
+                                                wire:click="updateProductDescription('{{ $item->cis_row_id }}', $refs.ta.value, 'project')"
+                                                class="text-[11px] px-2 py-1 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+                                            Nur für dieses Projekt speichern
+                                        </button>
+                                        <button type="button"
+                                                @click="editing = false"
+                                                wire:click="updateProductDescription('{{ $item->cis_row_id }}', $refs.ta.value, 'global')"
+                                                title="Übernimmt den Text auch als neuen Standard für alle Projekte, die diesen Text noch nicht individuell angepasst haben."
+                                                class="text-[11px] px-2 py-1 rounded-md bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors">
+                                            Auch als Standardtext übernehmen
+                                        </button>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
@@ -536,11 +586,17 @@
                             $childExcluded = in_array($child->cis_row_id, $excludedChildren);
                             $childDesc = DB::table('product_descriptions')
                                 ->where('cis_row_id_product', $child->cis_row_id)
-                                ->whereNull('deleted_at')->first();
+                                ->where('cis_row_id_project', $projectId)
+                                ->whereNull('deleted_at')->first()
+                                ?? DB::table('product_descriptions')
+                                    ->where('cis_row_id_product', $child->cis_row_id)
+                                    ->whereNull('cis_row_id_project')
+                                    ->whereNull('deleted_at')->first();
                             $childTxt = $childDesc?->text ?? '';
                         @endphp
                         <tr wire:key="child-{{ $block->cis_row_id }}-{{ $child->cis_row_id }}"
                             x-data="{ editing: false }"
+                            @click.outside="editing = false"
                             class="group/child align-top border-b border-dashed border-gray-100 {{ $childExcluded ? 'opacity-40' : '' }}">
                             <td class="py-2"></td>
                             <td class="py-2"></td>
@@ -552,7 +608,7 @@
                                     @if($canEdit)
                                     <button type="button"
                                             wire:click="toggleChildItem('{{ $block->cis_row_id }}', '{{ $child->cis_row_id }}')"
-                                            title="{{ $childExcluded ? 'Unterprodukt einblenden' : 'Unterprodukt ausblenden' }}"
+                                            title="{{ $childExcluded ? 'Verknüpftes Produkt einblenden' : 'Verknüpftes Produkt ausblenden' }}"
                                             class="text-[10px] transition-colors opacity-0 group-hover/child:opacity-100
                                                    {{ $childExcluded ? 'text-gray-300 hover:text-gray-500' : 'text-amber-300 hover:text-amber-500' }}">
                                         <i class="fa {{ $childExcluded ? 'fa-eye-slash' : 'fa-eye' }}"></i>
@@ -580,8 +636,6 @@
                                     <div x-show="editing" style="display:none">
                                         <textarea x-ref="cta"
                                                   x-effect="editing && $nextTick(() => { const t=$refs.cta; t.focus(); t.style.height='auto'; t.style.height=t.scrollHeight+'px' })"
-                                                  @blur="editing = false"
-                                                  wire:change="updateProductDescription('{{ $child->cis_row_id }}', $event.target.value)"
                                                   oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
                                                   rows="2"
                                                   style="overflow-y:hidden"
@@ -589,7 +643,21 @@
                                                   class="w-full text-sm text-gray-700 leading-relaxed resize-none rounded-lg
                                                          border border-gray-200 focus:ring-2 focus:ring-amber-200 focus:border-amber-400
                                                          bg-amber-50 outline-none px-3 py-2">{{ $childTxt }}</textarea>
-                                        <p class="mt-1 text-[11px] text-gray-400">Klick außerhalb speichert</p>
+                                        <div class="flex items-center gap-2 mt-1">
+                                            <button type="button"
+                                                    @click="editing = false"
+                                                    wire:click="updateProductDescription('{{ $child->cis_row_id }}', $refs.cta.value, 'project')"
+                                                    class="text-[11px] px-2 py-1 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+                                                Nur für dieses Projekt speichern
+                                            </button>
+                                            <button type="button"
+                                                    @click="editing = false"
+                                                    wire:click="updateProductDescription('{{ $child->cis_row_id }}', $refs.cta.value, 'global')"
+                                                    title="Übernimmt den Text auch als neuen Standard für alle Projekte, die diesen Text noch nicht individuell angepasst haben."
+                                                    class="text-[11px] px-2 py-1 rounded-md bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors">
+                                                Auch als Standardtext übernehmen
+                                            </button>
+                                        </div>
                                     </div>
                                 @endif
                             </td>

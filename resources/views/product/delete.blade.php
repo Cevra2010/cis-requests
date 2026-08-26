@@ -17,7 +17,7 @@
                 @if($childCount > 0)
                     <p class="text-sm text-amber-600 mt-2 font-medium">
                         <i class="fa fa-triangle-exclamation mr-1"></i>
-                        Dieses Produkt hat {{ $childCount }} Unterprodukt(e), die ebenfalls gelöscht werden.
+                        Dieses Produkt hat {{ $childCount }} verknüpfte(s) Produkt(e) – die Verknüpfung geht dabei verloren (die Produkte selbst bleiben erhalten).
                     </p>
                 @endif
             </div>
