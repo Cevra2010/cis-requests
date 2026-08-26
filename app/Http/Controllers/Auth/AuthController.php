@@ -13,8 +13,10 @@ class AuthController extends Controller
     public function index() {
         if(config("app.debug") && config("app.autologin")) {
             $user = User::where('email','admin@istrator.de')->first();
-            Auth::login($user);
-            return redirect()->route("home");
+            if($user) {
+                Auth::login($user);
+                return redirect()->route("home");
+            }
         }
         return view("auth.index");
     }

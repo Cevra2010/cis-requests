@@ -3,7 +3,6 @@
 namespace App\Http\Livewire\Product;
 
 use App\Models\Product;
-use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class ProductTable extends Component
@@ -24,15 +23,12 @@ class ProductTable extends Component
         }
 
         if ($this->searchString) {
-            // Bei Suche alle Produkte (inkl. Unterprodukte)
             $query->where('name', 'like', '%' . $this->searchString . '%');
-        } else {
-            // Nur Oberprodukte: nicht als Kind in product_child eingetragen
-            $childIds = DB::table('product_child')->pluck('cis_row_id_child');
-            if ($childIds->isNotEmpty()) {
-                $query->whereNotIn('cis_row_id', $childIds);
-            }
         }
+
+        // Ein Produkt, das als Unterprodukt verknüpft ist, bleibt trotzdem ein
+        // eigenständiges Hauptprodukt und erscheint daher immer auch hier in
+        // der Liste (zusätzlich zur Vorschau unter seinen Elternprodukten).
 
         $products         = $query->orderBy($this->orderBy, $this->orderDirection)->get();
         $categoryOptions  = \CisFoundation\CisCategoryManager\CisCategoryManager::optionsForType('product.category');

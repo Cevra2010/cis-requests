@@ -74,6 +74,9 @@ class Project extends Model
         'completed'             => 'project.status.set.completed',
     ];
 
+    /** @var string|null 'lock'|'unlock', gesetzt in saving(), ausgewertet in saved() */
+    private ?string $pendingLockTransition = null;
+
     protected static function booted(): void
     {
         static::saving(function (Project $project) {
@@ -87,10 +90,21 @@ class Project extends Model
             if (! $wasLocked && $nowLocked) {
                 $project->tender_locked_at = now();
                 $project->tender_locked_by = auth()->user()?->cis_row_id;
+                $project->pendingLockTransition = 'lock';
             } elseif ($wasLocked && ! $nowLocked) {
                 $project->tender_locked_at = null;
                 $project->tender_locked_by = null;
+                $project->pendingLockTransition = 'unlock';
             }
+        });
+
+        static::saved(function (Project $project) {
+            if ($project->pendingLockTransition === 'lock') {
+                $project->snapshotPrices();
+            } elseif ($project->pendingLockTransition === 'unlock') {
+                $project->clearPriceSnapshots();
+            }
+            $project->pendingLockTransition = null;
         });
     }
 
@@ -287,5 +301,97 @@ class Project extends Model
             return true;
         }
         return $user?->hasPermission(self::OVERRIDE_LOCK_PERMISSION, $this->cis_row_id) ?? false;
+    }
+
+    // ── Preis-Fixierung ──────────────────────────────────────────────────────
+    // Sobald das Projekt fixiert wird, werden die aktuellen Katalogpreise aller
+    // Positionen UND ihrer Unterprodukte eingefroren (siehe booted()). Ändert
+    // sich der Katalogpreis danach, bleiben bereits fixierte Projekte
+    // unverändert – effectivePrice()/effectiveGroupPrice() liefern dann den
+    // eingefrorenen statt des aktuellen Preises.
+
+    public function priceSnapshots()
+    {
+        return $this->hasMany(ProjectPriceSnapshot::class, 'cis_row_id_project', 'cis_row_id');
+    }
+
+    private function snapshotPrices(): void
+    {
+        $positions = $this->positions()->with(['product.childs'])->get();
+
+        $products = collect();
+        foreach ($positions as $position) {
+            if (! $position->product) {
+                continue;
+            }
+            $products->push($position->product);
+            foreach ($position->product->childs as $child) {
+                $products->push($child);
+            }
+        }
+
+        foreach ($products->unique('cis_row_id') as $product) {
+            $this->freezeProductPrice($product);
+        }
+    }
+
+    private function clearPriceSnapshots(): void
+    {
+        $this->priceSnapshots()->delete();
+    }
+
+    private function freezeProductPrice(Product $product): ?ProjectPriceSnapshot
+    {
+        $price = $product->price();
+        if (! $price) {
+            return null;
+        }
+
+        return ProjectPriceSnapshot::updateOrCreate(
+            ['cis_row_id_project' => $this->cis_row_id, 'cis_row_id_product' => $product->cis_row_id],
+            [
+                'amount'      => $price->amount,
+                'source_name' => $price->source?->name,
+                'frozen_at'   => now(),
+            ]
+        );
+    }
+
+    /**
+     * Der für dieses Projekt maßgebliche Preis eines Produkts: solange das
+     * Projekt nicht fixiert ist, der aktuelle Katalogpreis; danach der zum
+     * Fixierungszeitpunkt eingefrorene Preis (wird bei Bedarf nachträglich
+     * eingefroren, falls eine Position erst nach der Fixierung hinzukam).
+     */
+    public function effectivePrice(?Product $product): ?float
+    {
+        if (! $product) {
+            return null;
+        }
+
+        if (! $this->isLocked()) {
+            $price = $product->price();
+            return $price ? (float) $price->amount : null;
+        }
+
+        $snapshot = $this->priceSnapshots()->where('cis_row_id_product', $product->cis_row_id)->first();
+        if ($snapshot) {
+            return (float) $snapshot->amount;
+        }
+
+        $snapshot = $this->freezeProductPrice($product);
+        return $snapshot ? (float) $snapshot->amount : null;
+    }
+
+    /** Produkt-Eigenpreis + Unterprodukte, jeweils über effectivePrice() (fixierungsbewusst). */
+    public function effectiveGroupPrice(Product $product): float
+    {
+        $amount = $this->effectivePrice($product) ?? 0.0;
+
+        foreach ($product->getChild() as $child) {
+            $amount += $this->effectivePrice($child) ?? 0.0;
+        }
+
+        return $amount;
     }
 }

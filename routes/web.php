@@ -106,6 +106,7 @@ Route::middleware(['auth'])->group(function() {
     Route::get('/Products/Edit/{product}',         [ProductController::class, 'edit'])         ->name('product.edit');
     Route::post('/Products/Edit/{product}',        [ProductController::class, 'update'])       ->name('product.edit.update');
     Route::post('/Products/Edit/{product}/Price',  [ProductController::class, 'storePrice'])   ->name('product.edit.price.store');
+    Route::delete('/Products/{product}/Children/{child}', [ProductController::class, 'detachChild']) ->name('product.child.detach');
     Route::get('/Products/Delete/{product}',       [ProductController::class, 'delete'])       ->name('product.edit.delete');
     Route::post('/Products/Delete/{product}',      [ProductController::class, 'deleteStore'])  ->name('product.edit.delete.store');
     Route::get('/Products/Price',                  [ProductController::class, 'price'])        ->name('product.price');

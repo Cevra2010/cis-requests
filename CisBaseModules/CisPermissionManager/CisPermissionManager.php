@@ -4,6 +4,7 @@ namespace CisFoundation\CisPermissionManager;
 
 use App\Models\Permission;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * CisPermissionManager – zentrale Registry aller Berechtigungen.
@@ -81,6 +82,56 @@ class CisPermissionManager
                 ]
             );
         }
+
+        self::grantUngrantedToAdministrator();
+    }
+
+    /**
+     * Sicherheitsnetz gegen ein wiederkehrendes Problem: Eine neu im Code
+     * registrierte Berechtigung ist zunächst niemandem zugewiesen – ohne
+     * diesen Ausgleich würde jede neue Berechtigung (z.B. für einen neuen
+     * Statusübergang) die zugehörige Funktion für ALLE Benutzer inkl. der
+     * Administrator-Rolle sperren, bis sie jemand manuell zuweist.
+     *
+     * Läuft bei jedem Boot: die Administrator-Rolle bekommt automatisch jede
+     * registrierte Berechtigung, für die sie noch KEINEN Eintrag hat (weder
+     * gewährt noch explizit entzogen) – ein bestehender, bewusst gesetzter
+     * Eintrag (auch ein Entzug) bleibt unangetastet.
+     */
+    private static function grantUngrantedToAdministrator(): void
+    {
+        $slugs = array_keys(self::$registered);
+        if (empty($slugs)) {
+            return;
+        }
+
+        $adminRoleId = DB::table('roles')
+            ->where('name', 'Administrator')
+            ->whereNull('deleted_at')
+            ->value('cis_row_id');
+
+        if (! $adminRoleId) {
+            return;
+        }
+
+        $existingSlugs = DB::table('role_permissions')
+            ->where('role_id', $adminRoleId)
+            ->whereNull('project_id')
+            ->whereIn('permission_slug', $slugs)
+            ->pluck('permission_slug')
+            ->all();
+
+        $missing = array_diff($slugs, $existingSlugs);
+        if (empty($missing)) {
+            return;
+        }
+
+        DB::table('role_permissions')->insert(array_map(fn (string $slug) => [
+            'role_id'         => $adminRoleId,
+            'permission_slug' => $slug,
+            'project_id'      => null,
+            'granted'         => true,
+        ], $missing));
     }
 
     // ────────────────────────────────────────────────────────────────────────

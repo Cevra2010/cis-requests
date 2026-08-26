@@ -16,17 +16,25 @@
 @section('content')
 <div class="space-y-5">
 
-    {{-- Breadcrumb für Unterprodukte --}}
+    {{-- Verknüpfungen: bei welchen Produkten dieses Produkt als Unterprodukt hinterlegt ist --}}
     @if($product->hasParent())
     <div class="flex items-center gap-2 text-sm text-gray-500 flex-wrap">
-        <i class="fa fa-arrow-turn-up-left text-xs"></i>
-        <span class="text-xs text-gray-400">Unterprodukt von:</span>
+        <i class="fa fa-link text-xs"></i>
+        <span class="text-xs text-gray-400">Verknüpft als Unterprodukt bei:</span>
         @foreach($product->getParents() as $parent)
-            <a href="{{ route('product.edit', $parent) }}"
-               class="hover:text-primary-600 transition-colors">
-                {{ $parent->name }}
-            </a>
-            @if(! $loop->last)<span class="text-gray-300">,</span>@endif
+            <span class="inline-flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-full pl-2.5 pr-1 py-0.5">
+                <a href="{{ route('product.edit', $parent) }}" class="hover:text-primary-600 transition-colors">
+                    {{ $parent->name }}
+                </a>
+                <form method="POST" action="{{ route('product.child.detach', [$parent, $product]) }}"
+                      onsubmit="return confirm('Verknüpfung zu „{{ addslashes($parent->name) }}“ entfernen? Beide Produkte bleiben erhalten.')">
+                    @csrf @method('DELETE')
+                    <input type="hidden" name="from" value="{{ $product->cis_row_id }}">
+                    <button type="submit" class="text-gray-300 hover:text-red-500 w-4 h-4 inline-flex items-center justify-center" title="Verknüpfung entfernen">
+                        <i class="fa fa-xmark text-[10px]"></i>
+                    </button>
+                </form>
+            </span>
         @endforeach
     </div>
     @endif
@@ -89,12 +97,13 @@
                     <th>Preis</th>
                     <th>Lieferant</th>
                     <th>Aktualisiert</th>
+                    <th class="text-right">Aktionen</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($product->getChild()->sortBy('name') as $child)
-                <tr class="cursor-pointer" onclick='location.href="{{ route("product.edit", $child) }}"'>
-                    <td class="font-medium text-gray-900">
+                <tr>
+                    <td class="font-medium text-gray-900 cursor-pointer" onclick='location.href="{{ route("product.edit", $child) }}"'>
                         {{ $child->name }}
                         @if($child->getParents()->count() > 1)
                             <span class="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
@@ -105,6 +114,15 @@
                     <td>{{ $child->priceForHumans() }}</td>
                     <td class="text-gray-500 text-sm">{{ $child->price()?->source?->name ?? '–' }}</td>
                     <td class="text-gray-400 text-sm">{{ $child->updated_at->format('d.m.Y') }}</td>
+                    <td class="text-right">
+                        <form method="POST" action="{{ route('product.child.detach', [$product, $child]) }}"
+                              onsubmit="return confirm('Verknüpfung zu „{{ addslashes($child->name) }}“ entfernen? Das Produkt selbst bleibt erhalten.')">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="btn btn-ghost btn-sm text-red-500" title="Verknüpfung entfernen">
+                                <i class="fa fa-link-slash"></i>
+                            </button>
+                        </form>
+                    </td>
                 </tr>
                 @endforeach
             </tbody>

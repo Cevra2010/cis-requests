@@ -82,6 +82,15 @@ class ProductController extends Controller
         return redirect()->route('product.edit', $product);
     }
 
+    /** Entfernt nur die Verknüpfung – beide Produkte bleiben als eigenständige Produkte bestehen. */
+    public function detachChild(Product $product, Product $child)
+    {
+        $product->childs()->detach($child->cis_row_id);
+
+        session()->flash('success', "Verknüpfung zu „{$child->name}“ wurde entfernt.");
+        return redirect()->route('product.edit', request('from', $product->cis_row_id));
+    }
+
     public function delete(Product $product)
     {
         $childCount = $product->childs()->count();

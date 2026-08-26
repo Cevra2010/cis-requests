@@ -46,7 +46,8 @@ class OfferController extends Controller
         // Unterprodukte (z.B. gemeinsame Anschlussstücke mehrerer Positionen dieses
         // Anbieters) als eigenständige Zeilen anhängen, Menge über alle Positionen
         // dieses Anbieters aufsummiert. Da sie nicht Teil des Angebots sind, wird
-        // hierfür der zuletzt erfasste Katalogpreis verwendet.
+        // hierfür der Katalogpreis verwendet – bei fixierten Projekten der zum
+        // Fixierungszeitpunkt eingefrorene, siehe Project::effectivePrice().
         $childTotals = ChildProductAggregator::aggregate(
             $awards->map(fn (PositionAward $award) => [
                 'product'  => $award->position->product,
@@ -57,7 +58,7 @@ class OfferController extends Controller
         foreach ($childTotals as $entry) {
             $child = $entry['product'];
             $qty   = $entry['quantity'];
-            $price = (float) ($child->price()?->amount ?? 0);
+            $price = $p->effectivePrice($child) ?? 0.0;
 
             $rows->push((object) [
                 'name'  => $child->name,

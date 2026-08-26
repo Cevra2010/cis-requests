@@ -33,7 +33,7 @@ class TenderEditor extends Component
         $project = Project::where('cis_row_id', $this->projectId)->first();
         $canEdit = $project?->isEditableBy(auth()->user()) ?? true;
 
-        $estimate = $this->estimateCost();
+        $estimate = $this->estimateCost($project);
 
         return view('livewire.project.tender-editor', compact('blocks', 'validation', 'canEdit', 'estimate'));
     }
@@ -325,7 +325,7 @@ class TenderEditor extends Component
      * (Produkt + Unterprodukte). Ersetzt keine echten Angebote – dient nur
      * zur groben Orientierung vor der Ausschreibung.
      */
-    private function estimateCost(): array
+    private function estimateCost(?Project $project): array
     {
         $positions = ProjectProduct::where('cis_row_id_project', $this->projectId)
             ->with('product')
@@ -336,10 +336,10 @@ class TenderEditor extends Component
         $positionsCount = $positions->count();
 
         foreach ($positions as $position) {
-            if (! $position->product) {
+            if (! $position->product || ! $project) {
                 continue;
             }
-            $groupPrice = $position->product->getGroupPrice();
+            $groupPrice = $project->effectiveGroupPrice($position->product);
             if ($groupPrice <= 0) {
                 $missingCount++;
                 continue;
@@ -351,6 +351,7 @@ class TenderEditor extends Component
             'total'           => $total,
             'positions_count' => $positionsCount,
             'missing_count'   => $missingCount,
+            'fixed'           => $project?->isLocked() ?? false,
         ];
     }
 

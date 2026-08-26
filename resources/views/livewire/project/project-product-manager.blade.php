@@ -115,6 +115,9 @@
                         </a>
                         @if($item->group_price > 0)
                             <span class="text-[11px] text-gray-400">
+                                @if($item->price_is_fixed)
+                                    <i class="fa fa-lock text-gray-300" title="Preis zum Fixierungszeitpunkt eingefroren"></i>
+                                @endif
                                 {{ number_format($item->group_price, 2, ',', '.') }} € / Stk.
                                 @if($item->children->isNotEmpty()) inkl. Unterprodukte @endif
                             </span>
@@ -164,7 +167,9 @@
                             {{ $child->name }}
                         </a>
                         <span class="text-gray-300">·</span>
-                        <span class="text-gray-400">{{ $child->priceForHumans() }}</span>
+                        <span class="text-gray-400">
+                            {{ $child->effective_price !== null ? number_format($child->effective_price, 2, ',', '.') . ' €' : '– Preis nicht gesetzt –' }}
+                        </span>
                     </div>
                     @endforeach
                 </div>

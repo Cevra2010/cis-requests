@@ -115,6 +115,7 @@ class SystemResetService
         DB::table('project_tender_blocks')->delete();
         DB::table('project_vehicle_block_items')->delete();
         DB::table('project_vehicle_blocks')->delete();
+        DB::table('project_price_snapshots')->delete();
         DB::table('project_product')->delete();
         DB::table('project_last_touch')->delete();
         DB::table('projects')->delete();

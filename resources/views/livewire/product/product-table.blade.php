@@ -61,12 +61,13 @@
                 @forelse($products as $product)
                     <tr onclick='location.href="{{ route("product.edit", $product) }}"' class="cursor-pointer">
                         <td>
-                            <div class="flex items-center gap-2">
-                                @if($product->hasParent())
-                                    <span class="text-xs text-gray-400">[{{ $product->getParent()->name }}]</span>
-                                    <i class="fa fa-chevron-right text-gray-300 text-xs"></i>
-                                @endif
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <span class="font-medium text-gray-900">{{ $product->name }}</span>
+                                @if($product->hasParent())
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500" title="Als Unterprodukt verknüpft bei">
+                                        <i class="fa fa-link mr-0.5"></i>{{ $product->getParents()->pluck('name')->implode(', ') }}
+                                    </span>
+                                @endif
                             </div>
                         </td>
                         <td class="text-gray-500 text-sm">{{ $product->category?->name ?? '–' }}</td>
@@ -89,27 +90,6 @@
                         </td>
                         <td class="text-gray-500 text-sm">{{ $product->created_at->format('d.m.Y') }}</td>
                     </tr>
-                    @if($product->hasChild())
-                        @foreach($product->getChild() as $child)
-                            <tr class="bg-gray-50/50 cursor-pointer" onclick='location.href="{{ route("product.edit", $child) }}"'>
-                                <td class="pl-10">
-                                    <div class="flex items-center gap-2 text-gray-600">
-                                        <i class="fa fa-arrow-turn-down-right text-gray-300 text-xs"></i>
-                                        {{ $child->name }}
-                                    </div>
-                                </td>
-                                <td class="text-gray-500 text-sm">{{ $child->category?->name ?? '–' }}</td>
-                                <td class="text-gray-600">
-                                    {{ $child->priceForHumans() }}
-                                </td>
-                                <td class="text-gray-300">–</td>
-                                <td class="text-gray-500 text-sm">
-                                    {{ $child->price()?->source?->name ?? '–' }}
-                                </td>
-                                <td class="text-gray-500 text-sm">{{ $child->created_at->format('d.m.Y') }}</td>
-                            </tr>
-                        @endforeach
-                    @endif
                 @empty
                     <tr>
                         <td colspan="6" class="text-center py-12 text-gray-400">

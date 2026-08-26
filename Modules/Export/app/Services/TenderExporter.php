@@ -17,7 +17,9 @@ use Modules\Export\Models\ExportTemplate;
  * Unterprodukte erscheinen als eigenständige Zeilen (nicht nur eingerückt
  * unter ihrem Elternprodukt) und werden – falls sie bei mehreren Positionen
  * als Unterprodukt hinterlegt sind – über das gesamte Projekt hinweg zu
- * einer einzigen Zeile mit Gesamtmenge zusammengefasst.
+ * einer einzigen Zeile mit Gesamtmenge zusammengefasst. Der Preis stammt aus
+ * Project::effectivePrice() – bei fixierten Projekten also aus dem
+ * eingefrorenen Preis, nicht dem aktuellen Katalogpreis.
  */
 class TenderExporter
 {
@@ -53,7 +55,7 @@ class TenderExporter
             $index++;
             $child     = $entry['product'];
             $quantity  = $entry['quantity'];
-            $unitPrice = $child->price()?->amount !== null ? (float) $child->price()->amount : null;
+            $unitPrice = $project->effectivePrice($child);
 
             $row = [];
             foreach ($columns as $column) {

@@ -25,7 +25,12 @@ class AddChild extends Component
 
     public function updatedSearchString() {
         if($this->searchString) {
-            $this->products = Product::where('name','like','%'.$this->searchString.'%')->take(10)->get();
+            $existingChildIds = $this->parent->childs()->pluck('products.cis_row_id')->toArray();
+
+            $this->products = Product::where('name','like','%'.$this->searchString.'%')
+                ->where('cis_row_id', '!=', $this->parent->cis_row_id)
+                ->whereNotIn('cis_row_id', $existingChildIds)
+                ->take(10)->get();
         }
         else
         {

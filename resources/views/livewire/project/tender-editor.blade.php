@@ -3,12 +3,21 @@
     {{-- Grobe Kostenschätzung --}}
     <div class="cis-card mb-4 flex items-center justify-between gap-4">
         <div>
-            <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">Grobe Kostenschätzung</p>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">
+                Grobe Kostenschätzung
+                @if($estimate['fixed'])
+                    <i class="fa fa-lock text-gray-300 ml-1" title="Preise zum Fixierungszeitpunkt eingefroren"></i>
+                @endif
+            </p>
             <p class="text-xl font-semibold text-gray-900">
                 {{ number_format($estimate['total'], 2, ',', '.') }} €
             </p>
             <p class="text-xs text-gray-400 mt-0.5">
-                Auf Basis der zuletzt erfassten Katalogpreise (inkl. Unterprodukte) – ersetzt keine Angebote.
+                @if($estimate['fixed'])
+                    Preise zum Zeitpunkt der Fixierung eingefroren – ändert sich der Katalogpreis später, bleibt dieser Wert bestehen.
+                @else
+                    Auf Basis der zuletzt erfassten Katalogpreise (inkl. Unterprodukte) – ersetzt keine Angebote.
+                @endif
                 @if($estimate['missing_count'] > 0)
                     {{ $estimate['missing_count'] }} von {{ $estimate['positions_count'] }} Position(en) ohne Preis, nicht enthalten.
                 @endif

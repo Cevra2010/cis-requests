@@ -7,7 +7,7 @@
             </button>
         </div>
     @else
-        <input type="text" wire:model="searchString"
+        <input type="text" wire:model.live.debounce.250ms="searchString"
                wire:keydown.arrow-down="down" wire:keydown.arrow-up="up" wire:keydown.enter="selectProduct"
                placeholder="Bestehendes Produkt suchen oder neuen Namen eingeben…"
                class="cis-input w-full text-sm" autocomplete="off">
