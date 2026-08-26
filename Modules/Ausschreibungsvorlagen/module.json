@@ -6,7 +6,7 @@
     "keywords": ["ausschreibung", "vorlage", "template"],
     "priority": 25,
     "core": false,
-    "requires_license": false,
+    "requires_license": true,
     "providers": [
         "Modules\\Ausschreibungsvorlagen\\Providers\\AusschreibungsvorlagenServiceProvider"
     ],

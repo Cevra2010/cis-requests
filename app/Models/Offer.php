@@ -58,7 +58,7 @@ class Offer extends Model
      */
     public function total(): float
     {
-        return (float) PositionAward::where('position_awards.cis_row_id_offer', $this->cis_row_id)
+        $parentTotal = (float) PositionAward::where('position_awards.cis_row_id_offer', $this->cis_row_id)
             ->join('project_product', 'position_awards.cis_row_id_project_product', '=', 'project_product.cis_row_id')
             ->join('offer_items', function ($join) {
                 $join->on('offer_items.cis_row_id_project_product', '=', 'project_product.cis_row_id')
@@ -66,5 +66,7 @@ class Offer extends Model
             })
             ->selectRaw('COALESCE(SUM(offer_items.price * project_product.product_count), 0) as total')
             ->value('total');
+
+        return $parentTotal + \App\Services\AwardCalculator::childTotalForOffer($this);
     }
 }

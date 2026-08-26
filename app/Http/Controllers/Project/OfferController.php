@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Project;
 
 use App\Http\Controllers\Controller;
+use App\Models\ChildPositionAward;
 use App\Models\Offer;
+use App\Models\OfferChildItem;
 use App\Models\OfferItem;
 use App\Models\PositionAward;
 use App\Models\Project;
-use App\Services\ChildProductAggregator;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Nwidart\Modules\Facades\Module;
 
@@ -43,30 +44,37 @@ class OfferController extends Controller
             ];
         })->values();
 
-        // Unterprodukte (z.B. gemeinsame Anschlussstücke mehrerer Positionen dieses
-        // Anbieters) als eigenständige Zeilen anhängen, Menge über alle Positionen
-        // dieses Anbieters aufsummiert. Da sie nicht Teil des Angebots sind, wird
-        // hierfür der Katalogpreis verwendet – bei fixierten Projekten der zum
-        // Fixierungszeitpunkt eingefrorene, siehe Project::effectivePrice().
-        $childTotals = ChildProductAggregator::aggregate(
-            $awards->map(fn (PositionAward $award) => [
-                'product'  => $award->position->product,
-                'quantity' => $award->position->product_count,
-            ])
-        );
+        // Unterprodukte erscheinen nur bei dem Anbieter, dem sie unter "Bestellung"
+        // tatsächlich zugeordnet wurden (projektweit aggregierte Menge, unabhängig
+        // davon, bei welchem Anbieter die zugehörigen Elternprodukte bestellt werden
+        // – siehe ChildPositionAward). Der Preis ist der vom Anbieter tatsächlich
+        // angebotene Unterprodukt-Preis (OfferChildItem), nicht der Katalogpreis.
+        $awardedChildIds = ChildPositionAward::where('cis_row_id_project', $p->cis_row_id)
+            ->where('cis_row_id_offer', $o->cis_row_id)
+            ->pluck('cis_row_id_product');
 
-        foreach ($childTotals as $entry) {
-            $child = $entry['product'];
-            $qty   = $entry['quantity'];
-            $price = $p->effectivePrice($child) ?? 0.0;
+        if ($awardedChildIds->isNotEmpty()) {
+            $childPrices = OfferChildItem::where('cis_row_id_offer', $o->cis_row_id)
+                ->whereIn('cis_row_id_product', $awardedChildIds)
+                ->pluck('price', 'cis_row_id_product');
 
-            $rows->push((object) [
-                'name'  => $child->name,
-                'note'  => null,
-                'qty'   => $qty,
-                'price' => $price,
-                'sum'   => $price * $qty,
-            ]);
+            foreach ($p->aggregatedChildPositions() as $childPosition) {
+                $child = $childPosition['product'];
+                if (! $awardedChildIds->contains($child->cis_row_id)) {
+                    continue;
+                }
+
+                $qty   = $childPosition['quantity'];
+                $price = (float) ($childPrices->get($child->cis_row_id) ?? 0.0);
+
+                $rows->push((object) [
+                    'name'  => $child->name,
+                    'note'  => null,
+                    'qty'   => $qty,
+                    'price' => $price,
+                    'sum'   => $price * $qty,
+                ]);
+            }
         }
 
         $total    = $rows->sum('sum');

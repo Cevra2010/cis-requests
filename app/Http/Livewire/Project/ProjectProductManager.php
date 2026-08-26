@@ -105,6 +105,8 @@ class ProjectProductManager extends Component
             'note'               => null,
             'sort_order'         => (int) $maxOrder + 1,
         ]);
+
+        $this->dispatch('products-updated');
     }
 
     public function remove(string $productId): void
@@ -117,6 +119,8 @@ class ProjectProductManager extends Component
             ->where('cis_row_id_project', $this->projectId)
             ->where('cis_row_id_product', $productId)
             ->delete();
+
+        $this->dispatch('products-updated');
     }
 
     public function moveUp(string $productId): void
@@ -139,6 +143,8 @@ class ProjectProductManager extends Component
             ->where('cis_row_id_project', $this->projectId)
             ->where('cis_row_id_product', $productId)
             ->update(['product_count' => max(1, (int) $value), 'updated_at' => now()]);
+
+        $this->dispatch('products-updated');
     }
 
     public function updateNote(string $productId, string $value): void

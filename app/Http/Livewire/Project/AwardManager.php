@@ -2,7 +2,9 @@
 
 namespace App\Http\Livewire\Project;
 
+use App\Models\ChildPositionAward;
 use App\Models\Offer;
+use App\Models\OfferChildItem;
 use App\Models\PositionAward;
 use App\Models\Project;
 use App\Services\AwardCalculator;
@@ -32,17 +34,30 @@ class AwardManager extends Component
         $offers    = $project->offers()->with('source')->orderBy('created_at')->get();
         $conflicts = AwardCalculator::conflicts($project);
 
+        $childPositions = $project->aggregatedChildPositions();
+        $childAwards    = ChildPositionAward::where('cis_row_id_project', $project->cis_row_id)
+            ->get()
+            ->keyBy('cis_row_id_product');
+        $childOfferItems = OfferChildItem::whereIn('cis_row_id_offer', $offers->pluck('cis_row_id'))
+            ->with('offer.source')
+            ->get()
+            ->groupBy('cis_row_id_product');
+
         // Summe je Angebot (für die Übersichtskarten unten)
         $summaries = $offers->map(function (Offer $offer) {
+            $count = PositionAward::where('cis_row_id_offer', $offer->cis_row_id)->count()
+                + ChildPositionAward::where('cis_row_id_offer', $offer->cis_row_id)->count();
+
             return [
                 'offer' => $offer,
                 'total' => $offer->total(),
-                'count' => PositionAward::where('cis_row_id_offer', $offer->cis_row_id)->count(),
+                'count' => $count,
             ];
         })->filter(fn ($s) => $s['count'] > 0);
 
         return view('livewire.project.award-manager', compact(
-            'project', 'positions', 'offers', 'conflicts', 'summaries'
+            'project', 'positions', 'offers', 'conflicts', 'summaries',
+            'childPositions', 'childAwards', 'childOfferItems'
         ));
     }
 
@@ -77,6 +92,37 @@ class AwardManager extends Component
         if ($position) {
             AwardCalculator::recomputePosition($position);
         }
+    }
+
+    public function assignManualChild(string $productId, string $offerId): void
+    {
+        $project = Project::where('cis_row_id', $this->projectId)->firstOrFail();
+
+        ChildPositionAward::updateOrCreate(
+            [
+                'cis_row_id_project' => $project->cis_row_id,
+                'cis_row_id_product' => $productId,
+            ],
+            [
+                'cis_row_id_offer'   => $offerId,
+                'is_manual_override' => true,
+            ]
+        );
+    }
+
+    public function resetChildToSuggestion(string $productId): void
+    {
+        $project = Project::where('cis_row_id', $this->projectId)->firstOrFail();
+
+        $award = ChildPositionAward::where('cis_row_id_project', $project->cis_row_id)
+            ->where('cis_row_id_product', $productId)
+            ->first();
+
+        if ($award) {
+            $award->update(['is_manual_override' => false]);
+        }
+
+        AwardCalculator::recomputeChildPosition($project, $productId);
     }
 
     public function excludeOffer(string $offerId): void

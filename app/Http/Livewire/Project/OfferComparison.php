@@ -9,7 +9,6 @@ use App\Models\Price;
 use App\Models\Product;
 use App\Models\ProductSource;
 use App\Models\Project;
-use App\Services\ChildProductAggregator;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -97,9 +96,7 @@ class OfferComparison extends Component
 
         // Unterprodukte bekommen eine eigene, über alle Positionen aggregierte
         // Vergleichszeile (z.B. "Neubauschlüssel" 2× statt einmal je Elternprodukt).
-        $childPositions = ChildProductAggregator::aggregate(
-            $positions->map(fn ($p) => ['product' => $p->product, 'quantity' => $p->product_count])
-        );
+        $childPositions = $project->aggregatedChildPositions();
 
         foreach ($offers as $offer) {
             $existingChildProductIds = $offer->childItems()->pluck('cis_row_id_product')->toArray();

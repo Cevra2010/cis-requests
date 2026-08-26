@@ -275,6 +275,23 @@ class Project extends Model
         return $this->hasMany(Offer::class, 'cis_row_id_project', 'cis_row_id');
     }
 
+    /**
+     * Unterprodukte über alle Positionen dieses Projekts hinweg aggregiert (z.B.
+     * "Neubauschlüssel" 2×, wenn zwei verschiedene Elternprodukte je 1× davon
+     * enthalten). Einheitliche Grundlage für Angebotsvergleich, Zuordnung und
+     * Bestelllisten – ein Unterprodukt hat projektweit genau eine Menge.
+     *
+     * @return \Illuminate\Support\Collection<int, array{product: Product, quantity: int}>
+     */
+    public function aggregatedChildPositions(): \Illuminate\Support\Collection
+    {
+        $positions = $this->positions()->with('product.childs')->get();
+
+        return \App\Services\ChildProductAggregator::aggregate(
+            $positions->map(fn (ProjectProduct $p) => ['product' => $p->product, 'quantity' => $p->product_count])
+        );
+    }
+
     public function effectiveMinOrderValue(): float
     {
         return (float) ($this->min_order_value ?? Setting::get('default_min_order_value', 0));

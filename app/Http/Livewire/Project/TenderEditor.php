@@ -9,6 +9,7 @@ use App\Models\ProjectProduct;
 use App\Models\ProjectTenderBlock;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Nwidart\Modules\Facades\Module;
 
@@ -21,6 +22,19 @@ class TenderEditor extends Component
     public function mount(string $projectId): void
     {
         $this->projectId = $projectId;
+    }
+
+    /**
+     * Produkte/Mengen können im Reiter "Produkte" (separate Livewire-Komponente)
+     * geändert werden, während dieser Editor bereits gemountet ist – ohne diesen
+     * Listener bliebe die Kostenschätzung bis zum nächsten eigenen Seitenaufruf
+     * auf dem Stand des ersten Renderns hängen.
+     */
+    #[On('products-updated')]
+    #[On('positions-imported')]
+    public function refreshEstimate(): void
+    {
+        // Löst lediglich ein Re-Render aus, damit die Kostenschätzung aktuell bleibt.
     }
 
     public function render()

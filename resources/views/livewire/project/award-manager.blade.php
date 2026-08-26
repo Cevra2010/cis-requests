@@ -133,6 +133,95 @@
         </table>
     </div>
 
+    {{-- ── Unterprodukte (projektweit aggregiert) ── --}}
+    @if($childPositions->isNotEmpty())
+    <h3 class="text-sm font-semibold text-gray-700 mb-2">Unterprodukte</h3>
+    <div class="cis-card p-0 overflow-x-auto mb-6">
+        <table class="min-w-full text-sm">
+            <thead>
+                <tr class="border-b border-gray-200 bg-gray-50">
+                    <th class="px-3 py-2.5 w-8"></th>
+                    <th class="text-left text-[10px] font-bold uppercase tracking-widest text-gray-400 px-3 py-2.5">Unterprodukt</th>
+                    <th class="text-center text-[10px] font-bold uppercase tracking-widest text-gray-400 px-2 py-2.5 w-16">Menge</th>
+                    <th class="text-left text-[10px] font-bold uppercase tracking-widest text-gray-400 px-3 py-2.5">Zugeordneter Anbieter</th>
+                    <th class="text-right text-[10px] font-bold uppercase tracking-widest text-gray-400 px-3 py-2.5">Preis</th>
+                    <th class="px-3 py-2.5 w-10"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                @foreach($childPositions as $childPosition)
+                @php
+                    $childProduct = $childPosition['product'];
+                    $childAward   = $childAwards->get($childProduct->cis_row_id);
+                    $childItems   = $childOfferItems->get($childProduct->cis_row_id, collect());
+                    $validChildItems = $childItems
+                        ->filter(fn($i) => $i->offer && $i->offer->active && !$i->not_offered && $i->price !== null)
+                        ->sortBy('price');
+                    $awardedChildItem = $childAward?->cis_row_id_offer
+                        ? $childItems->firstWhere('cis_row_id_offer', $childAward->cis_row_id_offer)
+                        : null;
+
+                    $childStatus = $validChildItems->isEmpty()
+                        ? 'missing'
+                        : (\App\Services\AwardCalculator::isTiedAtCheapest($validChildItems) ? 'tied' : 'unique');
+                @endphp
+                <tr>
+                    <td class="px-3 py-2 text-center">
+                        @if($childStatus === 'unique')
+                            <i class="fa fa-circle-check text-emerald-500" title="Eindeutig günstigstes Angebot"></i>
+                        @elseif($childStatus === 'tied')
+                            <i class="fa fa-triangle-exclamation text-amber-500" title="Mehrere Angebote zum gleichen Preis — nicht eindeutig"></i>
+                        @else
+                            <i class="fa fa-circle-xmark text-red-500" title="Kein valides Angebot vorhanden"></i>
+                        @endif
+                    </td>
+                    <td class="px-3 py-2">
+                        <p class="text-[10px] font-bold uppercase tracking-wide text-amber-600 mb-0.5">Unterprodukt</p>
+                        <p class="text-sm font-medium text-gray-800">{{ $childProduct->name }}</p>
+                    </td>
+                    <td class="px-2 py-2 text-center text-gray-500">{{ $childPosition['quantity'] }}</td>
+                    <td class="px-3 py-2">
+                        @if($validChildItems->isEmpty())
+                            <span class="text-xs text-gray-300">Kein valides Angebot</span>
+                        @else
+                            <select wire:change="assignManualChild('{{ $childProduct->cis_row_id }}', $event.target.value)"
+                                    class="cis-input py-1 px-2 text-sm">
+                                <option value="">– kein Anbieter –</option>
+                                @foreach($validChildItems as $vi)
+                                    <option value="{{ $vi->cis_row_id_offer }}"
+                                        {{ $childAward && $childAward->cis_row_id_offer === $vi->cis_row_id_offer ? 'selected' : '' }}>
+                                        {{ $vi->offer->source->name }} — {{ number_format($vi->price, 2, ',', '.') }} €
+                                    </option>
+                                @endforeach
+                            </select>
+                            @if($childAward?->is_manual_override)
+                                <span class="text-[10px] text-amber-600 ml-1"><i class="fa fa-hand"></i> manuell</span>
+                            @endif
+                        @endif
+                    </td>
+                    <td class="px-3 py-2 text-right text-gray-700">
+                        @if($awardedChildItem)
+                            {{ number_format($awardedChildItem->price, 2, ',', '.') }} €
+                        @else
+                            <span class="text-gray-300">–</span>
+                        @endif
+                    </td>
+                    <td class="px-3 py-2 text-center">
+                        @if($childAward?->is_manual_override)
+                        <button type="button" wire:click="resetChildToSuggestion('{{ $childProduct->cis_row_id }}')"
+                                title="Auf Vorschlag zurücksetzen"
+                                class="text-gray-300 hover:text-primary-600">
+                            <i class="fa fa-rotate-left text-xs"></i>
+                        </button>
+                        @endif
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+    @endif
+
     {{-- ── Bestelllisten je Anbieter ── --}}
     @if($summaries->isNotEmpty())
     <h3 class="text-sm font-semibold text-gray-700 mb-2">Bestelllisten</h3>
