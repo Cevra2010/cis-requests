@@ -5,7 +5,6 @@ namespace App\Http\Livewire\Project;
 use App\Http\Livewire\Concerns\RespectsProjectLock;
 use App\Models\ProductDescription;
 use App\Models\Project;
-use App\Models\ProjectProduct;
 use App\Models\ProjectTenderBlock;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -48,7 +47,7 @@ class TenderEditor extends Component
         $project = Project::where('cis_row_id', $this->projectId)->first();
         $canEdit = $project?->isEditableBy(auth()->user()) ?? true;
 
-        $estimate = $this->estimateCost($project);
+        $estimate = $project?->costEstimate() ?? ['total' => 0.0, 'positions_count' => 0, 'missing_count' => 0, 'fixed' => false];
 
         $templates = Module::find('Ausschreibungsvorlagen')?->isEnabled()
             ? \Modules\Ausschreibungsvorlagen\Models\TenderTemplate::orderBy('name')->get()
@@ -357,11 +356,20 @@ class TenderEditor extends Component
 
     // ── Validation ────────────────────────────────────────────────────────────
 
+    /** Siehe Project::materialListItems() – identische Aggregation für Editor und PDF-Export. */
+    public function blockMaterialItems(): \Illuminate\Support\Collection
+    {
+        $project = Project::where('cis_row_id', $this->projectId)->first();
+
+        return $project ? $project->materialListItems() : collect();
+    }
+
     /**
      * IDs aller Produkte, die in der Ausschreibung als eigene Position auftauchen
      * (müssen) – Setprodukte selbst erscheinen nie als eigene Position, dafür
-     * treten ihre Mitgliedsprodukte an ihre Stelle (siehe tender-editor.blade.php,
-     * das dieselbe Auflösung für die Materialliste vornimmt).
+     * treten ihre Mitgliedsprodukte an ihre Stelle (siehe blockMaterialItems(),
+     * das dieselbe Auflösung – inklusive Aggregation über mehrere Sets hinweg –
+     * für die Materialliste vornimmt).
      */
     private function expandedProductIds(): array
     {
@@ -416,44 +424,6 @@ class TenderEditor extends Component
             'covered_prods' => count($coveredProdIds),
             'missing_prods' => $missingProdNames,
             'all_ok'        => empty($missingProdIds),
-        ];
-    }
-
-    /**
-     * Grobe Kostenschätzung auf Basis der zuletzt erfassten Katalogpreise
-     * (Produkt + Unterprodukte). Ersetzt keine echten Angebote – dient nur
-     * zur groben Orientierung vor der Ausschreibung.
-     */
-    private function estimateCost(?Project $project): array
-    {
-        // Hausinterne Positionen (bereits im Haus vorhanden) verursachen keine
-        // Beschaffungskosten und fließen daher nicht in die Schätzung ein.
-        $positions = ProjectProduct::where('cis_row_id_project', $this->projectId)
-            ->where('is_internal', false)
-            ->with('product')
-            ->get();
-
-        $total          = 0.0;
-        $missingCount   = 0;
-        $positionsCount = $positions->count();
-
-        foreach ($positions as $position) {
-            if (! $position->product || ! $project) {
-                continue;
-            }
-            $groupPrice = $project->effectiveGroupPrice($position->product);
-            if ($groupPrice <= 0) {
-                $missingCount++;
-                continue;
-            }
-            $total += $groupPrice * $position->product_count;
-        }
-
-        return [
-            'total'           => $total,
-            'positions_count' => $positionsCount,
-            'missing_count'   => $missingCount,
-            'fixed'           => $project?->isLocked() ?? false,
         ];
     }
 

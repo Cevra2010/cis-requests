@@ -25,7 +25,7 @@ class TenderExportController extends Controller
         abort_if($template->columns->isEmpty(), 422, 'Diese Vorlage hat noch keine Spalten.');
 
         $data    = $exporter->build($project, $template);
-        $content = $builder->build($data['headers'], $data['rows'], $format, $template->name);
+        $content = $builder->build($data['headers'], $data['rows'], $format, $template->name, $data['import_key_index']);
 
         $filename = str($project->name . '-' . $template->name)->slug() . '.' . $format;
         $mime = $format === 'xlsx'

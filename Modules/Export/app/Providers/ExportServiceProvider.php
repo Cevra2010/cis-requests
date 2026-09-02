@@ -37,7 +37,7 @@ class ExportServiceProvider extends ModuleServiceProvider
 
         Menu::extend('main', function (Menu $menu) {
             $menu->registerEntry('export')
-                ->setText('Export-Vorlagen')
+                ->setText('Export-Import')
                 ->setRoute('export.templates')
                 ->setParent('modules')
                 ->setPriority(20);

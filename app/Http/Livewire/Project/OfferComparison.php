@@ -8,12 +8,18 @@ use App\Models\OfferItem;
 use App\Models\Price;
 use App\Models\Product;
 use App\Models\ProductSource;
+use App\Models\ProjectDocument;
 use App\Models\Project;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
+use Nwidart\Modules\Facades\Module;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class OfferComparison extends Component
 {
+    use WithFileUploads;
+
     public string $projectId;
 
     public bool   $showCreateModal  = false;
@@ -25,6 +31,11 @@ class OfferComparison extends Component
     public string $viewMode = 'overview';
 
     public ?string $currentOfferId = null;
+
+    // ── Angebot importieren (Export-Import-Modul) ───────────────────────────
+    public $importFile = null;
+    public string $importTemplateId = '';
+    public ?string $importResult = null;
 
     public function mount(string $projectId): void
     {
@@ -42,6 +53,7 @@ class OfferComparison extends Component
     {
         $this->currentOfferId = $offerId;
         $this->viewMode = 'sequential';
+        $this->importResult = null;
     }
 
     public function nextOffer(): void
@@ -56,6 +68,7 @@ class OfferComparison extends Component
 
     private function stepOffer(int $direction): void
     {
+        $this->importResult = null;
         $offerIds = Offer::where('cis_row_id_project', $this->projectId)->orderBy('created_at')->pluck('cis_row_id');
         if ($offerIds->isEmpty()) {
             return;
@@ -242,10 +255,25 @@ class OfferComparison extends Component
             $currentOfferIndex = $offers->search(fn (Offer $o) => $o->cis_row_id === $this->currentOfferId);
         }
 
+        // Angebot importieren: nur Vorlagen mit Händler-Preisfeld sind geeignet.
+        $importableTemplates = Module::find('Export')?->isEnabled()
+            ? \Modules\Export\Models\ExportTemplate::with('columns')->orderBy('name')->get()
+                ->filter(fn ($t) => $t->hasVendorPriceColumn())->values()
+            : collect();
+
+        $currentOfferImportDocument = $currentOffer
+            ? ProjectDocument::where('cis_row_id_project', $this->projectId)
+                ->where('linked_type', ProjectDocument::LINK_OFFER_IMPORT)
+                ->where('linked_id', $currentOffer->cis_row_id)
+                ->latest()
+                ->first()
+            : null;
+
         return view('livewire.project.offer-comparison', compact(
             'project', 'positions', 'offers', 'matrix', 'cheapestPerPosition', 'availableSources',
             'deviations', 'currentOffer', 'currentOfferIndex',
-            'childPositions', 'childMatrix', 'cheapestPerChildPosition', 'reviewProgress'
+            'childPositions', 'childMatrix', 'cheapestPerChildPosition', 'reviewProgress',
+            'importableTemplates', 'currentOfferImportDocument'
         ));
     }
 
@@ -415,5 +443,122 @@ class OfferComparison extends Component
     public function respectMinValue(string $offerId): void
     {
         Offer::where('cis_row_id', $offerId)->update(['min_value_ignored' => false]);
+    }
+
+    // ── Angebot importieren (Export-Import-Modul) ───────────────────────────
+
+    /**
+     * Liest die vom Händler ausgefüllte Excel-/CSV-Liste ein (siehe
+     * TenderExporter::IMPORT_KEY_HEADER) und übernimmt die eingetragenen
+     * Preise für das aktuell in "Einzeln bearbeiten" gewählte Angebot – über
+     * dieselben saveItemPrice()/saveChildItemPrice()-Methoden wie bei manueller
+     * Eingabe, damit Price::add() etc. konsistent mitläuft. Die Datei selbst
+     * wird als ProjectDocument (verknüpft mit diesem Angebot) im Storage
+     * abgelegt; eine zuvor für dieses Angebot importierte Datei wird ersetzt.
+     */
+    public function importOfferFile(): void
+    {
+        $this->validate([
+            'importFile'       => 'required|file|mimes:xlsx,xls,csv|max:10240',
+            'importTemplateId' => 'required|string',
+        ], [
+            'importFile.required' => 'Bitte wähle eine Datei aus.',
+            'importFile.mimes'    => 'Nur .xlsx-, .xls- oder .csv-Dateien sind erlaubt.',
+            'importFile.max'      => 'Die Datei darf maximal 10 MB groß sein.',
+        ]);
+
+        if (! $this->currentOfferId) {
+            $this->addError('importFile', 'Bitte zuerst ein Angebot auswählen.');
+            return;
+        }
+
+        $template = \Modules\Export\Models\ExportTemplate::with('columns')->find($this->importTemplateId);
+        if (! $template || ! $template->hasVendorPriceColumn()) {
+            $this->addError('importTemplateId', 'Bitte eine Vorlage mit Händler-Preisfeld wählen.');
+            return;
+        }
+
+        $columns          = $template->columns->values();
+        $unitPriceIndex   = $columns->search(fn ($c) => $c->field_key === 'vendor_unit_price');
+        $totalPriceIndex  = $columns->search(fn ($c) => $c->field_key === 'vendor_total_price');
+        $importKeyIndex   = $columns->count();
+
+        try {
+            $spreadsheet = IOFactory::load($this->importFile->getRealPath());
+        } catch (\Throwable $e) {
+            $this->addError('importFile', 'Die Datei konnte nicht gelesen werden: ' . $e->getMessage());
+            return;
+        }
+
+        $rows = $spreadsheet->getActiveSheet()->toArray(null, true, true, false);
+        array_shift($rows); // Kopfzeile überspringen
+
+        $project        = Project::where('cis_row_id', $this->projectId)->firstOrFail();
+        $childQuantities = $project->aggregatedChildPositions()
+            ->mapWithKeys(fn ($c) => [$c['product']->cis_row_id => $c['quantity']]);
+
+        $updated = 0;
+        $skipped = 0;
+
+        foreach ($rows as $row) {
+            $key = trim((string) ($row[$importKeyIndex] ?? ''));
+            if ($key === '' || ! str_contains($key, ':')) {
+                continue;
+            }
+            [$type, $id] = explode(':', $key, 2);
+
+            $unitPriceRaw  = $unitPriceIndex !== false ? trim((string) ($row[$unitPriceIndex] ?? '')) : '';
+            $totalPriceRaw = $totalPriceIndex !== false ? trim((string) ($row[$totalPriceIndex] ?? '')) : '';
+
+            $unitPrice = null;
+            if ($unitPriceRaw !== '' && is_numeric(str_replace(',', '.', $unitPriceRaw))) {
+                $unitPrice = str_replace(',', '.', $unitPriceRaw);
+            } elseif ($totalPriceRaw !== '' && is_numeric(str_replace(',', '.', $totalPriceRaw))) {
+                $totalPrice = (float) str_replace(',', '.', $totalPriceRaw);
+                $quantity   = $type === 'C'
+                    ? (int) ($childQuantities[$id] ?? 0)
+                    : (int) (\App\Models\ProjectProduct::where('cis_row_id', $id)->value('product_count') ?? 0);
+                $unitPrice  = $quantity > 0 ? (string) round($totalPrice / $quantity, 2) : null;
+            }
+
+            if ($unitPrice === null) {
+                $skipped++;
+                continue;
+            }
+
+            if ($type === 'C') {
+                $this->saveChildItemPrice($this->currentOfferId, $id, $unitPrice);
+            } elseif ($type === 'P') {
+                $this->saveItemPrice($this->currentOfferId, $id, $unitPrice);
+            } else {
+                $skipped++;
+                continue;
+            }
+            $updated++;
+        }
+
+        // Zuvor für dieses Angebot importierte Datei ersetzen (eine aktive Datei je Angebot).
+        ProjectDocument::where('cis_row_id_project', $this->projectId)
+            ->where('linked_type', ProjectDocument::LINK_OFFER_IMPORT)
+            ->where('linked_id', $this->currentOfferId)
+            ->get()
+            ->each(function (ProjectDocument $doc) {
+                $doc->deleteFile();
+                $doc->forceDelete();
+            });
+
+        $offerName = Offer::with('source')->find($this->currentOfferId)?->source?->name ?? 'Angebot';
+        DocumentManager::storeUpload(
+            $this->importFile,
+            $this->importFile->getClientOriginalName(),
+            "Preisimport für {$offerName} ({$updated} übernommen, {$skipped} übersprungen)",
+            $this->projectId,
+            ProjectDocument::LINK_OFFER_IMPORT,
+            $this->currentOfferId
+        );
+
+        $this->importFile       = null;
+        $this->importTemplateId = '';
+        $this->importResult     = "{$updated} Preise übernommen, {$skipped} Zeile(n) übersprungen.";
     }
 }

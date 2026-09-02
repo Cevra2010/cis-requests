@@ -87,4 +87,8 @@
     </main>
 </div>
 
+@auth
+    @livewire('version-notice')
+@endauth
+
 @endsection

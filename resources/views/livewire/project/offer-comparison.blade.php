@@ -84,6 +84,43 @@
                 </button>
             </div>
 
+            @if($importableTemplates->isNotEmpty())
+            <div class="mb-4 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">
+                    <i class="fa fa-file-import mr-1"></i>Angebot importieren
+                </p>
+                @if($currentOfferImportDocument)
+                <p class="text-xs text-gray-500 mb-2">
+                    <i class="fa fa-file-excel text-emerald-500 mr-1"></i>
+                    <a href="{{ route('project.document.download', $currentOfferImportDocument->cis_row_id) }}" class="hover:text-primary-600 underline">
+                        {{ $currentOfferImportDocument->name }}
+                    </a>
+                    <span class="text-gray-400">· {{ $currentOfferImportDocument->created_at->format('d.m.Y H:i') }}</span>
+                </p>
+                @endif
+                <form wire:submit.prevent="importOfferFile" class="flex items-center gap-2 flex-wrap">
+                    <select wire:model="importTemplateId" class="cis-input py-1.5 text-xs w-56 @error('importTemplateId') is-invalid @enderror">
+                        <option value="">– Vorlage wählen –</option>
+                        @foreach($importableTemplates as $tpl)
+                            <option value="{{ $tpl->cis_row_id }}">{{ $tpl->name }}</option>
+                        @endforeach
+                    </select>
+                    <input type="file" wire:model="importFile" class="cis-input py-1 text-xs flex-1 min-w-[180px] @error('importFile') is-invalid @enderror">
+                    <button type="submit" class="btn btn-ghost btn-sm" {{ $importFile && $importTemplateId ? '' : 'disabled' }}>
+                        <i class="fa fa-upload mr-1"></i>Importieren
+                    </button>
+                </form>
+                @error('importTemplateId')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                @error('importFile')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                <div wire:loading wire:target="importFile,importOfferFile" class="text-xs text-gray-400 mt-1">
+                    <i class="fa fa-spinner fa-spin mr-1"></i>Wird verarbeitet…
+                </div>
+                @if($importResult)
+                    <p class="text-xs text-emerald-600 mt-1"><i class="fa fa-circle-check mr-1"></i>{{ $importResult }}</p>
+                @endif
+            </div>
+            @endif
+
             <div class="divide-y divide-gray-50 border-t border-gray-100">
                 @foreach($positions as $position)
                 @php

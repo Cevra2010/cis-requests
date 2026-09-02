@@ -1,5 +1,31 @@
 <div>
 
+    {{-- Grobe Kostenschätzung --}}
+    <div class="cis-card mb-4 flex items-center justify-between gap-4">
+        <div>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">
+                Grobe Kostenschätzung
+                @if($estimate['fixed'])
+                    <i class="fa fa-lock text-gray-300 ml-1" title="Preise zum Fixierungszeitpunkt eingefroren"></i>
+                @endif
+            </p>
+            <p class="text-xl font-semibold text-gray-900">
+                {{ number_format($estimate['total'], 2, ',', '.') }} €
+            </p>
+            <p class="text-xs text-gray-400 mt-0.5">
+                @if($estimate['fixed'])
+                    Preise zum Zeitpunkt der Fixierung eingefroren – ändert sich der Katalogpreis später, bleibt dieser Wert bestehen.
+                @else
+                    Auf Basis der zuletzt erfassten Katalogpreise (inkl. verknüpfte Produkte) – ersetzt keine Angebote.
+                @endif
+                @if($estimate['missing_count'] > 0)
+                    {{ $estimate['missing_count'] }} von {{ $estimate['positions_count'] }} Position(en) ohne Preis, nicht enthalten.
+                @endif
+            </p>
+        </div>
+        <i class="fa fa-calculator text-2xl text-gray-200"></i>
+    </div>
+
     @unless($canEdit)
     <div class="mb-4 px-4 py-2.5 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-700 flex items-center gap-2">
         <i class="fa fa-lock"></i>

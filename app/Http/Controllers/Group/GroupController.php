@@ -12,8 +12,7 @@ class GroupController extends Controller
 {
     public function index()
     {
-        $groups = Group::withCount('users')->orderBy('name')->get();
-        return view('group.index', compact('groups'));
+        return view('group.index');
     }
 
     public function create()

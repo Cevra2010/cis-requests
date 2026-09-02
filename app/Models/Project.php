@@ -296,6 +296,64 @@ class Project extends Model
         );
     }
 
+    /**
+     * Positionen für die Materialliste (Ausschreibungstext-Editor & PDF-Export):
+     * Setprodukte erscheinen nie als eigene Zeile, nur ihre Mitgliedsprodukte –
+     * projektweit über ALLE Sets hinweg aggregiert. Kommt ein Mitgliedsprodukt
+     * (z.B. "Neubauschlüssel") in mehreren Sets vor, erscheint es hier nur
+     * einmal mit der Gesamtmenge (Beispiel: je 1× "Halligen Tool kurz (Set)"
+     * und "Halligen Tool lang (Set)" ergeben 1× Halligen Tool kurz, 1× Halligen
+     * Tool lang, 2× Neubauschlüssel, 2× Trageriemen).
+     *
+     * @return \Illuminate\Support\Collection<int, object{cis_row_id: string, name: string, is_set: bool, product_count: int, note: ?string}>
+     */
+    public function materialListItems(): \Illuminate\Support\Collection
+    {
+        $rawPositions = \Illuminate\Support\Facades\DB::table('project_product')
+            ->join('products', 'project_product.cis_row_id_product', '=', 'products.cis_row_id')
+            ->where('project_product.cis_row_id_project', $this->cis_row_id)
+            ->whereNull('products.deleted_at')
+            ->where('project_product.is_internal', false)
+            ->orderBy('project_product.sort_order')
+            ->select('products.cis_row_id', 'products.name', 'products.is_set',
+                     'project_product.product_count', 'project_product.note')
+            ->get();
+
+        $items           = collect();
+        $setMemberTotals = [];
+
+        foreach ($rawPositions as $rawPosition) {
+            if (! $rawPosition->is_set) {
+                $items->push($rawPosition);
+                continue;
+            }
+
+            $members = \Illuminate\Support\Facades\DB::table('product_child')
+                ->join('products', 'product_child.cis_row_id_child', '=', 'products.cis_row_id')
+                ->where('product_child.cis_row_id_parent', $rawPosition->cis_row_id)
+                ->whereNull('products.deleted_at')
+                ->select('products.cis_row_id', 'products.name')
+                ->get();
+
+            foreach ($members as $member) {
+                $setMemberTotals[$member->cis_row_id] ??= ['name' => $member->name, 'quantity' => 0];
+                $setMemberTotals[$member->cis_row_id]['quantity'] += $rawPosition->product_count;
+            }
+        }
+
+        foreach ($setMemberTotals as $id => $entry) {
+            $items->push((object) [
+                'cis_row_id'    => $id,
+                'name'          => $entry['name'],
+                'is_set'        => false,
+                'product_count' => $entry['quantity'],
+                'note'          => null,
+            ]);
+        }
+
+        return $items->values();
+    }
+
     public function effectiveMinOrderValue(): float
     {
         return (float) ($this->min_order_value ?? Setting::get('default_min_order_value', 0));
@@ -414,5 +472,44 @@ class Project extends Model
         }
 
         return $amount;
+    }
+
+    /**
+     * Grobe Kostenschätzung über alle zugeordneten Produktpositionen (Menge ×
+     * effectiveGroupPrice), gemeinsam genutzt von der Produkte-Zuordnung und
+     * dem Ausschreibungs-Editor – ein zentraler Berechnungsweg, damit beide
+     * Stellen immer denselben Wert zeigen.
+     */
+    public function costEstimate(): array
+    {
+        // Hausinterne Positionen (bereits im Haus vorhanden) verursachen keine
+        // Beschaffungskosten und fließen daher nicht in die Schätzung ein.
+        $positions = ProjectProduct::where('cis_row_id_project', $this->cis_row_id)
+            ->where('is_internal', false)
+            ->with('product')
+            ->get();
+
+        $total          = 0.0;
+        $missingCount   = 0;
+        $positionsCount = $positions->count();
+
+        foreach ($positions as $position) {
+            if (! $position->product) {
+                continue;
+            }
+            $groupPrice = $this->effectiveGroupPrice($position->product);
+            if ($groupPrice <= 0) {
+                $missingCount++;
+                continue;
+            }
+            $total += $groupPrice * $position->product_count;
+        }
+
+        return [
+            'total'           => $total,
+            'positions_count' => $positionsCount,
+            'missing_count'   => $missingCount,
+            'fixed'           => $this->isLocked(),
+        ];
     }
 }

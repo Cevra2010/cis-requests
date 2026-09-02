@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Destruktive Reset-Funktionen für die Einstellungen ("Gefahrenzone").
@@ -98,6 +99,7 @@ class SystemResetService
             'Fahrzeug-Konfigurationen' => DB::table('project_vehicle_blocks')->count(),
             'Parameter'              => DB::table('template_parameters')->count(),
             'Angebote'               => DB::table('offers')->count(),
+            'Dokumente'              => DB::table('project_documents')->count(),
             'Produkte'               => DB::table('products')->count(),
             'Preise'                 => DB::table('prices')->count(),
             'Produktquellen'         => DB::table('product_sources')->count(),
@@ -107,15 +109,21 @@ class SystemResetService
 
     private function deleteCoreBusinessTables(): void
     {
+        // Physische Dateien vor den Datensätzen entfernen (Storage kennt keine Transaktion).
+        Storage::disk('local')->deleteDirectory('project-documents');
+
         // Erst abhängige/verknüpfende Tabellen, dann die Haupttabellen.
         DB::table('position_awards')->delete();
+        DB::table('child_position_awards')->delete();
         DB::table('offer_items')->delete();
+        DB::table('offer_child_items')->delete();
         DB::table('offers')->delete();
 
         DB::table('project_tender_blocks')->delete();
         DB::table('project_vehicle_block_items')->delete();
         DB::table('project_vehicle_blocks')->delete();
         DB::table('project_price_snapshots')->delete();
+        DB::table('project_documents')->delete();
         DB::table('project_product')->delete();
         DB::table('project_last_touch')->delete();
         DB::table('projects')->delete();

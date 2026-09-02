@@ -23,9 +23,11 @@ class ProjectProductManager extends Component
     }
 
     #[On('positions-imported')]
+    #[On('products-updated')]
     public function refresh(): void
     {
-        // Löst lediglich ein Re-Render aus, damit importierte Positionen sichtbar werden.
+        // Löst lediglich ein Re-Render aus, damit importierte Positionen bzw.
+        // eine anderswo geänderte Kostenschätzung sichtbar bleiben.
     }
 
     public function render()
@@ -77,7 +79,9 @@ class ProjectProductManager extends Component
 
         $canEdit = $project?->isEditableBy(auth()->user()) ?? true;
 
-        return view('livewire.project.project-product-manager', compact('assigned', 'available', 'canEdit', 'categoryOptions'));
+        $estimate = $project?->costEstimate() ?? ['total' => 0.0, 'positions_count' => 0, 'missing_count' => 0, 'fixed' => false];
+
+        return view('livewire.project.project-product-manager', compact('assigned', 'available', 'canEdit', 'categoryOptions', 'estimate'));
     }
 
     public function add(string $productId): void

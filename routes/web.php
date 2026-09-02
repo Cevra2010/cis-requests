@@ -9,6 +9,7 @@ use App\Http\Controllers\Price\PriceController;
 use App\Http\Controllers\Product\ProductController;
 use App\Http\Controllers\Project\ProjectController;
 use App\Http\Controllers\Project\OfferController;
+use App\Http\Controllers\Project\ProjectDocumentController;
 use App\Http\Controllers\Role\RoleController;
 use App\Http\Controllers\Source\SourceController;
 use App\Http\Controllers\User\UserController;
@@ -140,6 +141,8 @@ Route::middleware(['auth'])->group(function() {
 
     /** Angebote & Bestelllisten */
     Route::get('/Project/{project}/Offers/{offer}/OrderList/PDF',[OfferController::class, 'exportOrderListPdf'])->name('offer.orderlist.pdf');
+
+    Route::get('/Documents/{document}/Download', [ProjectDocumentController::class, 'download'])->name('project.document.download');
 
     /** Categories */
     Route::get('/Category', [CategoryController::class, 'index'])->name('category.index');

@@ -1,29 +1,16 @@
 <div>
-    {{-- Search bar --}}
+    {{-- Toolbar --}}
     <div class="flex items-center gap-2 mb-4">
-        <div class="relative flex-1 max-w-lg">
-            <div class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
-                <i class="fa fa-magnifying-glass text-gray-400 text-sm"></i>
-            </div>
-            <input type="text"
-                   wire:model.live.debounce.300ms="searchString"
-                   placeholder="Produkt suchen…"
-                   class="cis-input pl-10 py-2.5 text-base">
-        </div>
-        @if($categoryOptions)
-        <select wire:model.live="categoryFilter" class="cis-input py-1.5 text-sm">
-            <option value="">Alle Kategorien</option>
-            @foreach($categoryOptions as $catId => $catLabel)
-                <option value="{{ $catId }}">{{ $catLabel }}</option>
-            @endforeach
-        </select>
-        @endif
-        @if($searchString || $categoryFilter !== '')
-            <button wire:click="resetFilters" class="btn-ghost btn-sm">
+        <span class="text-xs text-gray-400">{{ $rows->total() }} Produkt(e)</span>
+        @if(count($filters))
+            <button wire:click="resetAllFilters" class="btn-ghost btn-sm">
                 <i class="fa fa-xmark"></i>
-                Zurücksetzen
+                Alle Filter zurücksetzen
             </button>
         @endif
+        <div class="ml-auto">
+            <x-data-table.per-page-select />
+        </div>
     </div>
 
     {{-- Table --}}
@@ -31,34 +18,28 @@
         <table>
             <thead>
                 <tr>
-                    <th wire:click='order("name")' class="cursor-pointer select-none">
-                        <span class="flex items-center gap-1">
-                            Name
-                            @if($orderBy === 'name')
-                                <i class="fa fa-arrow-{{ $orderDirection === 'ASC' ? 'down' : 'up' }}-wide-short text-primary-400"></i>
-                            @else
-                                <i class="fa fa-sort text-gray-300"></i>
-                            @endif
-                        </span>
-                    </th>
-                    <th>Kategorie</th>
-                    <th>Produktpreis</th>
-                    <th>Gesamtpreis</th>
-                    <th>Lieferant</th>
-                    <th wire:click='order("created_at")' class="cursor-pointer select-none">
-                        <span class="flex items-center gap-1">
-                            Erstellt
-                            @if($orderBy === 'created_at')
-                                <i class="fa fa-arrow-{{ $orderDirection === 'ASC' ? 'down' : 'up' }}-wide-short text-primary-400"></i>
-                            @else
-                                <i class="fa fa-sort text-gray-300"></i>
-                            @endif
-                        </span>
-                    </th>
+                    <x-data-table.th field="name" label="Name" sortable filterable
+                        :order-by="$orderBy" :order-direction="$orderDirection"
+                        :options="$this->filterOptionsFor('name')" :active="$filters['name'] ?? []" />
+                    <x-data-table.th field="category" label="Kategorie" sortable filterable
+                        :order-by="$orderBy" :order-direction="$orderDirection"
+                        :options="$this->filterOptionsFor('category')" :active="$filters['category'] ?? []" />
+                    <x-data-table.th field="price" label="Produktpreis" sortable filterable
+                        :order-by="$orderBy" :order-direction="$orderDirection"
+                        :options="$this->filterOptionsFor('price')" :active="$filters['price'] ?? []" />
+                    <x-data-table.th field="group_price" label="Gesamtpreis" sortable filterable
+                        :order-by="$orderBy" :order-direction="$orderDirection"
+                        :options="$this->filterOptionsFor('group_price')" :active="$filters['group_price'] ?? []" />
+                    <x-data-table.th field="source" label="Lieferant" sortable filterable
+                        :order-by="$orderBy" :order-direction="$orderDirection"
+                        :options="$this->filterOptionsFor('source')" :active="$filters['source'] ?? []" />
+                    <x-data-table.th field="created_at" label="Erstellt" sortable filterable
+                        :order-by="$orderBy" :order-direction="$orderDirection"
+                        :options="$this->filterOptionsFor('created_at')" :active="$filters['created_at'] ?? []" />
                 </tr>
             </thead>
             <tbody>
-                @forelse($products as $product)
+                @forelse($rows as $product)
                     <tr onclick='if(!event.target.closest(".js-toggle-children")) location.href="{{ route("product.edit", $product) }}"' class="cursor-pointer">
                         <td>
                             <div class="flex items-center gap-2 flex-wrap">
@@ -139,4 +120,6 @@
             </tbody>
         </table>
     </div>
+
+    <div class="mt-3">{{ $rows->links() }}</div>
 </div>

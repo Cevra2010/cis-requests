@@ -1,7 +1,7 @@
 {
     "name": "Export",
     "alias": "export",
-    "description": "Konfigurierbare CSV-/Excel-Tabellenexporte für Ausschreibungen mit frei definierbaren Spalten.",
+    "description": "Export-Import: Konfigurierbare CSV-/Excel-Tabellenexporte für Ausschreibungen mit frei definierbaren Spalten, inkl. Rückimport von Händlerpreisen.",
     "version": "1.0.0",
     "keywords": ["export", "csv", "excel", "tabelle"],
     "priority": 30,

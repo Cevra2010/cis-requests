@@ -1,55 +1,89 @@
 <div>
     <div class="flex items-center gap-2 mb-4">
-        <div class="relative flex-1 max-w-sm">
-            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <i class="fa fa-magnifying-glass text-gray-400 text-sm"></i>
-            </div>
-            <input type="text"
-                   wire:model.live.debounce.300ms="searchString"
-                   placeholder="Benutzer suchen…"
-                   class="cis-input pl-9">
-        </div>
-        @if($searchString)
-            <button wire:click='$set("searchString", null)' class="btn-ghost btn-sm">
+        <span class="text-xs text-gray-400">{{ $rows->total() }} Benutzer</span>
+        @if(count($filters))
+            <button wire:click="resetAllFilters" class="btn-ghost btn-sm">
                 <i class="fa fa-xmark"></i>
+                Alle Filter zurücksetzen
             </button>
         @endif
+        <div class="ml-auto">
+            <x-data-table.per-page-select />
+        </div>
     </div>
-
-    <div class="mb-3">{{ $users->links('pagination::simple-tailwind') }}</div>
 
     <div class="cis-table">
         <table>
             <thead>
                 <tr>
-                    @foreach([['firstname','Vorname'],['lastname','Nachname'],['email','E-Mail'],['created_at','Erstellt']] as [$field,$label])
-                    <th wire:click='order("{{ $field }}")' class="cursor-pointer select-none">
-                        <span class="flex items-center gap-1">
-                            {{ $label }}
-                            @if($orderBy === $field)
-                                <i class="fa fa-arrow-{{ $orderDirection === 'ASC' ? 'down' : 'up' }}-wide-short text-primary-400"></i>
-                            @else
-                                <i class="fa fa-sort text-gray-300"></i>
-                            @endif
-                        </span>
-                    </th>
-                    @endforeach
+                    <x-data-table.th field="name" label="Name" sortable filterable
+                        :order-by="$orderBy" :order-direction="$orderDirection"
+                        :options="$this->filterOptionsFor('name')" :active="$filters['name'] ?? []" />
+                    <x-data-table.th field="email" label="E-Mail" sortable filterable
+                        :order-by="$orderBy" :order-direction="$orderDirection"
+                        :options="$this->filterOptionsFor('email')" :active="$filters['email'] ?? []" />
+                    <x-data-table.th field="groups" label="Gruppen" filterable
+                        :order-by="$orderBy" :order-direction="$orderDirection"
+                        :options="$this->filterOptionsFor('groups')" :active="$filters['groups'] ?? []" />
+                    <x-data-table.th field="roles" label="Rollen" filterable
+                        :order-by="$orderBy" :order-direction="$orderDirection"
+                        :options="$this->filterOptionsFor('roles')" :active="$filters['roles'] ?? []" />
+                    <th class="text-right">Aktionen</th>
                 </tr>
             </thead>
             <tbody>
-                @forelse($users as $user)
-                    <tr onclick='location.href="{{ route("user.edit", $user) }}"' class="cursor-pointer">
-                        <td class="font-medium text-gray-900">{{ $user->firstname }}</td>
-                        <td>{{ $user->lastname }}</td>
-                        <td class="text-gray-600">{{ $user->email }}</td>
-                        <td class="text-gray-500 text-sm">{{ $user->created_at->format('d.m.Y') }}</td>
-                    </tr>
+                @forelse($rows as $user)
+                <tr onclick="location.href='{{ route('user.edit', $user) }}'" class="cursor-pointer">
+                    <td class="font-medium text-gray-900">{{ $user->name() }}</td>
+                    <td class="text-gray-500 text-sm">{{ $user->email }}</td>
+                    <td>
+                        <div class="flex flex-wrap gap-1">
+                            @foreach($user->groups as $group)
+                                <span class="cis-badge text-white text-xs"
+                                      style="background: {{ $group->color ?? '#6B7280' }}">
+                                    {{ $group->name }}
+                                </span>
+                            @endforeach
+                        </div>
+                    </td>
+                    <td>
+                        <div class="flex flex-wrap gap-1">
+                            @foreach($user->roles as $role)
+                                <span class="cis-badge text-white text-xs"
+                                      style="background: {{ $role->color ?? '#8B5CF6' }}">
+                                    {{ $role->name }}
+                                </span>
+                            @endforeach
+                        </div>
+                    </td>
+                    <td class="text-right" onclick="event.stopPropagation()">
+                        <div class="flex items-center justify-end gap-1">
+                            <a href="{{ route('user.edit.membership', $user) }}" class="btn btn-ghost btn-sm" title="Gruppen & Rollen">
+                                <i class="fa fa-users"></i>
+                            </a>
+                            <a href="{{ route('user.permissions', $user) }}" class="btn btn-ghost btn-sm" title="Berechtigungen">
+                                <i class="fa fa-shield-halved"></i>
+                            </a>
+                            <a href="{{ route('user.edit', $user) }}" class="btn btn-ghost btn-sm" title="Bearbeiten">
+                                <i class="fa fa-pencil"></i>
+                            </a>
+                            <a href="{{ route('user.delete', $user) }}" class="btn btn-ghost btn-sm text-red-500" title="Löschen">
+                                <i class="fa fa-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
                 @empty
-                    <tr>
-                        <td colspan="4" class="text-center py-10 text-gray-400 text-sm">Keine Benutzer gefunden.</td>
-                    </tr>
+                <tr>
+                    <td colspan="5" class="text-center py-12 text-gray-400">
+                        <i class="fa fa-user text-3xl mb-2 block"></i>
+                        <p class="text-sm">Keine Benutzer gefunden.</p>
+                    </td>
+                </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
+
+    <div class="mt-3">{{ $rows->links() }}</div>
 </div>

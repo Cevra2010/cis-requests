@@ -15,8 +15,13 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
  */
 class ExportFileBuilder
 {
-    /** @param array<int, string> $headers @param array<int, array<int, string>> $rows */
-    public function build(array $headers, array $rows, string $format, string $sheetTitle = 'Export'): string
+    /**
+     * @param array<int, string> $headers @param array<int, array<int, string>> $rows
+     * @param int|null $hiddenColumnIndex 0-basierter Spaltenindex, der bei XLSX ausgeblendet wird
+     *        (z.B. der technische Zeilenschlüssel für den Preis-Rückimport – CSV kennt kein
+     *        Ausblenden, dort bleibt die Spalte sichtbar, aber am Ende der Zeile).
+     */
+    public function build(array $headers, array $rows, string $format, string $sheetTitle = 'Export', ?int $hiddenColumnIndex = null): string
     {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -40,6 +45,10 @@ class ExportFileBuilder
         }
 
         if ($format === 'xlsx') {
+            if ($hiddenColumnIndex !== null) {
+                $hiddenCol = Coordinate::stringFromColumnIndex($hiddenColumnIndex + 1);
+                $sheet->getColumnDimension($hiddenCol)->setVisible(false);
+            }
             $writer = new Xlsx($spreadsheet);
         } else {
             $writer = new Csv($spreadsheet);

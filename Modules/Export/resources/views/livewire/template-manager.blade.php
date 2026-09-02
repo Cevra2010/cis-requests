@@ -1,9 +1,11 @@
 <div class="max-w-3xl">
     <div class="mb-4">
-        <h2 class="text-base font-semibold text-gray-800">Export-Vorlagen</h2>
+        <h2 class="text-base font-semibold text-gray-800">Export-Import: Vorlagen</h2>
         <p class="text-sm text-gray-500 mt-0.5">
             Definiere Tabellen mit eigenen Spaltennamen für den CSV-/Excel-Export von Ausschreibungen.
-            Jede Vorlage steht anschließend im Export-Tab eines Projekts zur Verfügung.
+            Jede Vorlage steht anschließend im Export-Tab eines Projekts zur Verfügung. Enthält eine
+            Vorlage die Felder „Einzelpreis (Händler)" oder „Gesamtpreis (Händler)", kann die vom
+            Händler ausgefüllte Datei im Angebotsvergleich des Projekts wieder eingelesen werden.
         </p>
     </div>
 

@@ -3,6 +3,9 @@
 @section('title', $project->name)
 
 @section('header_actions')
+    <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-document-manager'))" class="btn btn-ghost btn-sm">
+        <i class="fa fa-folder-open mr-1"></i> Dokumentenmanager
+    </button>
     <a href="{{ route('project.edit', $project->cis_row_id) }}" class="btn btn-ghost btn-sm">
         <i class="fa fa-pencil mr-1"></i> Bearbeiten
     </a>
@@ -79,6 +82,25 @@
 @endphp
 
 @section('content')
+
+{{-- ── Dokumentenmanager-Modal ── --}}
+<div x-data="{ show: false }" x-on:open-document-manager.window="show = true">
+    <div x-show="show" x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+         @click.self="show = false" @keydown.escape.window="show = false" style="display:none">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
+            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
+                <h2 class="text-sm font-semibold text-gray-800"><i class="fa fa-folder-open mr-1.5 text-gray-400"></i>Dokumentenmanager</h2>
+                <button type="button" @click="show = false" class="text-gray-300 hover:text-gray-600">
+                    <i class="fa fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-5 overflow-y-auto">
+                @livewire('project.document-manager', ['projectId' => $project->cis_row_id])
+            </div>
+        </div>
+    </div>
+</div>
 
 {{-- Project header --}}
 <div class="cis-card mb-5">

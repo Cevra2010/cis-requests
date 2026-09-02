@@ -10,8 +10,7 @@ class SourceController extends Controller
 {
     public function index()
     {
-        $sources = ProductSource::orderBy('name')->get();
-        return view('source.index', compact('sources'));
+        return view('source.index');
     }
 
     public function create()

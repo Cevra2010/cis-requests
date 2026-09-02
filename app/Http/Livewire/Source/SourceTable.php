@@ -2,45 +2,60 @@
 
 namespace App\Http\Livewire\Source;
 
-use Livewire\Component;
+use App\Http\Livewire\Concerns\HasFilterableTable;
 use App\Models\ProductSource;
+use Livewire\Component;
 
 class SourceTable extends Component
 {
+    use HasFilterableTable;
 
-    public $searchString;
-    public $orderBy = 'name';
-    public $orderDirection = 'ASC';
-    protected $queryString = [
-        'searchString',
-    ];
+    public function tableKey(): string
+    {
+        return 'sources';
+    }
+
+    public function baseQuery()
+    {
+        return ProductSource::query();
+    }
+
+    public function columns(): array
+    {
+        return [
+            [
+                'key' => 'name', 'label' => 'Name',
+                'sortable' => true, 'filterable' => true,
+                'column' => 'name', 'value' => fn ($s) => $s->name,
+            ],
+            [
+                'key' => 'contact_name', 'label' => 'Ansprechpartner',
+                'sortable' => true, 'filterable' => true,
+                'column' => 'contact_name', 'value' => fn ($s) => $s->contact_name,
+            ],
+            [
+                'key' => 'contact_email', 'label' => 'E-Mail',
+                'sortable' => true, 'filterable' => true,
+                'column' => 'contact_email', 'value' => fn ($s) => $s->contact_email,
+            ],
+            [
+                'key' => 'contact_phone', 'label' => 'Telefon',
+                'sortable' => true, 'filterable' => true,
+                'column' => 'contact_phone', 'value' => fn ($s) => $s->contact_phone,
+            ],
+            [
+                'key' => 'url', 'label' => 'Website',
+                'sortable' => true, 'filterable' => true,
+                'column' => 'url', 'value' => fn ($s) => $s->url,
+                'format' => fn ($v) => parse_url((string) $v, PHP_URL_HOST) ?? $v,
+            ],
+        ];
+    }
 
     public function render()
     {
-        if($this->searchString)
-        {
-            $sources = ProductSource::where('name','like','%'.$this->searchString.'%')->orderBy($this->orderBy,$this->orderDirection)->get();
-        }
-        else {
-            $sources = ProductSource::where('name','like','%'.$this->searchString.'%')->orderBy($this->orderBy,$this->orderDirection)->get();
-        }
-        return view('livewire.source.source-table',[
-            'sources' => $sources,
+        return view('livewire.source.source-table', [
+            'rows' => $this->paginatedRows(),
         ]);
-    }
-
-    public function order($orderName) {
-        if($orderName == $this->orderBy) {
-            if($this->orderDirection == "ASC") {
-                $this->orderDirection = "DESC";
-            }
-            else {
-                $this->orderDirection = "ASC";
-            }
-        }
-        else {
-            $this->orderDirection = "ASC";
-            $this->orderBy = $orderName;
-        }
     }
 }

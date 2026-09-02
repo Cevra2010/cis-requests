@@ -122,7 +122,7 @@ class AppServiceProvider extends ServiceProvider
             ->setPriority(87);
 
         $menu->registerEntry('category')
-            ->setText('Kategorien')
+            ->setText('Ordnung')
             ->setRoute('category.index')
             ->setIcon('tag')
             ->setPriority(90);

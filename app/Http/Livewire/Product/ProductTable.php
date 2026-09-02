@@ -2,53 +2,72 @@
 
 namespace App\Http\Livewire\Product;
 
+use App\Http\Livewire\Concerns\HasFilterableTable;
 use App\Models\Product;
+use CisFoundation\CisCategoryManager\CisCategoryManager;
 use Livewire\Component;
 
 class ProductTable extends Component
 {
-    public $searchString;
-    public $categoryFilter = '';
-    public $orderBy = 'name';
-    public $orderDirection = 'ASC';
+    use HasFilterableTable;
 
-    protected $queryString = ['searchString'];
+    public function tableKey(): string
+    {
+        return 'products';
+    }
+
+    public function baseQuery()
+    {
+        return Product::query()->with(['prices.source', 'childs.category', 'category']);
+    }
+
+    public function columns(): array
+    {
+        return [
+            [
+                'key' => 'name', 'label' => 'Name',
+                'sortable' => true, 'filterable' => true,
+                'column' => 'name', 'value' => fn ($p) => $p->name,
+            ],
+            [
+                'key' => 'category', 'label' => 'Kategorie',
+                'sortable' => true, 'filterable' => true,
+                'column' => 'category_id', 'value' => fn ($p) => $p->category_id,
+                'sortValue' => fn ($p) => $p->category?->name ?? '',
+                'optionsSource' => fn () => CisCategoryManager::optionsForType('product.category'),
+            ],
+            [
+                'key' => 'price', 'label' => 'Produktpreis',
+                'sortable' => true, 'filterable' => true,
+                'value' => fn ($p) => $p->isSet() ? null : $p->price()?->amount,
+                'format' => fn ($v) => number_format((float) $v, 2, ',', '.') . ' €',
+            ],
+            [
+                'key' => 'group_price', 'label' => 'Gesamtpreis',
+                'sortable' => true, 'filterable' => true,
+                'value' => fn ($p) => $p->isSet()
+                    ? null
+                    : ($p->hasChild() ? $p->getGroupPrice() : $p->price()?->amount),
+                'format' => fn ($v) => number_format((float) $v, 2, ',', '.') . ' €',
+            ],
+            [
+                'key' => 'source', 'label' => 'Lieferant',
+                'sortable' => true, 'filterable' => true,
+                'value' => fn ($p) => $p->price()?->source?->name,
+            ],
+            [
+                'key' => 'created_at', 'label' => 'Erstellt',
+                'sortable' => true, 'filterable' => true,
+                'value' => fn ($p) => optional($p->created_at)->format('d.m.Y'),
+                'sortValue' => fn ($p) => $p->created_at,
+            ],
+        ];
+    }
 
     public function render()
     {
-        $query = Product::query()->with(['prices', 'childs.category', 'category']);
-
-        if ($this->categoryFilter !== '') {
-            $query->where('category_id', $this->categoryFilter);
-        }
-
-        if ($this->searchString) {
-            $query->where('name', 'like', '%' . $this->searchString . '%');
-        }
-
-        // Ein Produkt, das als Unterprodukt verknüpft ist, bleibt trotzdem ein
-        // eigenständiges Hauptprodukt und erscheint daher immer auch hier in
-        // der Liste (zusätzlich zur Vorschau unter seinen Elternprodukten).
-
-        $products         = $query->orderBy($this->orderBy, $this->orderDirection)->get();
-        $categoryOptions  = \CisFoundation\CisCategoryManager\CisCategoryManager::optionsForType('product.category');
-
-        return view('livewire.product.product-table', compact('products', 'categoryOptions'));
-    }
-
-    public function resetFilters(): void
-    {
-        $this->searchString   = null;
-        $this->categoryFilter = '';
-    }
-
-    public function order($orderName)
-    {
-        if ($orderName === $this->orderBy) {
-            $this->orderDirection = $this->orderDirection === 'ASC' ? 'DESC' : 'ASC';
-        } else {
-            $this->orderBy        = $orderName;
-            $this->orderDirection = 'ASC';
-        }
+        return view('livewire.product.product-table', [
+            'rows' => $this->paginatedRows(),
+        ]);
     }
 }

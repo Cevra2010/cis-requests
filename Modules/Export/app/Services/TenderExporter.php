@@ -24,11 +24,27 @@ use Modules\Export\Models\ExportTemplateColumn;
  */
 class TenderExporter
 {
-    /** @return array{headers: array<int, string>, rows: array<int, array<int, string>>} */
+    /**
+     * Technischer Spaltenname für den unsichtbaren Zeilenschlüssel, der beim
+     * Rückimport der Händlerpreise (siehe OfferComparison::importOfferFile())
+     * jede Zeile wieder eindeutig einer Position/einem Unterprodukt zuordnet
+     * – unabhängig von Zeilenreihenfolge oder umbenannten Spaltentiteln.
+     * Format: "P:{cis_row_id_project_product}" für Hauptpositionen,
+     * "C:{cis_row_id_product}" für aggregierte Unterprodukt-Zeilen.
+     */
+    public const IMPORT_KEY_HEADER = '_ImportKey';
+
+    /** @return array{headers: array<int, string>, rows: array<int, array<int, string>>, import_key_index: ?int} */
     public function build(Project $project, ExportTemplate $template): array
     {
-        $columns = $template->columns;
-        $headers = $columns->pluck('label')->all();
+        $columns          = $template->columns;
+        $headers          = $columns->pluck('label')->all();
+        $includeImportKey = $template->hasVendorPriceColumn();
+        $importKeyIndex   = $includeImportKey ? count($headers) : null;
+
+        if ($includeImportKey) {
+            $headers[] = self::IMPORT_KEY_HEADER;
+        }
 
         // Hausinterne Positionen (bereits im Haus vorhanden, siehe
         // ProjectProduct::is_internal) werden nicht ausgeschrieben und fehlen
@@ -57,6 +73,9 @@ class TenderExporter
             foreach ($columns as $column) {
                 $row[] = $this->resolveField($column, $position, $index, $unitPrice, $project->cis_row_id);
             }
+            if ($includeImportKey) {
+                $row[] = 'P:' . $position->cis_row_id;
+            }
             $rows[] = $row;
         }
 
@@ -74,10 +93,13 @@ class TenderExporter
             foreach ($columns as $column) {
                 $row[] = $this->resolveChildField($column, $child, $quantity, $index, $unitPrice, $project->cis_row_id);
             }
+            if ($includeImportKey) {
+                $row[] = 'C:' . $child->cis_row_id;
+            }
             $rows[] = $row;
         }
 
-        return ['headers' => $headers, 'rows' => $rows];
+        return ['headers' => $headers, 'rows' => $rows, 'import_key_index' => $importKeyIndex];
     }
 
     private function resolveField(ExportTemplateColumn $column, ProjectProduct $position, int $number, ?float $unitPrice, string $projectId): string

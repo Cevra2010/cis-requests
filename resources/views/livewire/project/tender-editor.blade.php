@@ -271,44 +271,7 @@
                 $blockLabel   = 'Materialliste';
 
                 if ($isProducts) {
-                    // Setprodukte dienen nur der internen Bündelung und erscheinen selbst
-                    // nie als eigene Position in der Ausschreibung – stattdessen werden
-                    // ihre Mitgliedsprodukte hier direkt als eigenständige Positionen
-                    // eingesetzt (mit der Menge des Sets), so als wären sie normal
-                    // hinzugefügt worden.
-                    $rawPositions = DB::table('project_product')
-                        ->join('products', 'project_product.cis_row_id_product', '=', 'products.cis_row_id')
-                        ->where('project_product.cis_row_id_project', $projectId)
-                        ->whereNull('products.deleted_at')
-                        ->where('project_product.is_internal', false)
-                        ->orderBy('project_product.sort_order')
-                        ->select('products.cis_row_id', 'products.name', 'products.is_set',
-                                 'project_product.product_count', 'project_product.note')
-                        ->get();
-
-                    $allBlockItems = collect();
-                    foreach ($rawPositions as $rawPosition) {
-                        if (! $rawPosition->is_set) {
-                            $allBlockItems->push($rawPosition);
-                            continue;
-                        }
-                        $setMembers = DB::table('product_child')
-                            ->join('products', 'product_child.cis_row_id_child', '=', 'products.cis_row_id')
-                            ->where('product_child.cis_row_id_parent', $rawPosition->cis_row_id)
-                            ->whereNull('products.deleted_at')
-                            ->select('products.cis_row_id', 'products.name')
-                            ->get();
-                        foreach ($setMembers as $member) {
-                            $allBlockItems->push((object) [
-                                'cis_row_id'    => $member->cis_row_id,
-                                'name'          => $member->name,
-                                'is_set'        => false,
-                                'product_count' => $rawPosition->product_count,
-                                'note'          => null,
-                            ]);
-                        }
-                    }
-
+                    $allBlockItems = $this->blockMaterialItems();
                     $shownItems = $blockSelected === null
                         ? $allBlockItems
                         : $allBlockItems->filter(fn($i) => in_array($i->cis_row_id, $blockSelected));

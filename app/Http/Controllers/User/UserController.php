@@ -15,8 +15,7 @@ class UserController extends Controller
 {
     public function index()
     {
-        $users = User::with(['groups', 'roles'])->orderBy('lastname')->orderBy('firstname')->get();
-        return view('user.index', compact('users'));
+        return view('user.index');
     }
 
     public function create()

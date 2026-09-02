@@ -1,8 +1,15 @@
 @php
 $hasChildren = $node->children->isNotEmpty();
 @endphp
-<div x-data="{ open: true }" wire:key="cat-node-{{ $node->id }}" class="{{ $depth > 0 ? 'ml-6 border-l border-gray-100 pl-3' : '' }}">
+<div x-data="{ open: true }" x-on:force-open="open = true"
+     wire:key="cat-node-{{ $node->id }}"
+     data-id="{{ $node->id }}"
+     class="{{ $depth > 0 ? 'ml-6 border-l border-gray-100 pl-3' : '' }}">
     <div class="group flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-gray-50">
+        <span class="js-drag-handle w-4 h-4 flex items-center justify-center text-gray-300 hover:text-gray-500 cursor-grab shrink-0" title="Ziehen zum Verschieben">
+            <i class="fa fa-grip-vertical text-[11px]"></i>
+        </span>
+
         <button type="button" @click="open = !open"
                 class="w-4 h-4 flex items-center justify-center text-gray-400 shrink-0 {{ ! $hasChildren ? 'invisible' : '' }}">
             <i class="fa fa-chevron-right text-[10px] transition-transform" :class="open ? 'rotate-90' : ''"></i>
@@ -24,7 +31,7 @@ $hasChildren = $node->children->isNotEmpty();
 
         <div class="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
             @can('category.create')
-            <button type="button" wire:click="openCreate({{ $node->id }})" title="Unterkategorie anlegen"
+            <button type="button" wire:click="openCreate({{ $node->id }})" title="Untereintrag anlegen"
                     class="btn btn-ghost btn-sm !px-1.5 !py-1 text-gray-400 hover:text-primary-600">
                 <i class="fa fa-plus text-xs"></i>
             </button>
@@ -44,11 +51,10 @@ $hasChildren = $node->children->isNotEmpty();
         </div>
     </div>
 
-    @if($hasChildren)
-    <div x-show="open" x-cloak>
+    {{-- Immer gerendert (auch leer) – muss als Drop-Ziel für Drag & Drop existieren. --}}
+    <div class="js-sortable-children min-h-[6px]" data-parent-id="{{ $node->id }}" x-show="open" x-cloak>
         @foreach($node->children as $child)
             @include('livewire.category._tree-node', ['node' => $child, 'depth' => $depth + 1])
         @endforeach
     </div>
-    @endif
 </div>

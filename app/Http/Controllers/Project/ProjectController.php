@@ -13,26 +13,9 @@ use Nwidart\Modules\Facades\Module;
 
 class ProjectController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
-        $statusFilter   = $request->get('status');
-        $categoryFilter = $request->get('category');
-
-        $query = Project::query()->orderByDesc('updated_at');
-
-        if ($statusFilter) {
-            $query->where('status_code', $statusFilter);
-        }
-        if ($categoryFilter) {
-            $query->where('category_id', $categoryFilter);
-        }
-
-        $projects = $query->get();
-        $projects->each->syncAutoStatus();
-
-        $categories = CisCategoryManager::forType('project.category');
-
-        return view('project.index', compact('projects', 'categories', 'statusFilter', 'categoryFilter'));
+        return view('project.index');
     }
 
     public function trash()
@@ -253,41 +236,9 @@ class ProjectController extends Controller
             };
 
             // Setprodukte erscheinen nie als eigene Position (siehe Product::isSet())
-            // – nur ihre Mitgliedsprodukte, mit der Menge des Sets.
-            $rawPositions = DB::table('project_product')
-                ->join('products', 'project_product.cis_row_id_product', '=', 'products.cis_row_id')
-                ->where('project_product.cis_row_id_project', $p->cis_row_id)
-                ->whereNull('products.deleted_at')
-                ->where('project_product.is_internal', false)
-                ->orderBy('project_product.sort_order')
-                ->select('products.cis_row_id', 'products.name', 'products.is_set',
-                         'project_product.product_count', 'project_product.note')
-                ->get();
-
-            $expandedPositions = collect();
-            foreach ($rawPositions as $rawPosition) {
-                if (! $rawPosition->is_set) {
-                    $expandedPositions->push($rawPosition);
-                    continue;
-                }
-                DB::table('product_child')
-                    ->join('products', 'product_child.cis_row_id_child', '=', 'products.cis_row_id')
-                    ->where('product_child.cis_row_id_parent', $rawPosition->cis_row_id)
-                    ->whereNull('products.deleted_at')
-                    ->select('products.cis_row_id', 'products.name')
-                    ->get()
-                    ->each(function ($member) use ($expandedPositions, $rawPosition) {
-                        $expandedPositions->push((object) [
-                            'cis_row_id'    => $member->cis_row_id,
-                            'name'          => $member->name,
-                            'is_set'        => false,
-                            'product_count' => $rawPosition->product_count,
-                            'note'          => null,
-                        ]);
-                    });
-            }
-
-            $items = $expandedPositions
+            // – nur ihre Mitgliedsprodukte, projektweit über alle Sets hinweg
+            // aggregiert (siehe Project::materialListItems()).
+            $items = $p->materialListItems()
                 ->when($selected !== null, fn($q) => $q->filter(fn($i) => in_array($i->cis_row_id, $selected)))
                 ->map(function ($item) use ($excludedChildren, $description) {
                     $item->text = $description($item->cis_row_id);
