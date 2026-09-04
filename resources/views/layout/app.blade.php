@@ -39,6 +39,13 @@
             <i class="fa fa-cog text-xs text-gray-600 shrink-0"></i>
         </a>
 
+        @auth
+            <div class="px-2 flex items-center justify-between mt-0.5">
+                <span class="text-[10px] text-gray-700">Version</span>
+                @livewire('version-notice')
+            </div>
+        @endauth
+
         <form method="POST" action="{{ route('auth.logout') }}" class="mt-1">
             @csrf
             <button type="submit"
@@ -86,9 +93,5 @@
         @yield('content')
     </main>
 </div>
-
-@auth
-    @livewire('version-notice')
-@endauth
 
 @endsection

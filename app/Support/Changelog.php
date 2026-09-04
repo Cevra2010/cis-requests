@@ -37,6 +37,18 @@ class Changelog
     }
 
     /**
+     * Alle Changelog-Abschnitte, neueste Version zuerst – für die manuelle
+     * "Update-Notes ansehen"-Ansicht (unabhängig von der zuletzt gesehenen
+     * Version eines Benutzers).
+     *
+     * @return array<int, array{version: string, date: ?string, items: array<int, string>}>
+     */
+    public static function allEntries(): array
+    {
+        return self::parse();
+    }
+
+    /**
      * @return array<int, array{version: string, date: ?string, items: array<int, string>}>
      */
     private static function parse(): array

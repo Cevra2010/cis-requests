@@ -4,6 +4,11 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.1.2.0 — 2026-09-04
+- Dokumentenmanager überarbeitet: Verzeichnisse links (Alle, Tabellen, PDF-Dateien, Uploads), Dateiliste rechts
+- Dateien lassen sich jetzt auch per Drag & Drop hochladen (mehrere gleichzeitig möglich)
+- Versionsnummer im Sidebar-Footer bei "Mein Konto" – anklickbar für die komplette Update-Historie
+
 ## 0.1.1.0 — 2026-09-02
 - Angebote importieren: Preise aus einer ausgefüllten Export-Liste automatisch einlesen (Export-Modul heißt jetzt "Export-Import")
 - Neuer Dokumentenmanager je Projekt (Kopfbereich → "Dokumentenmanager")

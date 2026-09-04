@@ -11,41 +11,94 @@ class DocumentManager extends Component
 {
     use WithFileUploads;
 
+    public const FOLDER_TABLES  = 'tables';
+    public const FOLDER_PDF     = 'pdf';
+    public const FOLDER_UPLOADS = 'uploads';
+
+    private const TABLE_EXTENSIONS = ['xlsx', 'xls', 'csv'];
+
     public string $projectId;
 
-    public $newFile = null;
+    /** @var array<int, \Livewire\Features\SupportFileUploads\TemporaryUploadedFile> */
+    public array $newFiles = [];
 
     public string $newName = '';
 
     public string $newNotes = '';
+
+    public string $activeFolder = 'all';
 
     public function mount(string $projectId): void
     {
         $this->projectId = $projectId;
     }
 
+    public function setFolder(string $folder): void
+    {
+        $this->activeFolder = $folder;
+    }
+
     public function render()
     {
-        $documents = ProjectDocument::where('cis_row_id_project', $this->projectId)
+        $all = ProjectDocument::where('cis_row_id_project', $this->projectId)
             ->with('uploadedBy')
             ->orderByDesc('created_at')
             ->get();
 
-        return view('livewire.project.document-manager', compact('documents'));
+        foreach ($all as $document) {
+            $document->folder = self::folderFor($document);
+        }
+
+        $counts = [
+            self::FOLDER_TABLES  => $all->where('folder', self::FOLDER_TABLES)->count(),
+            self::FOLDER_PDF     => $all->where('folder', self::FOLDER_PDF)->count(),
+            self::FOLDER_UPLOADS => $all->where('folder', self::FOLDER_UPLOADS)->count(),
+        ];
+
+        $documents = $this->activeFolder === 'all'
+            ? $all
+            : $all->where('folder', $this->activeFolder)->values();
+
+        return view('livewire.project.document-manager', compact('documents', 'counts'));
     }
 
-    public function upload(): void
+    private static function folderFor(ProjectDocument $document): string
+    {
+        $ext = $document->extension();
+
+        return match (true) {
+            in_array($ext, self::TABLE_EXTENSIONS, true) => self::FOLDER_TABLES,
+            $ext === 'pdf' => self::FOLDER_PDF,
+            default => self::FOLDER_UPLOADS,
+        };
+    }
+
+    /**
+     * Bewusst NICHT "upload()" genannt: Livewires eigenes $wire-JS-Objekt
+     * definiert bereits eine interne Methode "upload" (für den Datei-Upload-
+     * Mechanismus selbst) – ein PHP-Methodenname "upload" würde von
+     * wire:submit mit dieser internen JS-Funktion kollidieren
+     * ("Cannot read properties of undefined (reading 'name')").
+     */
+    public function submitUpload(): void
     {
         $this->validate([
-            'newFile' => 'required|file|max:20480',
+            'newFiles'   => 'required|array|min:1',
+            'newFiles.*' => 'file|max:20480',
         ], [
-            'newFile.required' => 'Bitte wähle eine Datei aus.',
-            'newFile.max'      => 'Die Datei darf maximal 20 MB groß sein.',
+            'newFiles.required' => 'Bitte wähle mindestens eine Datei aus.',
+            'newFiles.*.max'    => 'Jede Datei darf maximal 20 MB groß sein.',
         ]);
 
-        self::storeUpload($this->newFile, $this->newName ?: null, $this->newNotes ?: null, $this->projectId);
+        // Ein eigener Anzeigename ergibt nur bei genau einer Datei Sinn –
+        // bei mehreren behält jede Datei ihren Originalnamen.
+        $useCustomName = count($this->newFiles) === 1 ? ($this->newName ?: null) : null;
 
-        $this->newFile  = null;
+        foreach ($this->newFiles as $file) {
+            self::storeUpload($file, $useCustomName, $this->newNotes ?: null, $this->projectId);
+        }
+
+        $this->newFiles = [];
         $this->newName  = '';
         $this->newNotes = '';
     }

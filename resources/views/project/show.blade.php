@@ -88,7 +88,7 @@
     <div x-show="show" x-cloak
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
          @click.self="show = false" @keydown.escape.window="show = false" style="display:none">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
             <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
                 <h2 class="text-sm font-semibold text-gray-800"><i class="fa fa-folder-open mr-1.5 text-gray-400"></i>Dokumentenmanager</h2>
                 <button type="button" @click="show = false" class="text-gray-300 hover:text-gray-600">

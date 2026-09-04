@@ -8,18 +8,21 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
 /**
- * "Was ist neu"-Hinweis: erscheint einmalig, wenn ein Benutzer eine neuere
- * Version antrifft als die zuletzt von ihm bestätigte (in UserPreference
- * unter dem Key "app.last_seen_version" abgelegt). Ein neuer Benutzer, der
- * noch nie eine Version gesehen hat, bekommt keinen Hinweis (die Historie
- * ist für einen frischen Account irrelevant) – die aktuelle Version wird
- * für ihn nur still hinterlegt.
+ * Zwei Funktionen in einer Komponente:
+ * 1) "Was ist neu"-Pflichthinweis: erscheint einmalig, wenn ein Benutzer eine
+ *    neuere Version antrifft als die zuletzt von ihm bestätigte (in
+ *    UserPreference unter "app.last_seen_version" abgelegt). Ein neuer
+ *    Benutzer ohne bisherigen Eintrag bekommt keinen Hinweis (Historie
+ *    irrelevant), nur die stille Ersteintragung.
+ * 2) Die Versionsnummer im Sidebar-Footer, die jederzeit anklickbar die
+ *    komplette Update-Historie zeigt (unabhängig vom "gesehen"-Status).
  */
 class VersionNotice extends Component
 {
     public string $currentVersion = '';
     public array $entries = [];
     public bool $show = false;
+    public bool $showManual = false;
 
     private const PREFERENCE_KEY = 'app.last_seen_version';
 
@@ -52,6 +55,18 @@ class VersionNotice extends Component
             UserPreference::set($user, self::PREFERENCE_KEY, $this->currentVersion);
         }
         $this->show = false;
+    }
+
+    /** Manuelles Ansehen der kompletten Update-Historie über den Versions-Link im Sidebar-Footer. */
+    public function openHistory(): void
+    {
+        $this->entries    = Changelog::allEntries();
+        $this->showManual = true;
+    }
+
+    public function closeHistory(): void
+    {
+        $this->showManual = false;
     }
 
     public function render()
