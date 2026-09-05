@@ -49,33 +49,50 @@ class DocumentManager extends Component
             ->get();
 
         foreach ($all as $document) {
-            $document->folder = self::folderFor($document);
+            $document->folders = self::foldersFor($document);
         }
 
         $merged = $this->virtualDocuments()->concat($all);
+        $inFolder = fn (string $folder) => fn (ProjectDocument $d) => in_array($folder, $d->folders, true);
 
         $counts = [
-            self::FOLDER_TABLES  => $merged->where('folder', self::FOLDER_TABLES)->count(),
-            self::FOLDER_PDF     => $merged->where('folder', self::FOLDER_PDF)->count(),
-            self::FOLDER_UPLOADS => $merged->where('folder', self::FOLDER_UPLOADS)->count(),
+            'all'                => $merged->count(),
+            self::FOLDER_TABLES  => $merged->filter($inFolder(self::FOLDER_TABLES))->count(),
+            self::FOLDER_PDF     => $merged->filter($inFolder(self::FOLDER_PDF))->count(),
+            self::FOLDER_UPLOADS => $merged->filter($inFolder(self::FOLDER_UPLOADS))->count(),
         ];
 
         $documents = $this->activeFolder === 'all'
             ? $merged
-            : $merged->where('folder', $this->activeFolder)->values();
+            : $merged->filter($inFolder($this->activeFolder))->values();
 
         return view('livewire.project.document-manager', compact('documents', 'counts'));
     }
 
-    private static function folderFor(ProjectDocument $document): string
+    /**
+     * Ein Dokument kann in mehreren Verzeichnissen gleichzeitig auftauchen:
+     * nach Dateiformat (Tabellen/PDF-Dateien) UND – zusätzlich, nicht
+     * ausschließend – unter "Uploads", wenn es tatsächlich hochgeladen wurde
+     * (im Gegensatz zu den automatisch erzeugten virtuellen Dokumenten).
+     *
+     * @return array<int, string>
+     */
+    private static function foldersFor(ProjectDocument $document): array
     {
-        $ext = $document->extension();
+        $ext     = $document->extension();
+        $folders = [];
 
-        return match (true) {
-            in_array($ext, self::TABLE_EXTENSIONS, true) => self::FOLDER_TABLES,
-            $ext === 'pdf' => self::FOLDER_PDF,
-            default => self::FOLDER_UPLOADS,
-        };
+        if (in_array($ext, self::TABLE_EXTENSIONS, true)) {
+            $folders[] = self::FOLDER_TABLES;
+        } elseif ($ext === 'pdf') {
+            $folders[] = self::FOLDER_PDF;
+        }
+
+        if ($document->exists) {
+            $folders[] = self::FOLDER_UPLOADS;
+        }
+
+        return $folders;
     }
 
     /**
@@ -126,7 +143,7 @@ class DocumentManager extends Component
             'name'      => $name,
             'file_path' => $name,
         ]);
-        $document->folder      = self::folderFor($document);
+        $document->folders     = self::foldersFor($document);
         $document->downloadUrl = $url;
 
         return $document;

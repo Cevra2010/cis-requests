@@ -51,7 +51,7 @@
         $pdf     = \App\Http\Livewire\Project\DocumentManager::FOLDER_PDF;
         $uploads = \App\Http\Livewire\Project\DocumentManager::FOLDER_UPLOADS;
         $folders = [
-            ['key' => 'all', 'label' => 'Alle', 'icon' => 'fa-folder-open', 'count' => array_sum($counts)],
+            ['key' => 'all', 'label' => 'Alle', 'icon' => 'fa-folder-open', 'count' => $counts['all']],
             ['key' => $tables, 'label' => 'Tabellen', 'icon' => 'fa-file-excel', 'count' => $counts[$tables]],
             ['key' => $pdf, 'label' => 'PDF-Dateien', 'icon' => 'fa-file-pdf', 'count' => $counts[$pdf]],
             ['key' => $uploads, 'label' => 'Uploads', 'icon' => 'fa-folder', 'count' => $counts[$uploads]],
@@ -77,9 +77,9 @@
         <div class="flex-1 min-w-0">
             @forelse($documents as $document)
             @php
-                $icon = match($document->folder) {
-                    $tables => 'fa-file-excel text-emerald-500',
-                    $pdf => 'fa-file-pdf text-red-500',
+                $icon = match(true) {
+                    in_array($tables, $document->folders, true) => 'fa-file-excel text-emerald-500',
+                    in_array($pdf, $document->folders, true) => 'fa-file-pdf text-red-500',
                     default => match($document->extension()) {
                         'doc', 'docx' => 'fa-file-word text-blue-500',
                         'png', 'jpg', 'jpeg', 'gif', 'webp' => 'fa-file-image text-violet-500',
