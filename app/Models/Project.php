@@ -475,6 +475,43 @@ class Project extends Model
     }
 
     /**
+     * Eine Zeile je zugeordneter Produktposition (Menge, Einzelpreis,
+     * Gesamtpreis), Basis sowohl für costEstimate() als auch für die
+     * Projektübersicht-PDF. Hausinterne Positionen (bereits im Haus
+     * vorhanden) verursachen keine Beschaffungskosten und werden ausgelassen.
+     *
+     * @return array<int, array{name: string, count: int, unit_price: float, line_total: ?float, has_price: bool}>
+     */
+    public function costEstimateLines(): array
+    {
+        $positions = ProjectProduct::where('cis_row_id_project', $this->cis_row_id)
+            ->where('is_internal', false)
+            ->with('product')
+            ->orderBy('sort_order')
+            ->get();
+
+        $lines = [];
+
+        foreach ($positions as $position) {
+            if (! $position->product) {
+                continue;
+            }
+            $unitPrice = $this->effectiveGroupPrice($position->product);
+            $hasPrice  = $unitPrice > 0;
+
+            $lines[] = [
+                'name'       => $position->product->name,
+                'count'      => $position->product_count,
+                'unit_price' => $unitPrice,
+                'line_total' => $hasPrice ? $unitPrice * $position->product_count : null,
+                'has_price'  => $hasPrice,
+            ];
+        }
+
+        return $lines;
+    }
+
+    /**
      * Grobe Kostenschätzung über alle zugeordneten Produktpositionen (Menge ×
      * effectiveGroupPrice), gemeinsam genutzt von der Produkte-Zuordnung und
      * dem Ausschreibungs-Editor – ein zentraler Berechnungsweg, damit beide
@@ -482,33 +519,12 @@ class Project extends Model
      */
     public function costEstimate(): array
     {
-        // Hausinterne Positionen (bereits im Haus vorhanden) verursachen keine
-        // Beschaffungskosten und fließen daher nicht in die Schätzung ein.
-        $positions = ProjectProduct::where('cis_row_id_project', $this->cis_row_id)
-            ->where('is_internal', false)
-            ->with('product')
-            ->get();
-
-        $total          = 0.0;
-        $missingCount   = 0;
-        $positionsCount = $positions->count();
-
-        foreach ($positions as $position) {
-            if (! $position->product) {
-                continue;
-            }
-            $groupPrice = $this->effectiveGroupPrice($position->product);
-            if ($groupPrice <= 0) {
-                $missingCount++;
-                continue;
-            }
-            $total += $groupPrice * $position->product_count;
-        }
+        $lines = $this->costEstimateLines();
 
         return [
-            'total'           => $total,
-            'positions_count' => $positionsCount,
-            'missing_count'   => $missingCount,
+            'total'           => array_sum(array_column(array_filter($lines, fn ($l) => $l['has_price']), 'line_total')),
+            'positions_count' => count($lines),
+            'missing_count'   => count(array_filter($lines, fn ($l) => ! $l['has_price'])),
             'fixed'           => $this->isLocked(),
         ];
     }

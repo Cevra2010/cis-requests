@@ -87,10 +87,12 @@
                     },
                 };
             @endphp
-            <div wire:key="doc-{{ $document->cis_row_id }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-gray-100 mb-2">
+            <div wire:key="doc-{{ $document->exists ? $document->cis_row_id : md5($document->downloadUrl) }}"
+                 class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-gray-100 mb-2">
                 <i class="fa {{ $icon }} text-lg w-6 text-center shrink-0"></i>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-gray-800 truncate">{{ $document->name }}</p>
+                    @if($document->exists)
                     <p class="text-[11px] text-gray-400">
                         {{ $document->sizeForHumans() }} · {{ $document->created_at->format('d.m.Y H:i') }}
                         @if($document->uploadedBy) · {{ $document->uploadedBy->firstname }} {{ $document->uploadedBy->lastname }} @endif
@@ -101,16 +103,26 @@
                     @if($document->notes)
                         <p class="text-xs text-gray-400 italic mt-0.5">{{ $document->notes }}</p>
                     @endif
+                    @else
+                    <p class="text-[11px] text-gray-400">
+                        <span class="px-1.5 py-0.5 rounded bg-gray-50 text-gray-500">
+                            <i class="fa fa-bolt mr-0.5"></i>Wird bei Bedarf automatisch erzeugt
+                        </span>
+                    </p>
+                    @endif
                 </div>
-                <a href="{{ route('project.document.download', $document->cis_row_id) }}"
-                   class="text-gray-300 hover:text-primary-600 transition-colors shrink-0" title="Herunterladen">
+                <a href="{{ $document->exists ? route('project.document.download', $document->cis_row_id) : $document->downloadUrl }}"
+                   class="text-gray-300 hover:text-primary-600 transition-colors shrink-0" title="Herunterladen"
+                   @if(! $document->exists) target="_blank" @endif>
                     <i class="fa fa-download"></i>
                 </a>
+                @if($document->exists)
                 <button type="button" wire:click="delete('{{ $document->cis_row_id }}')"
                         wire:confirm="„{{ addslashes($document->name) }}“ endgültig löschen?"
                         class="text-gray-300 hover:text-red-500 transition-colors shrink-0" title="Löschen">
                     <i class="fa fa-trash-can"></i>
                 </button>
+                @endif
             </div>
             @empty
             <div class="flex flex-col items-center justify-center h-full py-12 text-gray-300">

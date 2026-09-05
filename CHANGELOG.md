@@ -4,6 +4,10 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.1.3.0 — 2026-09-05
+- Dokumentenmanager: Ausschreibungs-PDF, alle Tabellen-Exporte und eine neue Projektübersicht als PDF stehen jetzt automatisch als Dokument zur Verfügung (werden bei Bedarf frisch erzeugt)
+- Neue Projektübersicht (PDF) mit Stammdaten, Produktliste und Kostenschätzung
+
 ## 0.1.2.0 — 2026-09-04
 - Dokumentenmanager überarbeitet: Verzeichnisse links (Alle, Tabellen, PDF-Dateien, Uploads), Dateiliste rechts
 - Dateien lassen sich jetzt auch per Drag & Drop hochladen (mehrere gleichzeitig möglich)

@@ -272,4 +272,32 @@ class ProjectController extends Controller
 
         return $pdf->stream($filename);
     }
+
+    /**
+     * Projektübersicht als PDF – alle wichtigen Stammdaten + Produktliste mit
+     * Preisen, für den "virtuellen" Eintrag im Dokumentenmanager (wird bei
+     * jedem Aufruf frisch erzeugt, nicht dauerhaft abgelegt).
+     */
+    public function exportOverviewPdf(string $project)
+    {
+        $p = Project::where('cis_row_id', $project)->firstOrFail();
+
+        $branding = (Module::find('Branding')?->isEnabled())
+            ? \Modules\Branding\Models\BrandingSetting::current()
+            : null;
+
+        $lines    = $p->costEstimateLines();
+        $estimate = $p->costEstimate();
+
+        $pdf = Pdf::loadView('project.overview-pdf', [
+            'project'  => $p,
+            'branding' => $branding,
+            'lines'    => $lines,
+            'estimate' => $estimate,
+        ])->setPaper('a4', 'portrait');
+
+        $filename = str($p->name)->slug() . '-uebersicht.pdf';
+
+        return $pdf->stream($filename);
+    }
 }

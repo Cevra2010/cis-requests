@@ -2,10 +2,13 @@
 
 namespace App\Http\Livewire\Project;
 
+use App\Models\Project;
 use App\Models\ProjectDocument;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Modules\Export\Models\ExportTemplate;
+use Nwidart\Modules\Facades\Module;
 
 class DocumentManager extends Component
 {
@@ -49,15 +52,17 @@ class DocumentManager extends Component
             $document->folder = self::folderFor($document);
         }
 
+        $merged = $this->virtualDocuments()->concat($all);
+
         $counts = [
-            self::FOLDER_TABLES  => $all->where('folder', self::FOLDER_TABLES)->count(),
-            self::FOLDER_PDF     => $all->where('folder', self::FOLDER_PDF)->count(),
-            self::FOLDER_UPLOADS => $all->where('folder', self::FOLDER_UPLOADS)->count(),
+            self::FOLDER_TABLES  => $merged->where('folder', self::FOLDER_TABLES)->count(),
+            self::FOLDER_PDF     => $merged->where('folder', self::FOLDER_PDF)->count(),
+            self::FOLDER_UPLOADS => $merged->where('folder', self::FOLDER_UPLOADS)->count(),
         ];
 
         $documents = $this->activeFolder === 'all'
-            ? $all
-            : $all->where('folder', $this->activeFolder)->values();
+            ? $merged
+            : $merged->where('folder', $this->activeFolder)->values();
 
         return view('livewire.project.document-manager', compact('documents', 'counts'));
     }
@@ -71,6 +76,60 @@ class DocumentManager extends Component
             $ext === 'pdf' => self::FOLDER_PDF,
             default => self::FOLDER_UPLOADS,
         };
+    }
+
+    /**
+     * "Dokumente", die es nie wirklich gibt: sehen im Dokumentenmanager wie
+     * eine Datei aus, werden aber erst beim Herunterladen live erzeugt
+     * (bestehende Export-Routen, keine eigene Erzeugungslogik hier). Als
+     * nie gespeicherte ProjectDocument-Instanzen ($document->exists === false)
+     * dargestellt, damit die Blade-View dieselben Anzeige-Helfer nutzen kann.
+     */
+    private function virtualDocuments(): \Illuminate\Support\Collection
+    {
+        $project = Project::where('cis_row_id', $this->projectId)->first();
+        if (! $project) {
+            return collect();
+        }
+
+        $items = collect([
+            $this->virtualDocument(
+                str($project->name)->slug() . '-ausschreibung.pdf',
+                route('project.export.pdf', $project->cis_row_id)
+            ),
+            $this->virtualDocument(
+                str($project->name)->slug() . '-uebersicht.pdf',
+                route('project.overview.pdf', $project->cis_row_id)
+            ),
+        ]);
+
+        if (Module::find('Export')?->isEnabled()) {
+            $templates = ExportTemplate::with('columns')->orderBy('name')->get()
+                ->filter(fn (ExportTemplate $t) => $t->columns->isNotEmpty());
+
+            foreach ($templates as $template) {
+                foreach (['xlsx' => 'xlsx', 'csv' => 'csv'] as $format => $ext) {
+                    $items->push($this->virtualDocument(
+                        "{$template->name}.{$ext}",
+                        route('export.tender.table', [$project->cis_row_id, $template->cis_row_id, $format])
+                    ));
+                }
+            }
+        }
+
+        return $items;
+    }
+
+    private function virtualDocument(string $name, string $url): ProjectDocument
+    {
+        $document = new ProjectDocument([
+            'name'      => $name,
+            'file_path' => $name,
+        ]);
+        $document->folder      = self::folderFor($document);
+        $document->downloadUrl = $url;
+
+        return $document;
     }
 
     /**
