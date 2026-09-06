@@ -42,8 +42,7 @@ class ProjectProductManager extends Component
                 'products.name',
                 'project_product.product_count',
                 'project_product.note',
-                'project_product.sort_order',
-                'project_product.is_internal'
+                'project_product.sort_order'
             )
             ->get();
 
@@ -51,9 +50,9 @@ class ProjectProductManager extends Component
 
         $project = Project::where('cis_row_id', $this->projectId)->first();
 
-        // Unterprodukte je zugeordnetem Produkt nachladen (für Anzeige + Preis-Rollup).
+        // Unterprodukte + feste Quelle je zugeordnetem Produkt nachladen (für Anzeige + Preis-Rollup).
         $productsById = Product::whereIn('cis_row_id', $assignedIds)
-            ->with('childs')
+            ->with(['childs', 'source'])
             ->get()
             ->keyBy('cis_row_id');
 
@@ -62,6 +61,11 @@ class ProjectProductManager extends Component
             $item->children       = $product?->childs ?? collect();
             $item->group_price    = $product && $project ? $project->effectiveGroupPrice($product) : 0.0;
             $item->price_is_fixed = $project?->isLocked() ?? false;
+            // Nicht-ausschreibungsrelevant: rein informativ, wird über die feste
+            // Quelle des Produkts bestimmt (siehe Product::isTenderRelevant()) –
+            // hier nicht mehr manuell umschaltbar (löst "Hausintern" ab).
+            $item->tender_relevant = $product?->isTenderRelevant() ?? true;
+            $item->source_name     = $product?->source?->name;
 
             foreach ($item->children as $child) {
                 $child->effective_price = $project ? $project->effectivePrice($child) : null;
@@ -73,7 +77,7 @@ class ProjectProductManager extends Component
             ->when(trim($this->search), fn($q) => $q->where('name', 'like', '%' . trim($this->search) . '%'))
             ->when($this->categoryFilter !== '', fn($q) => $q->where('category_id', $this->categoryFilter))
             ->orderBy('name')
-            ->get(['cis_row_id', 'name']);
+            ->get(['cis_row_id', 'name', 'is_set']);
 
         $categoryOptions = \CisFoundation\CisCategoryManager\CisCategoryManager::optionsForType('product.category');
 
@@ -103,15 +107,12 @@ class ProjectProductManager extends Component
             ->where('cis_row_id_project', $this->projectId)
             ->max('sort_order') ?? 0;
 
-        $product = Product::find($productId);
-
         \App\Models\ProjectProduct::create([
             'cis_row_id_project' => $this->projectId,
             'cis_row_id_product' => $productId,
             'product_count'      => 1,
             'note'               => null,
             'sort_order'         => (int) $maxOrder + 1,
-            'is_internal'        => $product?->default_is_internal ?? false,
         ]);
 
         $this->dispatch('products-updated');
@@ -165,25 +166,6 @@ class ProjectProductManager extends Component
             ->where('cis_row_id_project', $this->projectId)
             ->where('cis_row_id_product', $productId)
             ->update(['note' => $value ?: null, 'updated_at' => now()]);
-    }
-
-    /**
-     * "Hausintern": Produkt wird nicht ausgeschrieben, da bereits im Haus
-     * vorhanden (z.B. Funkgeräte aus der Funkwerkstatt). Bleibt im Projekt
-     * sichtbar, entfällt aber in Ausschreibung/Angebote/Bestellung/Export.
-     */
-    public function updateInternal(string $productId, bool $value): void
-    {
-        if (! $this->assertEditable($this->projectId)) {
-            return;
-        }
-
-        DB::table('project_product')
-            ->where('cis_row_id_project', $this->projectId)
-            ->where('cis_row_id_product', $productId)
-            ->update(['is_internal' => $value, 'updated_at' => now()]);
-
-        $this->dispatch('products-updated');
     }
 
     private function swapOrder(string $productId, string $direction): void

@@ -52,6 +52,15 @@ class TemplateManager extends Component
         ExportTemplate::where('cis_row_id', $id)->update(['name' => trim($name)]);
     }
 
+    /** Ob diese Vorlage auch nicht-ausschreibungsrelevante Positionen (feste, interne Quelle) einschließt. */
+    public function toggleIncludeNonTenderRelevant(string $id): void
+    {
+        $template = ExportTemplate::find($id);
+        if ($template) {
+            $template->update(['include_non_tender_relevant' => ! $template->include_non_tender_relevant]);
+        }
+    }
+
     public function setDefault(string $id): void
     {
         ExportTemplate::query()->update(['is_default' => false]);

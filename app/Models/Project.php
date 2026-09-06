@@ -285,11 +285,12 @@ class Project extends Model
      */
     public function aggregatedChildPositions(): \Illuminate\Support\Collection
     {
-        // Hausinterne Positionen (siehe ProjectProduct::is_internal) werden nicht
+        // Nicht-ausschreibungsrelevante Positionen (feste Quelle mit
+        // tender_relevant=false, siehe Product::isTenderRelevant()) werden nicht
         // ausgeschrieben – ihre Unterprodukte gelten daher als bereits vorhanden
         // und tauchen entsprechend auch nicht in der Aggregation auf.
-        $positions = $this->positions()->with('product.childs')->get()
-            ->reject(fn (ProjectProduct $p) => $p->is_internal);
+        $positions = $this->positions()->with(['product.childs', 'product.source'])->get()
+            ->reject(fn (ProjectProduct $p) => ! $p->product || ! $p->product->isTenderRelevant());
 
         return \App\Services\ChildProductAggregator::aggregate(
             $positions->map(fn (ProjectProduct $p) => ['product' => $p->product, 'quantity' => $p->product_count])
@@ -309,11 +310,13 @@ class Project extends Model
      */
     public function materialListItems(): \Illuminate\Support\Collection
     {
+        $nonTenderRelevantIds = Product::nonTenderRelevantIds();
+
         $rawPositions = \Illuminate\Support\Facades\DB::table('project_product')
             ->join('products', 'project_product.cis_row_id_product', '=', 'products.cis_row_id')
             ->where('project_product.cis_row_id_project', $this->cis_row_id)
             ->whereNull('products.deleted_at')
-            ->where('project_product.is_internal', false)
+            ->whereNotIn('products.cis_row_id', $nonTenderRelevantIds)
             ->orderBy('project_product.sort_order')
             ->select('products.cis_row_id', 'products.name', 'products.is_set',
                      'project_product.product_count', 'project_product.note')
@@ -477,25 +480,25 @@ class Project extends Model
     /**
      * Eine Zeile je zugeordneter Produktposition (Menge, Einzelpreis,
      * Gesamtpreis), Basis sowohl für costEstimate() als auch für die
-     * Projektübersicht-PDF. Hausinterne Positionen (bereits im Haus
-     * vorhanden) verursachen keine Beschaffungskosten und werden ausgelassen.
+     * Projektübersicht-PDF. Anders als bei der Ausschreibung/den Angeboten
+     * fließen nicht-ausschreibungsrelevante Positionen (feste, interne Quelle)
+     * hier standardmäßig trotzdem ein – sie verursachen ja tatsächlich Kosten
+     * bei der internen Quelle. Nur wenn zusätzlich Product::include_in_estimate
+     * explizit auf false gesetzt wurde, wird die Position ausgelassen.
      *
      * @return array<int, array{name: string, count: int, unit_price: float, line_total: ?float, has_price: bool}>
      */
     public function costEstimateLines(): array
     {
         $positions = ProjectProduct::where('cis_row_id_project', $this->cis_row_id)
-            ->where('is_internal', false)
-            ->with('product')
+            ->with('product.source')
             ->orderBy('sort_order')
-            ->get();
+            ->get()
+            ->reject(fn (ProjectProduct $p) => ! $p->product || (! $p->product->isTenderRelevant() && ! $p->product->include_in_estimate));
 
         $lines = [];
 
         foreach ($positions as $position) {
-            if (! $position->product) {
-                continue;
-            }
             $unitPrice = $this->effectiveGroupPrice($position->product);
             $hasPrice  = $unitPrice > 0;
 
@@ -527,5 +530,29 @@ class Project extends Model
             'missing_count'   => count(array_filter($lines, fn ($l) => ! $l['has_price'])),
             'fixed'           => $this->isLocked(),
         ];
+    }
+
+    /**
+     * Positionen mit fester, nicht-ausschreibungsrelevanter Quelle, gruppiert
+     * nach dieser Quelle – Basis für die Materialanforderungs-PDF
+     * (ProjectController::exportMaterialRequestPdf()) und den internen
+     * Wareneingang (GoodsReceiptManager).
+     *
+     * @return \Illuminate\Support\Collection<int, array{source: ProductSource, items: array<int, array{name: string, count: int}>}>
+     */
+    public function materialRequestGroups(): \Illuminate\Support\Collection
+    {
+        $positions = $this->positions()->with('product.source')->get()
+            ->filter(fn (ProjectProduct $p) => $p->product && ! $p->product->isTenderRelevant());
+
+        return $positions->groupBy(fn (ProjectProduct $p) => $p->product->cis_row_id_source)
+            ->map(fn ($group) => [
+                'source' => $group->first()->product->source,
+                'items'  => $group->map(fn (ProjectProduct $p) => [
+                    'name'  => $p->product->name,
+                    'count' => $p->product_count,
+                ])->values()->all(),
+            ])
+            ->values();
     }
 }

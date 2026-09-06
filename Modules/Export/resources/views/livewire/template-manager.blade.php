@@ -61,6 +61,12 @@
 
         @if($isExpanded)
         <div class="mt-4 pt-4 border-t border-gray-100">
+            <label class="flex items-center gap-2 mb-4 text-sm text-gray-600 cursor-pointer">
+                <input type="checkbox" {{ $template->include_non_tender_relevant ? 'checked' : '' }}
+                       wire:click="toggleIncludeNonTenderRelevant('{{ $template->cis_row_id }}')"
+                       class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                Auch nicht-ausschreibungsrelevante Positionen einschließen (feste, interne Quelle, z.B. Funkwerkstatt)
+            </label>
             @if($template->columns->isEmpty())
                 <p class="text-xs text-gray-400 italic mb-3">Noch keine Spalten definiert.</p>
             @else

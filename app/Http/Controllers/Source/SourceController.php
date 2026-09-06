@@ -23,6 +23,7 @@ class SourceController extends Controller
         $data = $request->validate([
             'name'          => 'required|string|max:255|unique:product_sources,name',
             'url'           => 'nullable|url|max:500',
+            'tender_relevant'     => 'nullable|boolean',
             'address_street'      => 'nullable|string|max:255',
             'address_postal_code' => 'nullable|string|max:20',
             'address_city'        => 'nullable|string|max:255',
@@ -49,6 +50,7 @@ class SourceController extends Controller
         $data = $request->validate([
             'name'          => 'required|string|max:255|unique:product_sources,name,' . $source->cis_row_id . ',cis_row_id',
             'url'           => 'nullable|url|max:500',
+            'tender_relevant'     => 'nullable|boolean',
             'address_street'      => 'nullable|string|max:255',
             'address_postal_code' => 'nullable|string|max:20',
             'address_city'        => 'nullable|string|max:255',

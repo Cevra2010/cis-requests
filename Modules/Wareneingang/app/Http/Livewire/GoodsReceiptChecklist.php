@@ -37,7 +37,7 @@ class GoodsReceiptChecklist extends Component
         $participant = $this->participant();
         $participant->touchPresence();
 
-        $receipt = $participant->receipt()->with(['project', 'offer.source'])->firstOrFail();
+        $receipt = $participant->receipt()->with(['project', 'offer.source', 'source'])->firstOrFail();
 
         $otherParticipants = $receipt->participants()
             ->where('cis_row_id', '!=', $participant->cis_row_id)

@@ -377,7 +377,7 @@ class TenderEditor extends Component
             ->join('products', 'project_product.cis_row_id_product', '=', 'products.cis_row_id')
             ->where('project_product.cis_row_id_project', $this->projectId)
             ->whereNull('products.deleted_at')
-            ->where('project_product.is_internal', false)
+            ->whereNotIn('products.cis_row_id', \App\Models\Product::nonTenderRelevantIds())
             ->select('products.cis_row_id', 'products.is_set')
             ->get();
 

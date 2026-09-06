@@ -15,6 +15,7 @@ class ExportFieldRegistry
         'note'               => 'Hinweis',
         'description'        => 'Beschreibungstext',
         'source_name'        => 'Zugeordneter Anbieter',
+        'tender_relevant'    => 'Ausschreibungsrelevant',
         'unit_price'         => 'Einzelpreis',
         'total_price'        => 'Gesamtpreis',
         'vendor_unit_price'  => 'Einzelpreis (Händler)',

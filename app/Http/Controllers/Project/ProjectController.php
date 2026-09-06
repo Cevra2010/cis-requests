@@ -300,4 +300,31 @@ class ProjectController extends Controller
 
         return $pdf->stream($filename);
     }
+
+    /**
+     * Materialanforderung als PDF – ein Abschnitt je fester, nicht-
+     * ausschreibungsrelevanter Quelle (z.B. "Funkwerkstatt"), mit den dort
+     * anzufordernden Produkten/Mengen. Ersetzt für diese Positionen die
+     * reguläre Bestellung an einen Anbieter.
+     */
+    public function exportMaterialRequestPdf(string $project)
+    {
+        $p = Project::where('cis_row_id', $project)->firstOrFail();
+
+        $branding = (Module::find('Branding')?->isEnabled())
+            ? \Modules\Branding\Models\BrandingSetting::current()
+            : null;
+
+        $groups = $p->materialRequestGroups();
+
+        $pdf = Pdf::loadView('project.material-request-pdf', [
+            'project'  => $p,
+            'branding' => $branding,
+            'groups'   => $groups,
+        ])->setPaper('a4', 'portrait');
+
+        $filename = str($p->name)->slug() . '-materialanforderung.pdf';
+
+        return $pdf->stream($filename);
+    }
 }

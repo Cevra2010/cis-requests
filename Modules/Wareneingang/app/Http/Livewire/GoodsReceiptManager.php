@@ -3,6 +3,7 @@
 namespace Modules\Wareneingang\Http\Livewire;
 
 use App\Models\Offer;
+use App\Models\Project;
 use App\Models\PositionAward;
 use App\Models\User;
 use Livewire\Component;
@@ -16,6 +17,9 @@ class GoodsReceiptManager extends Component
 
     /** cis_row_id des Offers, dessen Übersicht gerade aufgeklappt ist. */
     public ?string $expandedOfferId = null;
+
+    /** cis_row_id der internen Quelle, deren Übersicht gerade aufgeklappt ist. */
+    public ?string $expandedSourceId = null;
 
     /** cis_row_id des GoodsReceipt, für das gerade ein neuer Link erzeugt wird. */
     public ?string $linkFormReceiptId = null;
@@ -51,7 +55,21 @@ class GoodsReceiptManager extends Component
             ->sortBy(fn (Offer $offer) => $offer->source?->name ?? $offer->cis_row_id)
             ->values();
 
-        return view('wareneingang::livewire.goods-receipt-manager', compact('offers'));
+        // Interne Beschaffung: Positionen mit fester, nicht-ausschreibungsrelevanter
+        // Quelle statt eines Angebots (siehe Product::isTenderRelevant()) – eigener
+        // Wareneingang je genutzter Quelle, ohne PositionAward/Offer.
+        $project         = Project::where('cis_row_id', $this->projectId)->first();
+        $internalSources = $project ? $project->materialRequestGroups()->map(function (array $group) {
+            $source                = $group['source'];
+            $source->expectedCount = count($group['items']);
+            $source->receipt       = GoodsReceipt::where('cis_row_id_source', $source->cis_row_id)
+                ->with(['items.position.product', 'items.lastParticipant.user', 'participants.user'])
+                ->latest('created_at')
+                ->first();
+            return $source;
+        })->sortBy(fn ($source) => $source->name)->values() : collect();
+
+        return view('wareneingang::livewire.goods-receipt-manager', compact('offers', 'internalSources'));
     }
 
     public function startReceipt(string $offerId): void
@@ -81,6 +99,43 @@ class GoodsReceiptManager extends Component
             });
 
         $this->expandedOfferId = $offerId;
+    }
+
+    /**
+     * Wareneingang für eine feste, nicht-ausschreibungsrelevante Quelle statt
+     * eines Angebots – es gibt hier kein PositionAward, die Positionen kommen
+     * daher direkt aus den ProjectProduct-Zeilen mit dieser festen Quelle.
+     */
+    public function startInternalReceipt(string $sourceId): void
+    {
+        $exists = GoodsReceipt::where('cis_row_id_source', $sourceId)->exists();
+        if ($exists) {
+            return;
+        }
+
+        $receipt = GoodsReceipt::create([
+            'cis_row_id_project' => $this->projectId,
+            'cis_row_id_offer'   => '', // kein Angebot – siehe GoodsReceipt::isInternal()
+            'cis_row_id_source'  => $sourceId,
+        ]);
+
+        \App\Models\ProjectProduct::where('cis_row_id_project', $this->projectId)
+            ->whereHas('product', fn ($q) => $q->where('cis_row_id_source', $sourceId))
+            ->get()
+            ->each(function (\App\Models\ProjectProduct $position) use ($receipt) {
+                GoodsReceiptItem::create([
+                    'cis_row_id_goods_receipt'   => $receipt->cis_row_id,
+                    'cis_row_id_project_product' => $position->cis_row_id,
+                    'expected_count'             => $position->product_count,
+                ]);
+            });
+
+        $this->expandedSourceId = $sourceId;
+    }
+
+    public function toggleExpandedSource(string $sourceId): void
+    {
+        $this->expandedSourceId = $this->expandedSourceId === $sourceId ? null : $sourceId;
     }
 
     public function resetReceipt(string $receiptId): void

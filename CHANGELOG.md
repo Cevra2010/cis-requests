@@ -4,6 +4,14 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.2.0.0 — 2026-09-06
+- Kategorie-Auswahl (bei Projekt/Produkt anlegen & bearbeiten) ist jetzt durchsuchbar statt eines klassischen Dropdowns
+- Set-Produkte sind jetzt auch bei der Produktauswahl im Projekt als "Set" gekennzeichnet
+- "Hausintern" abgelöst durch neue, quellenbasierte Regel: Produkte können fest einer Produktquelle zugeordnet werden; Quellen können als "nicht ausschreibungsrelevant" markiert werden (z.B. eine eigene Werkstatt) – deren Produkte werden weiterhin geplant, erscheinen aber nicht auf der Ausschreibung, im Angebotsvergleich oder in der Bestellzuordnung
+- Neu: Materialanforderungs-PDF für nicht-ausschreibungsrelevante Positionen, automatisch im Dokumentenmanager verfügbar
+- Neu: eigener Wareneingang-Bereich für interne Quellen
+- Export-Vorlagen können jetzt gezielt auch nicht-ausschreibungsrelevante Positionen einschließen (z.B. für eine interne Materialliste)
+
 ## 0.1.3.1 — 2026-09-05
 - Bugfix: Hochgeladene Dokumente erscheinen jetzt sowohl unter "Uploads" als auch im passenden Dateiformat-Verzeichnis (z.B. PDF-Dateien) statt nur in einem davon
 

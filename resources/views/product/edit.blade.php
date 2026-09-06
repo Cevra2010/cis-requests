@@ -62,13 +62,58 @@
                                onchange="document.getElementById('rename-form').submit()">
                         Set
                     </label>
-                    <input type="hidden" name="default_is_internal" value="0">
-                    <label class="flex items-center gap-1.5 text-xs text-gray-500 shrink-0 cursor-pointer" title="Wird beim Hinzufügen zu einem Projekt standardmäßig als hausintern markiert (nicht ausgeschrieben) – je Projekt änderbar.">
-                        <input type="checkbox" name="default_is_internal" value="1"
-                               {{ old('default_is_internal', $product->default_is_internal) ? 'checked' : '' }}
-                               onchange="document.getElementById('rename-form').submit()">
-                        Standardmäßig hausintern
-                    </label>
+                    <div x-data="{
+                            sourceId: @js((string) old('cis_row_id_source', $product->cis_row_id_source ?? '')),
+                            sourceOpen: false, sourceQuery: '',
+                            sources: @js($sources->map(fn ($s) => ['id' => $s->cis_row_id, 'name' => $s->name, 'tender_relevant' => (bool) $s->tender_relevant])),
+                            get selectedSource() { return this.sources.find(s => s.id === this.sourceId) ?? null; },
+                            get nonTenderRelevant() { return this.selectedSource && ! this.selectedSource.tender_relevant; },
+                            filteredSources() { return this.sources.filter(s => this.sourceQuery === '' || s.name.toLowerCase().includes(this.sourceQuery.toLowerCase())); },
+                            choose(id) { this.sourceId = id; this.sourceOpen = false; this.sourceQuery = ''; this.$nextTick(() => document.getElementById('rename-form').submit()); },
+                         }"
+                         class="flex items-center gap-2 shrink-0">
+                        <div class="relative" @click.outside="sourceOpen = false">
+                            <button type="button" @click="sourceOpen = !sourceOpen; $nextTick(() => $refs.srcSearch?.focus())"
+                                    class="cis-input py-1.5 text-xs flex items-center gap-1.5" style="min-width: 150px" title="Feste Quelle: löst das frühere „Hausintern“-Merkmal ab, siehe Quellenverwaltung.">
+                                <i class="fa fa-truck text-gray-400 shrink-0"></i>
+                                <span x-text="selectedSource ? selectedSource.name : 'Keine feste Quelle'" class="truncate"></span>
+                            </button>
+                            <input type="hidden" name="cis_row_id_source" :value="sourceId">
+                            <div x-show="sourceOpen" x-cloak
+                                 class="absolute z-30 mt-1 w-56 rounded-lg border border-gray-200 bg-white shadow-lg"
+                                 style="display:none">
+                                <div class="p-2 border-b border-gray-100">
+                                    <input type="text" x-ref="srcSearch" x-model="sourceQuery" placeholder="Quelle suchen…"
+                                           class="cis-input py-1 text-xs w-full" @click.stop @keydown.escape="sourceOpen = false">
+                                </div>
+                                <div class="max-h-48 overflow-y-auto py-1">
+                                    <button type="button" @click="choose('')"
+                                            class="w-full text-left px-3 py-1.5 text-xs text-gray-400 hover:bg-gray-50">
+                                        — Keine feste Quelle —
+                                    </button>
+                                    <template x-for="s in filteredSources()" :key="s.id">
+                                        <button type="button" @click="choose(s.id)"
+                                                class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50"
+                                                :class="s.id === sourceId ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'">
+                                            <span x-text="s.name"></span>
+                                            <span x-show="! s.tender_relevant" class="text-[9px] text-sky-500 ml-1">(nicht ausschreibungsrelevant)</span>
+                                        </button>
+                                    </template>
+                                    <p x-show="filteredSources().length === 0" class="px-3 py-2 text-xs text-gray-400">Keine Quelle gefunden.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <label x-show="nonTenderRelevant" x-cloak
+                               class="flex items-center gap-1.5 text-xs text-gray-500 shrink-0 cursor-pointer"
+                               title="Nur bei nicht-ausschreibungsrelevanter fester Quelle: ob diese Position trotzdem in die grobe Kostenschätzung einfließt.">
+                            <input type="hidden" name="include_in_estimate" value="0">
+                            <input type="checkbox" name="include_in_estimate" value="1"
+                                   {{ old('include_in_estimate', $product->include_in_estimate) ? 'checked' : '' }}
+                                   onchange="document.getElementById('rename-form').submit()">
+                            In Kalkulation einschließen
+                        </label>
+                    </div>
                     @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </form>
                 <p class="text-xs text-gray-400 mt-1.5">

@@ -14,6 +14,7 @@ class ProductSource extends Model
     protected $fillable = [
         'name',
         'url',
+        'tender_relevant',
         'address_street',
         'address_postal_code',
         'address_city',
@@ -24,8 +25,18 @@ class ProductSource extends Model
         'notes',
     ];
 
+    protected $casts = [
+        'tender_relevant' => 'boolean',
+    ];
+
     public function prices()
     {
         return $this->hasMany(Price::class, 'cis_row_id_source', 'cis_row_id');
+    }
+
+    /** Produkte, die fest dieser Quelle zugeordnet sind (siehe Product::cis_row_id_source). */
+    public function fixedProducts()
+    {
+        return $this->hasMany(Product::class, 'cis_row_id_source', 'cis_row_id');
     }
 }

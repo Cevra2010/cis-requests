@@ -4,6 +4,7 @@ namespace Modules\Wareneingang\Models;
 
 use App\Models\Offer;
 use App\Models\Project;
+use App\Models\ProductSource;
 use App\Models\Traits\CisUuid;
 use Illuminate\Database\Eloquent\Model;
 
@@ -16,6 +17,7 @@ class GoodsReceipt extends Model
     protected $fillable = [
         'cis_row_id_project',
         'cis_row_id_offer',
+        'cis_row_id_source',
         'notes',
         'completed_at',
     ];
@@ -32,6 +34,17 @@ class GoodsReceipt extends Model
     public function offer()
     {
         return $this->belongsTo(Offer::class, 'cis_row_id_offer', 'cis_row_id');
+    }
+
+    /** Wareneingang aus einer festen, nicht-ausschreibungsrelevanten Quelle statt einem Angebot. */
+    public function source()
+    {
+        return $this->belongsTo(ProductSource::class, 'cis_row_id_source', 'cis_row_id');
+    }
+
+    public function isInternal(): bool
+    {
+        return $this->cis_row_id_source !== null;
     }
 
     public function items()

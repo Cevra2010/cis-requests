@@ -32,10 +32,14 @@ class AwardManager extends Component
 
         // Setprodukte erscheinen nie als eigene Position (siehe Product::isSet()) –
         // nur ihre Mitgliedsprodukte, die über aggregatedChildPositions() unten
-        // ohnehin projektweit erfasst werden. Hausinterne Positionen (bereits im
-        // Haus vorhanden, siehe ProjectProduct::is_internal) werden nicht bestellt.
-        $positions = $project->positions()->with(['product', 'award.offer.source', 'offerItems.offer.source'])->get()
-            ->reject(fn ($p) => $p->product?->isSet() || $p->is_internal)
+        // ohnehin projektweit erfasst werden. Nicht-ausschreibungsrelevante
+        // Positionen (feste, interne Quelle, siehe Product::isTenderRelevant())
+        // werden nicht regulär bestellt, siehe stattdessen $internalPositions unten.
+        $positions = $project->positions()->with(['product.source', 'award.offer.source', 'offerItems.offer.source'])->get()
+            ->reject(fn ($p) => ! $p->product || $p->product->isSet() || ! $p->product->isTenderRelevant())
+            ->values();
+        $internalPositions = $project->positions()->with('product.source')->get()
+            ->reject(fn ($p) => ! $p->product || $p->product->isSet() || $p->product->isTenderRelevant())
             ->values();
         $offers    = $project->offers()->with('source')->orderBy('created_at')->get();
         $conflicts = AwardCalculator::conflicts($project);
@@ -62,7 +66,7 @@ class AwardManager extends Component
         })->filter(fn ($s) => $s['count'] > 0);
 
         return view('livewire.project.award-manager', compact(
-            'project', 'positions', 'offers', 'conflicts', 'summaries',
+            'project', 'positions', 'internalPositions', 'offers', 'conflicts', 'summaries',
             'childPositions', 'childAwards', 'childOfferItems'
         ));
     }

@@ -120,6 +120,15 @@ class DocumentManager extends Component
             ),
         ]);
 
+        // Nur anbieten, wenn das Projekt tatsächlich mindestens eine Position mit
+        // fester, nicht-ausschreibungsrelevanter Quelle hat (sonst ein sinnloser Leer-Eintrag).
+        if ($project->materialRequestGroups()->isNotEmpty()) {
+            $items->push($this->virtualDocument(
+                str($project->name)->slug() . '-materialanforderung.pdf',
+                route('project.material-request.pdf', $project->cis_row_id)
+            ));
+        }
+
         if (Module::find('Export')?->isEnabled()) {
             $templates = ExportTemplate::with('columns')->orderBy('name')->get()
                 ->filter(fn (ExportTemplate $t) => $t->columns->isNotEmpty());

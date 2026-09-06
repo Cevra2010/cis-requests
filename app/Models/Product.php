@@ -12,15 +12,32 @@ class Product extends Model
 {
     use HasFactory, CisUuid, SoftDeletes;
 
-    protected $fillable = ['name', 'category_id', 'is_set', 'default_is_internal'];
+    protected $fillable = ['name', 'category_id', 'is_set', 'cis_row_id_source', 'include_in_estimate'];
 
-    protected $casts = ['is_set' => 'boolean', 'default_is_internal' => 'boolean'];
+    protected $casts = ['is_set' => 'boolean', 'include_in_estimate' => 'boolean'];
 
     // ── Relationships ────────────────────────────────────────────────────────
 
     public function category()
     {
         return $this->belongsTo(Category::class, 'category_id');
+    }
+
+    /**
+     * Feste Quelle (z.B. "Digitalfunkgerät" → immer "Funkwerkstatt"). Ist diese
+     * Quelle nicht ausschreibungsrelevant, gilt das für dieses Produkt
+     * automatisch in jedem Projekt – siehe isTenderRelevant(). Löst das
+     * frühere, manuell pro Projekt zu setzende "Hausintern"-Merkmal ab.
+     */
+    public function source()
+    {
+        return $this->belongsTo(ProductSource::class, 'cis_row_id_source', 'cis_row_id');
+    }
+
+    /** Kein feste Quelle, oder eine ausschreibungsrelevante – Standardfall für die meisten Produkte. */
+    public function isTenderRelevant(): bool
+    {
+        return $this->source === null || $this->source->tender_relevant;
     }
 
     public function prices()
@@ -137,6 +154,17 @@ class Product extends Model
     public function isSet(): bool
     {
         return (bool) $this->is_set;
+    }
+
+    /**
+     * IDs aller Produkte mit einer nicht-ausschreibungsrelevanten festen
+     * Quelle – für Rohquery-Stellen (materialListItems(), expandedProductIds()),
+     * die aus Performance-/Lesbarkeitsgründen keinen dritten Join anlegen.
+     */
+    public static function nonTenderRelevantIds(): \Illuminate\Support\Collection
+    {
+        return static::whereHas('source', fn ($q) => $q->where('tender_relevant', false))
+            ->pluck('cis_row_id');
     }
 
     public function getChild()

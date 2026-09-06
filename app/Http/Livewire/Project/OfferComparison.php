@@ -93,11 +93,12 @@ class OfferComparison extends Component
 
         // Setprodukte erscheinen nie als eigene Position (siehe Product::isSet()) –
         // nur ihre Mitgliedsprodukte, die über aggregatedChildPositions() unten
-        // ohnehin projektweit erfasst werden. Hausinterne Positionen (bereits im
-        // Haus vorhanden, siehe ProjectProduct::is_internal) werden gar nicht erst
-        // ausgeschrieben und tauchen daher im Angebotsvergleich nicht auf.
-        $positions = $project->positions()->with(['product.childs', 'award.offer.source'])->get()
-            ->reject(fn ($p) => $p->product?->isSet() || $p->is_internal)
+        // ohnehin projektweit erfasst werden. Nicht-ausschreibungsrelevante
+        // Positionen (feste, interne Quelle, siehe Product::isTenderRelevant())
+        // werden gar nicht erst ausgeschrieben und tauchen daher im
+        // Angebotsvergleich nicht auf.
+        $positions = $project->positions()->with(['product.childs', 'product.source', 'award.offer.source'])->get()
+            ->reject(fn ($p) => ! $p->product || $p->product->isSet() || ! $p->product->isTenderRelevant())
             ->values();
         $offers    = $project->offers()->with('source')->orderBy('created_at')->get();
 

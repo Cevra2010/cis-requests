@@ -18,22 +18,27 @@ class ProductController extends Controller
 
     public function create($parentProduct = null)
     {
-        $parent = $parentProduct ? Product::where('cis_row_id', $parentProduct)->firstOrFail() : null;
-        return view('product.create', compact('parent'));
+        $parent  = $parentProduct ? Product::where('cis_row_id', $parentProduct)->firstOrFail() : null;
+        $sources = ProductSource::orderBy('name')->get();
+        return view('product.create', compact('parent', 'sources'));
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name'        => 'required|string|max:255',
-            'category_id' => 'nullable|integer',
-            'is_set'      => 'nullable|boolean',
+            'name'                => 'required|string|max:255',
+            'category_id'         => 'nullable|integer',
+            'is_set'              => 'nullable|boolean',
+            'cis_row_id_source'   => 'nullable|string|exists:product_sources,cis_row_id',
+            'include_in_estimate' => 'nullable|boolean',
         ]);
 
         $product = Product::create([
-            'name'        => $data['name'],
-            'category_id' => $data['category_id'] ?? null,
-            'is_set'      => $data['is_set'] ?? false,
+            'name'                => $data['name'],
+            'category_id'         => $data['category_id'] ?? null,
+            'is_set'              => $data['is_set'] ?? false,
+            'cis_row_id_source'   => $data['cis_row_id_source'] ?? null,
+            'include_in_estimate' => $data['include_in_estimate'] ?? true,
         ]);
 
         // Eltern-Kind-Beziehung über Pivot-Tabelle
@@ -61,11 +66,15 @@ class ProductController extends Controller
     public function update(Request $request, Product $product)
     {
         $data = $request->validate([
-            'name'        => 'required|string|max:255',
-            'category_id' => 'nullable|integer',
-            'is_set'      => 'nullable|boolean',
+            'name'                => 'required|string|max:255',
+            'category_id'         => 'nullable|integer',
+            'is_set'              => 'nullable|boolean',
+            'cis_row_id_source'   => 'nullable|string|exists:product_sources,cis_row_id',
+            'include_in_estimate' => 'nullable|boolean',
         ]);
-        $data['is_set'] = $data['is_set'] ?? false;
+        $data['is_set']              = $data['is_set'] ?? false;
+        $data['cis_row_id_source']   = $data['cis_row_id_source'] ?? null;
+        $data['include_in_estimate'] = $data['include_in_estimate'] ?? true;
         $product->update($data);
 
         session()->flash('success', 'Produkt wurde umbenannt.');

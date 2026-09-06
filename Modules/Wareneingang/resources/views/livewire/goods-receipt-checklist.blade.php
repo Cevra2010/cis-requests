@@ -3,7 +3,7 @@
         <div class="flex items-start justify-between gap-3 flex-wrap">
             <div class="min-w-0">
                 <p class="text-xs text-gray-400 truncate">{{ $receipt->project->name ?? '' }}</p>
-                <h2 class="text-lg font-semibold text-gray-900 truncate">{{ $receipt->offer->source->name ?? 'Wareneingang' }}</h2>
+                <h2 class="text-lg font-semibold text-gray-900 truncate">{{ $receipt->offer?->source?->name ?? $receipt->source?->name ?? 'Wareneingang' }}</h2>
             </div>
             @if($receipt->isComplete())
                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 shrink-0">

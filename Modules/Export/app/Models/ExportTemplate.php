@@ -13,10 +13,11 @@ class ExportTemplate extends Model
 
     protected $table = 'export_templates';
 
-    protected $fillable = ['name', 'is_default'];
+    protected $fillable = ['name', 'is_default', 'include_non_tender_relevant'];
 
     protected $casts = [
-        'is_default' => 'boolean',
+        'is_default'                  => 'boolean',
+        'include_non_tender_relevant' => 'boolean',
     ];
 
     public function columns()

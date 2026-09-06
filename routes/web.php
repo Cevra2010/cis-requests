@@ -137,6 +137,7 @@ Route::middleware(['auth'])->group(function() {
     Route::delete('/Project/{project}',              [ProjectController::class, 'destroy'])   ->name('project.destroy');
     Route::get('/Project/{project}/Export/PDF',      [ProjectController::class, 'exportPdf']) ->name('project.export.pdf');
     Route::get('/Project/{project}/Overview/PDF',    [ProjectController::class, 'exportOverviewPdf']) ->name('project.overview.pdf');
+    Route::get('/Project/{project}/MaterialRequest/PDF', [ProjectController::class, 'exportMaterialRequestPdf']) ->name('project.material-request.pdf');
     Route::post('/Project/{project}/Status/Advance', [ProjectController::class, 'advanceStatus']) ->name('project.status.advance');
     Route::post('/Project/{project}/Status/Revert',  [ProjectController::class, 'revertStatus'])  ->name('project.status.revert');
 

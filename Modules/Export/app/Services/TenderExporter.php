@@ -46,13 +46,14 @@ class TenderExporter
             $headers[] = self::IMPORT_KEY_HEADER;
         }
 
-        // Hausinterne Positionen (bereits im Haus vorhanden, siehe
-        // ProjectProduct::is_internal) werden nicht ausgeschrieben und fehlen
-        // daher komplett im Export – inklusive ihrer Unterprodukte.
+        // Nicht-ausschreibungsrelevante Positionen (feste, interne Quelle, siehe
+        // Product::isTenderRelevant()) fehlen standardmäßig im Export – eine
+        // Vorlage kann das über include_non_tender_relevant gezielt einschließen
+        // (z.B. für eine interne Materialliste je Quelle).
         $positions = $project->positions()
-            ->with(['product.childs', 'award.offer.source', 'offerItems'])
+            ->with(['product.childs.source', 'product.source', 'award.offer.source', 'offerItems'])
             ->get()
-            ->reject(fn (ProjectProduct $p) => $p->is_internal);
+            ->reject(fn (ProjectProduct $p) => ! $p->product || (! $template->include_non_tender_relevant && ! $p->product->isTenderRelevant()));
 
         $rows  = [];
         $index = 0;
@@ -114,7 +115,9 @@ class TenderExporter
             'quantity'        => (string) $position->product_count,
             'note'            => (string) ($position->note ?? ''),
             'description'     => $position->product ? $this->description($position->product->cis_row_id, $projectId) : '',
-            'source_name'     => $position->award?->offer?->source?->name ?? '',
+            // Kein Angebot vorhanden (nicht-ausschreibungsrelevante Position) → feste Quelle des Produkts stattdessen.
+            'source_name'     => $position->award?->offer?->source?->name ?? $position->product?->source?->name ?? '',
+            'tender_relevant' => $position->product?->isTenderRelevant() ? 'Ja' : 'Nein',
             'unit_price'      => $unitPrice !== null ? number_format($unitPrice, 2, ',', '.') : '',
             'total_price'     => $unitPrice !== null ? number_format($unitPrice * $position->product_count, 2, ',', '.') : '',
             default           => '',
@@ -133,7 +136,8 @@ class TenderExporter
             'quantity'        => (string) $quantity,
             'note'            => '',
             'description'     => $this->description($child->cis_row_id, $projectId),
-            'source_name'     => '',
+            'source_name'     => $child->source?->name ?? '',
+            'tender_relevant' => $child->isTenderRelevant() ? 'Ja' : 'Nein',
             'unit_price'      => $unitPrice !== null ? number_format($unitPrice, 2, ',', '.') : '',
             'total_price'     => $unitPrice !== null ? number_format($unitPrice * $quantity, 2, ',', '.') : '',
             default           => '',

@@ -30,6 +30,15 @@
                 @error('url')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
 
+            <label class="flex items-start gap-2 text-sm text-gray-600 cursor-pointer">
+                <input type="hidden" name="tender_relevant" value="0">
+                <input type="checkbox" name="tender_relevant" value="1" class="mt-0.5" {{ old('tender_relevant', $source->tender_relevant) ? 'checked' : '' }}>
+                <span>
+                    Ausschreibungsrelevant
+                    <span class="block text-xs text-gray-400">Produkte mit dieser festen Quelle erscheinen auf der Ausschreibung, im Angebotsvergleich und in der Bestellzuordnung. Deaktivieren für interne Quellen (z.B. eine eigene Werkstatt) – deren Produkte werden dann regulär geplant, aber nicht ausgeschrieben.</span>
+                </span>
+            </label>
+
             <div class="border-t border-gray-100 pt-4">
                 <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Anschrift</p>
                 <div>
