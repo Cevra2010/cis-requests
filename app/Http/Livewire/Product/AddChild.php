@@ -83,8 +83,13 @@ class AddChild extends Component
             $product = $this->selectedProductObject;
         }
         else {
+            if (trim((string) $this->searchString) === '') {
+                $this->addError('searchString', 'Bitte ein bestehendes Produkt auswählen oder einen Namen für ein neues Produkt eingeben.');
+                return;
+            }
+
             $product = new Product();
-            $product->name = $this->searchString;
+            $product->name = trim($this->searchString);
             $product->save();
         }
 

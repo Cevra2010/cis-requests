@@ -27,6 +27,8 @@
             @endforeach
         </ul>
         @endif
+
+        @error('searchString')<p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>@enderror
     @endif
 
     <button type="button" wire:click="submitForm" class="btn btn-primary btn-sm mt-2">
