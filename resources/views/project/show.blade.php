@@ -39,8 +39,6 @@
         $revertBlockedReasons[] = 'Erfordert die Berechtigung, fixierte Ausschreibungen zu bearbeiten.';
     }
     $wareneingangEnabled = \Nwidart\Modules\Facades\Module::find('Wareneingang')?->isEnabled() ?? false;
-    $exportEnabled = \Nwidart\Modules\Facades\Module::find('Export')?->isEnabled() ?? false;
-    $exportTemplates = $exportEnabled ? \Modules\Export\Models\ExportTemplate::with('columns')->orderByDesc('is_default')->orderBy('name')->get() : collect();
 
     // ── Tab-Sichtbarkeit: einmal erreichte Stufen bleiben sichtbar (zurückschauen
     //    ist immer möglich), noch nicht erreichte Folgestufen bleiben ausgeblendet.
@@ -52,7 +50,6 @@
     $tabVisibility = [
         'beladung'      => true,
         'ausschreibung' => ! $project->isVehicle(),
-        'export'        => true,
         'angebote'      => $reached('tender'),
         'bestellung'    => $reached('evaluated'),
         'wareneingang'  => $wareneingangEnabled && $reached('ordered'),
@@ -308,13 +305,6 @@
             Ausschreibung
         </button>
         @endif
-        <button type="button"
-                @click="tab = 'export'"
-                :class="tab === 'export' ? 'border-b-2 border-primary-600 text-primary-600 bg-white' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'"
-                class="px-4 py-2.5 text-sm font-medium transition-colors rounded-t-lg -mb-px">
-            <i class="fa fa-file-export mr-1.5"></i>
-            Export
-        </button>
         @if($tabVisibility['angebote'])
         <button type="button"
                 @click="tab = 'angebote'"
@@ -362,77 +352,6 @@
         @livewire('project.tender-editor', ['projectId' => $project->cis_row_id])
     </div>
     @endif
-
-    {{-- Tab: Export --}}
-    <div x-show="tab === 'export'" x-cloak>
-        <div class="max-w-2xl">
-            <div class="cis-card">
-                <h2 class="text-base font-semibold text-gray-800 mb-1">Ausschreibung exportieren</h2>
-                <p class="text-sm text-gray-500 mb-6">Exportiere die Ausschreibung in das gewünschte Format.</p>
-
-                <div class="space-y-3">
-                    {{-- PDF --}}
-                    <a href="{{ route('project.export.pdf', $project->cis_row_id) }}"
-                       target="_blank"
-                       class="flex items-center gap-4 px-5 py-4 border border-gray-200 rounded-xl hover:border-red-200 hover:bg-red-50 transition-colors group">
-                        <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0 group-hover:bg-red-200 transition-colors">
-                            <i class="fa fa-file-pdf text-red-600"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-800">PDF-Dokument</p>
-                            <p class="text-xs text-gray-400">Druckfertige Ausschreibung als PDF</p>
-                        </div>
-                        <i class="fa fa-arrow-down text-gray-300 group-hover:text-red-400 transition-colors"></i>
-                    </a>
-                </div>
-            </div>
-
-            @if($exportEnabled)
-            <div class="cis-card mt-4">
-                <div class="flex items-center justify-between mb-1">
-                    <h2 class="text-base font-semibold text-gray-800">Tabellenexport</h2>
-                    <a href="{{ route('export.templates') }}" class="text-xs text-gray-400 hover:text-primary-600 transition-colors">
-                        <i class="fa fa-gear mr-1"></i>Vorlagen verwalten
-                    </a>
-                </div>
-                <p class="text-sm text-gray-500 mb-6">Exportiere die Positionen als CSV- oder Excel-Tabelle, nach frei definierbaren Spalten.</p>
-
-                @if($exportTemplates->isEmpty())
-                <p class="text-sm text-gray-400 italic">
-                    Noch keine Export-Vorlage angelegt. <a href="{{ route('export.templates') }}" class="text-primary-600 hover:underline">Jetzt anlegen</a>.
-                </p>
-                @else
-                <div class="space-y-3">
-                    @foreach($exportTemplates as $template)
-                    <div class="flex items-center gap-4 px-5 py-4 border border-gray-200 rounded-xl">
-                        <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
-                            <i class="fa fa-table text-emerald-600"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-gray-800 truncate">
-                                {{ $template->name }}
-                                @if($template->is_default)
-                                    <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700">Standard</span>
-                                @endif
-                            </p>
-                            <p class="text-xs text-gray-400">{{ $template->columns->count() }} Spalte(n)</p>
-                        </div>
-                        @if($template->columns->isEmpty())
-                            <span class="text-xs text-gray-300 italic shrink-0">Keine Spalten</span>
-                        @else
-                            <a href="{{ route('export.tender.table', [$project->cis_row_id, $template->cis_row_id, 'csv']) }}"
-                               class="btn btn-ghost btn-sm shrink-0">CSV</a>
-                            <a href="{{ route('export.tender.table', [$project->cis_row_id, $template->cis_row_id, 'xlsx']) }}"
-                               class="btn btn-ghost btn-sm shrink-0">Excel</a>
-                        @endif
-                    </div>
-                    @endforeach
-                </div>
-                @endif
-            </div>
-            @endif
-        </div>
-    </div>
 
     @if($tabVisibility['angebote'])
     {{-- Tab: Angebote --}}

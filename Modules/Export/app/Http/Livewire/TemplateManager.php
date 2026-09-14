@@ -5,7 +5,9 @@ namespace Modules\Export\Http\Livewire;
 use Livewire\Component;
 use Modules\Export\Models\ExportTemplate;
 use Modules\Export\Models\ExportTemplateColumn;
+use Modules\Export\Models\ExportTemplateFilter;
 use Modules\Export\Services\ExportFieldRegistry;
+use Modules\Export\Services\ExportFilterRegistry;
 
 class TemplateManager extends Component
 {
@@ -19,24 +21,47 @@ class TemplateManager extends Component
 
     public string $newColumnStaticValue = '';
 
+    public string $newFilterField = '';
+
+    /** @var array<int, string> */
+    public array $newFilterValues = [];
+
     public function render()
     {
+        $templates = ExportTemplate::with(['columns', 'filters'])
+            ->orderByDesc('is_default')
+            ->orderBy('name')
+            ->get();
+
+        // Auswahloptionen je Filtertyp einmal je Request geladen (Kategorien/Quellen ändern
+        // sich nicht innerhalb eines Renders) – sowohl für die Anzeige bestehender Filter
+        // (Werte → Label) als auch für das "Filter hinzufügen"-Formular.
+        $filterOptions = collect(ExportFilterRegistry::FILTERS)->keys()
+            ->mapWithKeys(fn ($key) => [$key => ExportFilterRegistry::optionsFor($key)]);
+
         return view('export::livewire.template-manager', [
-            'templates' => ExportTemplate::with('columns')
-                ->orderByDesc('is_default')
-                ->orderBy('name')
-                ->get(),
-            'fields' => ExportFieldRegistry::FIELDS,
+            'templatesByPhase'  => $templates->groupBy('phase'),
+            'phases'            => ExportTemplate::PHASES,
+            'filterFields'      => collect(ExportFilterRegistry::FILTERS)->map(fn ($f) => $f['label'])->all(),
+            'filterTypes'       => collect(ExportFilterRegistry::FILTERS)->map(fn ($f) => $f['type'])->all(),
+            'filterOptions'     => $filterOptions,
+            'newFilterOptions'  => $this->newFilterField !== '' ? ($filterOptions[$this->newFilterField] ?? []) : [],
+            'sortFields'        => ExportFieldRegistry::SORTABLE_FIELDS,
         ]);
     }
 
-    public function createTemplate(): void
+    public function createTemplate(string $phase): void
     {
         $this->validate(['newTemplateName' => 'required|string|max:255']);
+
+        if (! array_key_exists($phase, ExportTemplate::PHASES)) {
+            $phase = 'pre_tender';
+        }
 
         $template = ExportTemplate::create([
             'name'       => $this->newTemplateName,
             'is_default' => ExportTemplate::count() === 0,
+            'phase'      => $phase,
         ]);
 
         $this->newTemplateName    = '';
@@ -52,15 +77,6 @@ class TemplateManager extends Component
         ExportTemplate::where('cis_row_id', $id)->update(['name' => trim($name)]);
     }
 
-    /** Ob diese Vorlage auch nicht-ausschreibungsrelevante Positionen (feste, interne Quelle) einschließt. */
-    public function toggleIncludeNonTenderRelevant(string $id): void
-    {
-        $template = ExportTemplate::find($id);
-        if ($template) {
-            $template->update(['include_non_tender_relevant' => ! $template->include_non_tender_relevant]);
-        }
-    }
-
     public function setDefault(string $id): void
     {
         ExportTemplate::query()->update(['is_default' => false]);
@@ -70,6 +86,7 @@ class TemplateManager extends Component
     public function deleteTemplate(string $id): void
     {
         ExportTemplateColumn::where('cis_row_id_template', $id)->delete();
+        ExportTemplateFilter::where('cis_row_id_template', $id)->delete();
         ExportTemplate::where('cis_row_id', $id)->delete();
 
         if ($this->expandedTemplateId === $id) {
@@ -83,6 +100,8 @@ class TemplateManager extends Component
         $this->newColumnLabel       = '';
         $this->newColumnField       = '';
         $this->newColumnStaticValue = '';
+        $this->newFilterField       = '';
+        $this->newFilterValues      = [];
         $this->resetErrorBag();
     }
 
@@ -94,8 +113,9 @@ class TemplateManager extends Component
         ]);
 
         $isFreeField = $this->newColumnField === 'static_text';
+        $template    = ExportTemplate::find($templateId);
 
-        if (! $isFreeField && ! array_key_exists($this->newColumnField, ExportFieldRegistry::FIELDS)) {
+        if (! $isFreeField && (! $template || ! array_key_exists($this->newColumnField, ExportFieldRegistry::fieldsForPhase($template->phase)))) {
             $this->addError('newColumnField', 'Ungültiges Feld.');
             return;
         }
@@ -146,5 +166,50 @@ class TemplateManager extends Component
 
         ExportTemplateColumn::where('cis_row_id', $current->cis_row_id)->update(['sort_order' => $target->sort_order]);
         ExportTemplateColumn::where('cis_row_id', $target->cis_row_id)->update(['sort_order' => $current->sort_order]);
+    }
+
+    public function updatedNewFilterField(): void
+    {
+        $this->newFilterValues = [];
+    }
+
+    /** Frei kombinierbare (UND-verknüpfte) Filter – siehe ExportFilterRegistry/ExportTemplateFilterMatcher. */
+    public function addFilter(string $templateId): void
+    {
+        if ($this->newFilterField === '' || ! array_key_exists($this->newFilterField, ExportFilterRegistry::FILTERS)) {
+            $this->addError('newFilterField', 'Bitte ein Filterfeld wählen.');
+            return;
+        }
+
+        $values = array_values(array_filter($this->newFilterValues, fn ($v) => $v !== '' && $v !== null));
+        if (empty($values)) {
+            $this->addError('newFilterValues', 'Bitte mindestens einen Wert wählen.');
+            return;
+        }
+
+        $maxOrder = ExportTemplateFilter::where('cis_row_id_template', $templateId)->max('sort_order') ?? 0;
+
+        ExportTemplateFilter::create([
+            'cis_row_id_template' => $templateId,
+            'field_key'           => $this->newFilterField,
+            'value'               => $values,
+            'sort_order'          => $maxOrder + 1,
+        ]);
+
+        $this->newFilterField  = '';
+        $this->newFilterValues = [];
+    }
+
+    public function removeFilter(string $filterId): void
+    {
+        ExportTemplateFilter::where('cis_row_id', $filterId)->delete();
+    }
+
+    public function setSort(string $templateId, ?string $field, string $direction): void
+    {
+        ExportTemplate::where('cis_row_id', $templateId)->update([
+            'sort_field'     => $field ?: null,
+            'sort_direction' => $direction === 'desc' ? 'desc' : 'asc',
+        ]);
     }
 }

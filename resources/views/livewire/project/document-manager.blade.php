@@ -91,7 +91,14 @@
                  class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-gray-100 mb-2">
                 <i class="fa {{ $icon }} text-lg w-6 text-center shrink-0"></i>
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-800 truncate">{{ $document->name }}</p>
+                    <p class="text-sm font-medium text-gray-800 truncate">
+                        {{ $document->name }}
+                        @isset($document->phase)
+                            <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold {{ $document->phase === 'post_tender' ? 'bg-cyan-50 text-cyan-700' : 'bg-amber-50 text-amber-700' }}">
+                                {{ \Modules\Export\Models\ExportTemplate::PHASES[$document->phase] ?? $document->phase }}
+                            </span>
+                        @endisset
+                    </p>
                     @if($document->exists)
                     <p class="text-[11px] text-gray-400">
                         {{ $document->sizeForHumans() }} · {{ $document->created_at->format('d.m.Y H:i') }}

@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\Project;
 use App\Models\ProjectProduct;
 use App\Services\ChildProductAggregator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Modules\Export\Models\ExportTemplate;
 use Modules\Export\Models\ExportTemplateColumn;
@@ -37,6 +38,8 @@ class TenderExporter
     /** @return array{headers: array<int, string>, rows: array<int, array<int, string>>, import_key_index: ?int} */
     public function build(Project $project, ExportTemplate $template): array
     {
+        $template->loadMissing('filters');
+
         $columns          = $template->columns;
         $headers          = $columns->pluck('label')->all();
         $includeImportKey = $template->hasVendorPriceColumn();
@@ -46,14 +49,22 @@ class TenderExporter
             $headers[] = self::IMPORT_KEY_HEADER;
         }
 
-        // Nicht-ausschreibungsrelevante Positionen (feste, interne Quelle, siehe
-        // Product::isTenderRelevant()) fehlen standardmäßig im Export – eine
-        // Vorlage kann das über include_non_tender_relevant gezielt einschließen
-        // (z.B. für eine interne Materialliste je Quelle).
+        // Welche Positionen überhaupt in den Export gelangen, entscheiden die
+        // frei kombinierbaren Filter der Vorlage (siehe ExportFilterRegistry /
+        // ExportTemplateFilterMatcher) – eine Vorlage ganz ohne Filter schließt
+        // nichts aus.
         $positions = $project->positions()
-            ->with(['product.childs.source', 'product.source', 'award.offer.source', 'offerItems'])
+            ->with(['product.category', 'product.childs.category', 'product.childs.source', 'product.source', 'award.offer.source', 'offerItems'])
             ->get()
-            ->reject(fn (ProjectProduct $p) => ! $p->product || (! $template->include_non_tender_relevant && ! $p->product->isTenderRelevant()));
+            ->reject(fn (ProjectProduct $p) => ! ExportTemplateFilterMatcher::matches($p->product, $template->filters));
+
+        if ($template->sort_field) {
+            $positions = $this->sorted(
+                $positions,
+                fn (ProjectProduct $p) => $this->sortValue($p->product, $p->product_count, $this->unitPrice($p), $template->sort_field),
+                $template->sort_direction
+            );
+        }
 
         $rows  = [];
         $index = 0;
@@ -82,7 +93,15 @@ class TenderExporter
 
         $childTotals = ChildProductAggregator::aggregate(
             $positions->map(fn (ProjectProduct $p) => ['product' => $p->product, 'quantity' => $p->product_count])
-        )->sortBy(fn ($entry) => $entry['product']->name)->values();
+        )->values();
+
+        $childTotals = $template->sort_field
+            ? $this->sorted(
+                $childTotals,
+                fn (array $entry) => $this->sortValue($entry['product'], $entry['quantity'], $project->effectivePrice($entry['product']), $template->sort_field),
+                $template->sort_direction
+            )
+            : $childTotals->sortBy(fn (array $entry) => $entry['product']->name)->values();
 
         foreach ($childTotals as $entry) {
             $index++;
@@ -171,5 +190,24 @@ class TenderExporter
         $item = $position->offerItems->firstWhere('cis_row_id_offer', $offerId);
 
         return $item?->price !== null ? (float) $item->price : null;
+    }
+
+    /** @param Collection<int, mixed> $entries */
+    private function sorted(Collection $entries, \Closure $keyFn, string $direction): Collection
+    {
+        return ($direction === 'desc' ? $entries->sortByDesc($keyFn) : $entries->sortBy($keyFn))->values();
+    }
+
+    /** Vergleichswert für die Sortierung, je nach gewähltem Sortierfeld (siehe ExportTemplate::$sort_field). */
+    private function sortValue(?Product $product, int $quantity, ?float $unitPrice, string $field): mixed
+    {
+        return match ($field) {
+            'product_name' => mb_strtolower($product?->name ?? ''),
+            'quantity'     => $quantity,
+            'category'     => mb_strtolower($product?->category?->name ?? ''),
+            'source_name'  => mb_strtolower($product?->source?->name ?? ''),
+            'unit_price'   => $unitPrice ?? 0.0,
+            default        => 0,
+        };
     }
 }

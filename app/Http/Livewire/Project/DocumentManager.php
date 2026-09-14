@@ -135,10 +135,15 @@ class DocumentManager extends Component
 
             foreach ($templates as $template) {
                 foreach (['xlsx' => 'xlsx', 'csv' => 'csv'] as $format => $ext) {
-                    $items->push($this->virtualDocument(
+                    $document = $this->virtualDocument(
                         "{$template->name}.{$ext}",
                         route('export.tender.table', [$project->cis_row_id, $template->cis_row_id, $format])
-                    ));
+                    );
+                    // Zeigt im Dokumentenmanager, ob es sich um eine Vorlage "vor der
+                    // Ausschreibung" oder "nach der Ausschreibung/Auswertung" handelt
+                    // (siehe ExportTemplate::PHASES) – rein informatives Badge.
+                    $document->phase = $template->phase;
+                    $items->push($document);
                 }
             }
         }
