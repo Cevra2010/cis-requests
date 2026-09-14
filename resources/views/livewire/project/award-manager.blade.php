@@ -15,16 +15,19 @@
         </button>
     </div>
 
-    {{-- ── Interne Beschaffung: nicht-ausschreibungsrelevante Positionen (feste Quelle) ── --}}
+    {{-- ── Nicht ausschreibungsrelevante Produkte: Positionen mit fester, nicht-ausschreibungsrelevanter Quelle ── --}}
     @if($internalPositions->isNotEmpty())
-    <div class="mb-5 rounded-xl border border-sky-200 bg-sky-50 overflow-hidden">
-        <div class="px-4 py-3 border-b border-sky-100">
-            <p class="text-sm font-semibold text-sky-800"><i class="fa fa-house mr-1.5"></i>Interne Beschaffung</p>
-            <p class="text-xs text-sky-700 mt-0.5">
-                Feste, nicht-ausschreibungsrelevante Quelle statt Angebot – wird regulär geplant, aber nicht ausgeschrieben.
-            </p>
-        </div>
-        <div class="divide-y divide-sky-100">
+    <div class="mb-5 rounded-xl border border-sky-200 bg-sky-50 overflow-hidden" x-data="{ open: false }">
+        <button type="button" @click="open = !open" class="w-full px-4 py-3 border-b border-sky-100 flex items-center justify-between gap-4 text-left">
+            <div>
+                <p class="text-sm font-semibold text-sky-800"><i class="fa fa-house mr-1.5"></i>Nicht ausschreibungsrelevante Produkte</p>
+                <p class="text-xs text-sky-700 mt-0.5">
+                    Feste, nicht-ausschreibungsrelevante Quelle statt Angebot – wird regulär geplant, aber nicht ausgeschrieben.
+                </p>
+            </div>
+            <i class="fa text-sky-600 shrink-0" :class="open ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+        </button>
+        <div x-show="open" x-cloak class="divide-y divide-sky-100">
             @foreach($internalPositions->groupBy(fn($p) => $p->product->cis_row_id_source) as $group)
             @php $source = $group->first()->product->source; @endphp
             <div class="px-4 py-2.5">

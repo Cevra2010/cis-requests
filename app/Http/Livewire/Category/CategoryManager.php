@@ -31,7 +31,13 @@ class CategoryManager extends Component
     {
         $requested = request('type');
 
-        $this->activeType = ($requested && CisCategoryManager::hasType($requested))
+        // "lagerorte" ist kein echter, bei CisCategoryManager registrierter Typ (eigenes
+        // Modell im Lager-Modul, siehe unten), wird hier aber als gleichwertiger Tab
+        // zugelassen, damit der Lagerort-Baum optisch/UX-seitig Teil von "Ordnung" ist.
+        $isLagerortRequest = $requested === 'lagerorte'
+            && (\Nwidart\Modules\Facades\Module::find('Lager')?->isEnabled() ?? false);
+
+        $this->activeType = ($requested && (CisCategoryManager::hasType($requested) || $isLagerortRequest))
             ? $requested
             : (array_key_first(CisCategoryManager::getTypes()) ?? 'project.category');
     }

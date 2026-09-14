@@ -147,6 +147,33 @@
                 </div>
             </div>
 
+            @if($lagerEnabled && $checked)
+            @php $remainingToPlace = $item->received_count - ($lagerPlacedCount[$item->cis_row_id] ?? 0); @endphp
+            @if($remainingToPlace > 0)
+            <div class="mt-2 p-2 rounded-lg bg-sky-50 border border-sky-100"
+                 x-data="{ lagerortId: '', qty: {{ $remainingToPlace }} }">
+                <label class="text-[11px] text-sky-700 font-medium block mb-1">
+                    <i class="fa fa-warehouse mr-0.5"></i>Im Lager einbuchen ({{ $remainingToPlace }} offen)
+                </label>
+                <div class="flex items-center gap-1.5">
+                    <select x-model="lagerortId" class="cis-input py-1 px-2 text-xs flex-1">
+                        <option value="">— Lagerort —</option>
+                        @foreach($lagerorte as $l)
+                            <option value="{{ $l->cis_row_id }}">{{ str_repeat('— ', $l->depth) }}{{ $l->name }}</option>
+                        @endforeach
+                    </select>
+                    <input type="number" min="1" max="{{ $remainingToPlace }}" x-model.number="qty"
+                           class="w-14 text-center cis-input py-1 px-1 text-xs">
+                    <button type="button"
+                            @click="if(lagerortId) { $wire.assignLagerort('{{ $item->cis_row_id }}', lagerortId, qty); lagerortId = ''; }"
+                            class="btn btn-primary btn-sm !py-1 !px-2 shrink-0">
+                        <i class="fa fa-check text-xs"></i>
+                    </button>
+                </div>
+            </div>
+            @endif
+            @endif
+
             @if($checked && $statusCategoryOptions)
             <div class="mt-2">
                 <label class="text-[11px] text-gray-400 block mb-0.5">Weiterverarbeitung</label>

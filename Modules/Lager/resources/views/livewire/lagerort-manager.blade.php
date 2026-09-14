@@ -1,70 +1,30 @@
 <div>
-    <div class="flex gap-6">
+    <div class="flex items-center justify-between mb-4">
+        <p class="text-sm text-gray-500">
+            Lagerorte lassen sich beliebig tief verschachteln (z.B. Lager → Raum → Regal → Fach)
+            und per Ziehen (<i class="fa fa-grip-vertical mx-0.5"></i>) neu anordnen oder verschieben.
+        </p>
+        <button type="button" wire:click="openCreate()" class="btn btn-primary btn-sm shrink-0">
+            <i class="fa fa-plus mr-1.5"></i> Neuer Haupteintrag
+        </button>
+    </div>
 
-        {{-- Typ-Auswahl links --}}
-        <div class="w-56 shrink-0">
-            <div class="cis-card p-0 overflow-hidden">
-                <p class="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-gray-500 border-b border-gray-100">
-                    Ordnungstypen
-                </p>
-                @foreach($types as $typeKey => $typeMeta)
-                <button type="button" wire:click="setType('{{ $typeKey }}')"
-                        class="w-full flex items-center justify-between px-4 py-2.5 text-sm border-b border-gray-50 transition-colors text-left
-                               {{ $activeType === $typeKey ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50' }}">
-                    <span>{{ $typeMeta['label'] }}</span>
-                    @if($typeMeta['module'])
-                        <span class="text-[10px] text-gray-400">{{ $typeMeta['module'] }}</span>
-                    @endif
-                </button>
-                @endforeach
-                @if(\Nwidart\Modules\Facades\Module::find('Lager')?->isEnabled())
-                <button type="button" wire:click="setType('lagerorte')"
-                        class="w-full flex items-center justify-between px-4 py-2.5 text-sm border-b border-gray-50 transition-colors text-left
-                               {{ $activeType === 'lagerorte' ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50' }}">
-                    <span>Lagerorte</span>
-                    <span class="text-[10px] text-gray-400">Lager</span>
-                </button>
-                @endif
-            </div>
-        </div>
-
-        {{-- Baum --}}
-        <div class="flex-1 min-w-0">
-            @if($activeType === 'lagerorte')
-                @livewire('lager.lagerort-manager', key('embedded-lagerort-manager'))
-            @else
-            <div class="flex items-center justify-between mb-4">
-                <p class="text-sm text-gray-500">
-                    Einträge lassen sich beliebig tief verschachteln und per Ziehen (<i class="fa fa-grip-vertical mx-0.5"></i>) neu anordnen oder verschieben.
-                </p>
-                @can('category.create')
-                <button type="button" wire:click="openCreate()" class="btn btn-primary btn-sm shrink-0">
-                    <i class="fa fa-plus mr-1.5"></i> Neuer Haupteintrag
-                </button>
-                @endcan
-            </div>
-
-            <div class="cis-card p-2"
-                 x-data="categoryTree()"
-                 x-init="init()"
-                 wire:key="tree-root-{{ $activeType }}">
-                <div class="js-sortable-children" data-parent-id="">
-                    @forelse($tree as $node)
-                        @include('livewire.category._tree-node', ['node' => $node, 'depth' => 0])
-                    @empty
-                        <div class="text-center py-12 text-gray-400">
-                            <i class="fa fa-sitemap text-3xl mb-2 block"></i>
-                            <p class="text-sm">Noch keine Einträge vom Typ „{{ CisFoundation\CisCategoryManager\CisCategoryManager::getTypeLabel($activeType) }}" angelegt.</p>
-                            @can('category.create')
-                            <button type="button" wire:click="openCreate()" class="btn btn-primary btn-sm mt-3">
-                                Ersten Eintrag erstellen
-                            </button>
-                            @endcan
-                        </div>
-                    @endforelse
+    <div class="cis-card p-2"
+         x-data="lagerortTree()"
+         x-init="init()"
+         wire:key="lagerort-tree-root">
+        <div class="js-sortable-children" data-parent-id="">
+            @forelse($tree as $node)
+                @include('lager::livewire._lagerort-tree-node', ['node' => $node, 'depth' => 0])
+            @empty
+                <div class="text-center py-12 text-gray-400">
+                    <i class="fa fa-warehouse text-3xl mb-2 block"></i>
+                    <p class="text-sm">Noch keine Lagerorte angelegt.</p>
+                    <button type="button" wire:click="openCreate()" class="btn btn-primary btn-sm mt-3">
+                        Ersten Lagerort erstellen
+                    </button>
                 </div>
-            </div>
-            @endif
+            @endforelse
         </div>
     </div>
 
@@ -73,29 +33,20 @@
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
         <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
             <h3 class="text-base font-semibold text-gray-900 mb-1">
-                {{ $formId ? 'Eintrag bearbeiten' : ($formParentId ? 'Untereintrag anlegen' : 'Neuer Haupteintrag') }}
+                {{ $formId ? 'Lagerort bearbeiten' : ($formParentId ? 'Untereintrag anlegen' : 'Neuer Haupteintrag') }}
             </h3>
             @if($formParentId && ! $formId)
                 <p class="text-xs text-gray-500 mb-4">
-                    Übergeordnet: <strong>{{ \App\Models\Category::find($formParentId)?->name }}</strong>
+                    Übergeordnet: <strong>{{ \Modules\Lager\Models\Lagerort::find($formParentId)?->name }}</strong>
                 </p>
             @endif
 
             <div class="space-y-4 mt-4">
                 <div>
                     <label class="cis-label" for="formName">Name</label>
-                    <input type="text" id="formName" wire:model="formName" class="cis-input w-full" autofocus>
+                    <input type="text" id="formName" wire:model="formName" class="cis-input w-full" autofocus
+                           placeholder="z.B. Lager Nord, Raum 1, Gitterbox 2, Fach 3">
                     @error('formName')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label class="cis-label" for="formDescription">Beschreibung</label>
-                    <textarea id="formDescription" wire:model="formDescription" class="cis-input w-full" rows="2"></textarea>
-                    @error('formDescription')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label class="cis-label" for="formColor">Farbe</label>
-                    <input type="color" id="formColor" wire:model="formColor"
-                           class="h-9 w-16 rounded border border-gray-300 cursor-pointer">
                 </div>
             </div>
 
@@ -133,15 +84,15 @@
     @endif
 
     {{-- ── Lösch-Modal ── --}}
-    @if($showDeleteModal && $deleteCategory)
+    @if($showDeleteModal && $deleteLagerort)
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
         <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
             <div class="flex items-center gap-2 mb-2">
                 <i class="fa fa-triangle-exclamation text-red-500"></i>
-                <h3 class="text-base font-semibold text-gray-900">Eintrag löschen</h3>
+                <h3 class="text-base font-semibold text-gray-900">Lagerort löschen</h3>
             </div>
             <p class="text-sm text-gray-500 mb-4">
-                „{{ $deleteCategory->name }}" wird unwiderruflich gelöscht.
+                „{{ $deleteLagerort->name }}" wird unwiderruflich gelöscht.
                 @if($deleteDescCount > 0)
                     <strong class="text-red-600">{{ $deleteDescCount }} Untereintrag/-einträge</strong> werden dabei ebenfalls gelöscht.
                 @endif
@@ -149,12 +100,12 @@
 
             <label class="cis-label text-xs">
                 Gib zur Bestätigung
-                <span class="font-mono font-semibold text-red-600">DEL-{{ $deleteCategory->name }}</span>
+                <span class="font-mono font-semibold text-red-600">DEL-{{ $deleteLagerort->name }}</span>
                 ein
             </label>
             <input type="text" wire:model="deleteConfirmText" autofocus autocomplete="off"
                    class="cis-input w-full mt-1 @error('deleteConfirmText') is-invalid @enderror"
-                   placeholder="DEL-{{ $deleteCategory->name }}">
+                   placeholder="DEL-{{ $deleteLagerort->name }}">
             @error('deleteConfirmText')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
 
             <div class="flex items-center justify-end gap-2 mt-5">
@@ -170,7 +121,7 @@
 
     @script
     <script>
-        Alpine.data('categoryTree', () => ({
+        Alpine.data('lagerortTree', () => ({
             hoverTimer: null,
             hoverEl: null,
 
@@ -183,7 +134,7 @@
                 this.$el.querySelectorAll('.js-sortable-children:not([data-sortable-ready])').forEach((el) => {
                     el.dataset.sortableReady = '1';
                     Sortable.create(el, {
-                        group: 'category-tree',
+                        group: 'lagerort-tree',
                         animation: 150,
                         handle: '.js-drag-handle',
                         fallbackOnBody: true,
@@ -232,9 +183,9 @@
             handleEnd(evt) {
                 this.clearHoverTimer();
 
-                const id             = parseInt(evt.item.dataset.id, 10);
-                const parentIdRaw    = evt.to.dataset.parentId;
-                const newParentId    = parentIdRaw ? parseInt(parentIdRaw, 10) : null;
+                const id          = evt.item.dataset.id;
+                const parentIdRaw = evt.to.dataset.parentId;
+                const newParentId = parentIdRaw ? parentIdRaw : null;
 
                 $wire.reorder(id, newParentId, evt.newIndex);
             },

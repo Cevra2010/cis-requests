@@ -2,5 +2,6 @@
     "Branding": true,
     "Wareneingang": true,
     "Export": true,
-    "Ausschreibungsvorlagen": false
+    "Ausschreibungsvorlagen": false,
+    "Lager": true
 }

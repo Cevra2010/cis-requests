@@ -1,0 +1,14 @@
+{
+    "name": "Lager",
+    "alias": "lager",
+    "description": "Lagerverwaltung: Lagerort-Baum, Einbuchen empfangener Ware aus dem Wareneingang, Warenübersicht je Produkt/Lagerort/Projekt, Verschieben zwischen Lagerorten. Erweitert das Wareneingang-Modul, funktioniert aber auch ohne dessen Aktivierung weiter (nur ohne die Einbuchen-aus-Wareneingang-Funktion).",
+    "version": "1.0.0",
+    "keywords": ["lager", "lagerort", "bestand", "inventar"],
+    "priority": 21,
+    "core": false,
+    "requires_license": true,
+    "providers": [
+        "Modules\\Lager\\Providers\\LagerServiceProvider"
+    ],
+    "files": []
+}

@@ -220,7 +220,7 @@
     {{-- ── Interne Beschaffung: feste, nicht-ausschreibungsrelevante Quellen statt Angebot ── --}}
     @if($internalSources->isNotEmpty())
     <div class="mt-6">
-        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Interne Beschaffung</p>
+        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Nicht ausschreibungsrelevante Produkte</p>
         <div class="space-y-4">
             @foreach($internalSources as $source)
             @php

@@ -68,6 +68,21 @@ class GoodsReceiptChecklist extends Component
 
         $statusCategoryOptions = \CisFoundation\CisCategoryManager\CisCategoryManager::optionsForType('wareneingang.item_status');
 
+        // Optionale Erweiterung durch das Lager-Modul (Weg A aus der Planung: direkt beim
+        // Erfassen der Menge auch gleich den Lagerort zuweisen) – nur wenn Lager installiert
+        // UND aktiv ist; ohne das Modul bleibt dieser Block komplett leer/wirkungslos.
+        $lagerEnabled     = \Nwidart\Modules\Facades\Module::find('Lager')?->isEnabled() ?? false;
+        $lagerorte        = collect();
+        $lagerPlacedCount = [];
+
+        if ($lagerEnabled) {
+            $lagerorte = \Modules\Lager\Models\Lagerort::flatTree();
+            $service   = app(\Modules\Lager\Services\LagerStockService::class);
+            foreach ($allItems as $i) {
+                $lagerPlacedCount[$i->cis_row_id] = $service->placedQuantity($i->cis_row_id);
+            }
+        }
+
         return view('wareneingang::livewire.goods-receipt-checklist', [
             'participant'           => $participant,
             'receipt'               => $receipt,
@@ -77,6 +92,9 @@ class GoodsReceiptChecklist extends Component
             'totalCount'            => $allItems->count(),
             'otherParticipants'     => $otherParticipants,
             'statusCategoryOptions' => $statusCategoryOptions,
+            'lagerEnabled'          => $lagerEnabled,
+            'lagerorte'             => $lagerorte,
+            'lagerPlacedCount'      => $lagerPlacedCount,
         ]);
     }
 
@@ -153,6 +171,31 @@ class GoodsReceiptChecklist extends Component
             'lagerort'                     => trim($value) ?: null,
             'cis_row_id_last_participant'  => $this->participant()->cis_row_id,
         ]);
+    }
+
+    /**
+     * Bucht die Menge direkt in einen Lagerort des Lager-Moduls ein (Weg A aus der
+     * Planung). Einziger Punkt, an dem diese Komponente auf Lager-Klassen verweist –
+     * vollständig durch den Enabled-Guard abgesichert, PHP löst die referenzierten
+     * Klassen erst beim tatsächlichen Ausführen dieser Zeile auf: ein deaktiviertes
+     * oder fehlendes Lager-Modul verursacht daher keinen Fehler.
+     */
+    public function assignLagerort(string $itemId, string $lagerortId, int $quantity): void
+    {
+        if (! \Nwidart\Modules\Facades\Module::find('Lager')?->isEnabled()) {
+            return;
+        }
+        if ($lagerortId === '' || $quantity <= 0) {
+            return;
+        }
+
+        $item     = $this->item($itemId);
+        $lagerort = \Modules\Lager\Models\Lagerort::find($lagerortId);
+        if (! $lagerort) {
+            return;
+        }
+
+        app(\Modules\Lager\Services\LagerStockService::class)->receiveIntoStock($item, $lagerort, $quantity);
     }
 
     public function updateStatusCategory(string $itemId, string $categoryId): void

@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/lager",
+    "description": "",
+    "authors": [
+        {
+            "name": "CIS Requests",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Lager\\": "app/",
+            "Modules\\Lager\\Database\\Factories\\": "database/factories/",
+            "Modules\\Lager\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Lager\\Tests\\": "tests/"
+        }
+    }
+}

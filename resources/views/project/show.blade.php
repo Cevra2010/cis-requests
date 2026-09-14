@@ -39,6 +39,7 @@
         $revertBlockedReasons[] = 'Erfordert die Berechtigung, fixierte Ausschreibungen zu bearbeiten.';
     }
     $wareneingangEnabled = \Nwidart\Modules\Facades\Module::find('Wareneingang')?->isEnabled() ?? false;
+    $lagerEnabled        = \Nwidart\Modules\Facades\Module::find('Lager')?->isEnabled() ?? false;
 
     // ── Tab-Sichtbarkeit: einmal erreichte Stufen bleiben sichtbar (zurückschauen
     //    ist immer möglich), noch nicht erreichte Folgestufen bleiben ausgeblendet.
@@ -53,6 +54,7 @@
         'angebote'      => $reached('tender'),
         'bestellung'    => $reached('evaluated'),
         'wareneingang'  => $wareneingangEnabled && $reached('ordered'),
+        'lager'         => $lagerEnabled && $reached('ordered'),
     ];
 
     // ── Tab, der beim Öffnen des Projekts automatisch aktiv ist (passend zum Status).
@@ -332,6 +334,15 @@
             Wareneingang
         </button>
         @endif
+        @if($tabVisibility['lager'])
+        <button type="button"
+                @click="tab = 'lager'"
+                :class="tab === 'lager' ? 'border-b-2 border-primary-600 text-primary-600 bg-white' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'"
+                class="px-4 py-2.5 text-sm font-medium transition-colors rounded-t-lg -mb-px">
+            <i class="fa fa-warehouse mr-1.5"></i>
+            Lager
+        </button>
+        @endif
     </div>
 
     {{-- Tab: Produkte / Fahrzeug-Konfiguration --}}
@@ -371,6 +382,13 @@
     {{-- Tab: Wareneingang --}}
     <div x-show="tab === 'wareneingang'" x-cloak>
         @livewire('wareneingang.goods-receipt-manager', ['projectId' => $project->cis_row_id])
+    </div>
+    @endif
+
+    @if($tabVisibility['lager'])
+    {{-- Tab: Lager --}}
+    <div x-show="tab === 'lager'" x-cloak>
+        @livewire('lager.project-lager-manager', ['projectId' => $project->cis_row_id])
     </div>
     @endif
 

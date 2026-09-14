@@ -4,6 +4,14 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.4.0.0 — 2026-09-14
+- Neues, optionales Modul "Lager": eigener Menüpunkt, Lagerort-Baum (beliebig tief, z.B. Lager → Raum → Regal → Fach) unter "Ordnung" verwaltbar
+- Im Wareneingang kann eine erfasste Menge jetzt direkt einem Lagerort zugewiesen werden ("Im Lager einbuchen")
+- Neue Seite "Ware buchen": erst Lagerort wählen, dann alle noch nicht eingelagerten Wareneingangspositionen einbuchen
+- Neue Warenübersicht: Bestand je Produkt/Lagerort/Projekt, filterbar, Verschieben zwischen Lagerorten (einzeln oder im Block), Freigeben (Projektzuordnung aufheben)
+- Projekten lassen sich jetzt Lagerorte zuweisen (neuer Projekt-Tab "Lager"), inkl. Übersicht des für das Projekt reservierten Bestands
+- "Interne Beschaffung" heißt jetzt "Nicht ausschreibungsrelevante Produkte" und ist in der Bestellung ausklappbar (standardmäßig eingeklappt)
+
 ## 0.3.2.0 — 2026-09-14
 - Dokumentennamen im Dokumentenmanager deutlich kürzer: der Projektname steht nicht mehr im Dateinamen (unnötig, man befindet sich ja bereits im jeweiligen Projekt)
 - Neu: über der Dateiliste im Dokumentenmanager nach Dateiformat filtern (z.B. nur PDF, oder PDF und CSV zusammen) – kombinierbar mit der Verzeichnisauswahl

@@ -276,6 +276,23 @@ class Project extends Model
     }
 
     /**
+     * Diesem Projekt zugewiesene Lagerorte (Modul "Lager", falls installiert/aktiv –
+     * die Relation selbst ist harmlos immer verfügbar, die Pivot-Tabelle bleibt
+     * einfach leer/ungenutzt, wenn das Modul nicht aktiv ist).
+     */
+    public function lagerorte()
+    {
+        return $this->belongsToMany(
+            \Modules\Lager\Models\Lagerort::class,
+            'project_lagerort',
+            'cis_row_id_project',
+            'cis_row_id_lagerort',
+            'cis_row_id',
+            'cis_row_id'
+        )->withTimestamps();
+    }
+
+    /**
      * Unterprodukte über alle Positionen dieses Projekts hinweg aggregiert (z.B.
      * "Neubauschlüssel" 2×, wenn zwei verschiedene Elternprodukte je 1× davon
      * enthalten). Einheitliche Grundlage für Angebotsvergleich, Zuordnung und
