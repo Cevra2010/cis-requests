@@ -34,7 +34,7 @@ class OfferController extends Controller
             'branding' => $branding,
         ])->setPaper('a4', 'portrait');
 
-        $filename = DocumentNaming::downloadFilename($p, 'Bestellliste - ' . $o->source->name, 'pdf');
+        $filename = DocumentNaming::downloadFilename('Bestellliste - ' . $o->source->name, 'pdf');
 
         return $pdf->stream($filename);
     }
@@ -58,7 +58,7 @@ class OfferController extends Controller
         $tableRows[] = ['', '', '', '', 'Gesamtsumme', number_format($rows->sum('sum'), 2, ',', '.')];
 
         $content  = $builder->build($headers, $tableRows, $format, 'Bestellliste');
-        $filename = DocumentNaming::downloadFilename($p, 'Bestellliste - ' . $o->source->name, $format);
+        $filename = DocumentNaming::downloadFilename('Bestellliste - ' . $o->source->name, $format);
         $mime     = $format === 'xlsx'
             ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             : 'text/csv; charset=UTF-8';

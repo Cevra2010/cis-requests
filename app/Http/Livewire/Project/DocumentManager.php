@@ -32,6 +32,9 @@ class DocumentManager extends Component
 
     public string $activeFolder = 'all';
 
+    /** Dateiformate (Endungen), nach denen zusätzlich gefiltert wird – leer = alle. */
+    public array $activeFormats = [];
+
     public function mount(string $projectId): void
     {
         $this->projectId = $projectId;
@@ -40,6 +43,16 @@ class DocumentManager extends Component
     public function setFolder(string $folder): void
     {
         $this->activeFolder = $folder;
+    }
+
+    /** Nichts ausgewählt = alle Formate anzeigen, sonst nur die ausgewählten (kombinierbar, unabhängig vom Verzeichnis). */
+    public function toggleFormat(string $extension): void
+    {
+        if (in_array($extension, $this->activeFormats, true)) {
+            $this->activeFormats = array_values(array_diff($this->activeFormats, [$extension]));
+        } else {
+            $this->activeFormats[] = $extension;
+        }
     }
 
     public function render()
@@ -64,11 +77,18 @@ class DocumentManager extends Component
             self::FOLDER_UPLOADS => $merged->filter($inFolder(self::FOLDER_UPLOADS))->count(),
         ];
 
+        $availableFormats = $merged->map(fn (ProjectDocument $d) => $d->extension())
+            ->filter()->unique()->sort()->values();
+
         $documents = $this->activeFolder === 'all'
             ? $merged
             : $merged->filter($inFolder($this->activeFolder))->values();
 
-        return view('livewire.project.document-manager', compact('documents', 'counts'));
+        if (! empty($this->activeFormats)) {
+            $documents = $documents->filter(fn (ProjectDocument $d) => in_array($d->extension(), $this->activeFormats, true))->values();
+        }
+
+        return view('livewire.project.document-manager', compact('documents', 'counts', 'availableFormats'));
     }
 
     /**
@@ -104,8 +124,8 @@ class DocumentManager extends Component
         }
 
         $items = collect([
-            $this->virtualDocument($project, 'Ausschreibung', 'pdf', route('project.export.pdf', $project->cis_row_id), self::FOLDER_TENDER),
-            $this->virtualDocument($project, 'Projektübersicht', 'pdf', route('project.overview.pdf', $project->cis_row_id), self::FOLDER_GENERAL),
+            $this->virtualDocument('Ausschreibung', 'pdf', route('project.export.pdf', $project->cis_row_id), self::FOLDER_TENDER),
+            $this->virtualDocument('Projektübersicht', 'pdf', route('project.overview.pdf', $project->cis_row_id), self::FOLDER_GENERAL),
         ]);
 
         // Je genutzter fester, nicht-ausschreibungsrelevanter Quelle eine eigene
@@ -117,7 +137,6 @@ class DocumentManager extends Component
                 continue;
             }
             $items->push($this->virtualDocument(
-                $project,
                 'Materialanforderung - ' . $group['source']->name,
                 'pdf',
                 route('project.material-request.pdf', [$project->cis_row_id, $group['source']->cis_row_id]),
@@ -131,13 +150,13 @@ class DocumentManager extends Component
             $docName = 'Bestellliste - ' . $offer->source->name;
 
             $items->push($this->virtualDocument(
-                $project, $docName, 'pdf',
+                $docName, 'pdf',
                 route('offer.orderlist.pdf', [$project->cis_row_id, $offer->cis_row_id]),
                 self::FOLDER_ORDER
             ));
             foreach (['xlsx', 'csv'] as $format) {
                 $items->push($this->virtualDocument(
-                    $project, $docName, $format,
+                    $docName, $format,
                     route('offer.orderlist.table', [$project->cis_row_id, $offer->cis_row_id, $format]),
                     self::FOLDER_ORDER
                 ));
@@ -155,7 +174,6 @@ class DocumentManager extends Component
 
                 foreach (['xlsx', 'csv'] as $format) {
                     $items->push($this->virtualDocument(
-                        $project,
                         $template->name,
                         $format,
                         route('export.tender.table', [$project->cis_row_id, $template->cis_row_id, $format]),
@@ -168,9 +186,9 @@ class DocumentManager extends Component
         return $items;
     }
 
-    private function virtualDocument(Project $project, string $docName, string $extension, string $url, string $folder): ProjectDocument
+    private function virtualDocument(string $docName, string $extension, string $url, string $folder): ProjectDocument
     {
-        $name = DocumentNaming::displayName($project, $docName) . '.' . $extension;
+        $name = DocumentNaming::displayName($docName) . '.' . $extension;
 
         $document = new ProjectDocument([
             'name'      => $name,

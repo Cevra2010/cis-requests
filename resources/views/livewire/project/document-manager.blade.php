@@ -77,6 +77,22 @@
 
         {{-- Dateien --}}
         <div class="flex-1 min-w-0">
+            @if($availableFormats->count() > 1)
+            <div class="flex items-center gap-1.5 mb-3 flex-wrap">
+                @foreach($availableFormats as $format)
+                    <button type="button" wire:click="toggleFormat('{{ $format }}')"
+                            class="px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide transition-colors
+                                   {{ in_array($format, $activeFormats, true) ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200' }}">
+                        {{ $format }}
+                    </button>
+                @endforeach
+                @if(count($activeFormats))
+                    <button type="button" wire:click="$set('activeFormats', [])" class="text-[11px] text-gray-400 hover:text-primary-600 ml-1">
+                        <i class="fa fa-xmark mr-0.5"></i>Zurücksetzen
+                    </button>
+                @endif
+            </div>
+            @endif
             @forelse($documents as $document)
             @php
                 $icon = match($document->extension()) {

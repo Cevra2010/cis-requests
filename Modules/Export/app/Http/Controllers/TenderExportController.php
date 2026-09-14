@@ -28,7 +28,7 @@ class TenderExportController extends Controller
         $data    = $exporter->build($project, $template);
         $content = $builder->build($data['headers'], $data['rows'], $format, $template->name, $data['import_key_index']);
 
-        $filename = DocumentNaming::downloadFilename($project, $template->name, $format);
+        $filename = DocumentNaming::downloadFilename($template->name, $format);
         $mime = $format === 'xlsx'
             ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             : 'text/csv; charset=UTF-8';

@@ -269,7 +269,7 @@ class ProjectController extends Controller
             'branding'       => $branding,
         ])->setPaper('a4', 'portrait');
 
-        $filename = DocumentNaming::downloadFilename($p, 'Ausschreibung', 'pdf');
+        $filename = DocumentNaming::downloadFilename('Ausschreibung', 'pdf');
 
         return $pdf->stream($filename);
     }
@@ -297,7 +297,7 @@ class ProjectController extends Controller
             'estimate' => $estimate,
         ])->setPaper('a4', 'portrait');
 
-        $filename = DocumentNaming::downloadFilename($p, 'Projektübersicht', 'pdf');
+        $filename = DocumentNaming::downloadFilename('Projektübersicht', 'pdf');
 
         return $pdf->stream($filename);
     }
@@ -331,7 +331,7 @@ class ProjectController extends Controller
             'groups'   => collect([$group]),
         ])->setPaper('a4', 'portrait');
 
-        $filename = DocumentNaming::downloadFilename($p, 'Materialanforderung - ' . $group['source']->name, 'pdf');
+        $filename = DocumentNaming::downloadFilename('Materialanforderung - ' . $group['source']->name, 'pdf');
 
         return $pdf->stream($filename);
     }

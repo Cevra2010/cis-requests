@@ -4,6 +4,10 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.3.2.0 — 2026-09-14
+- Dokumentennamen im Dokumentenmanager deutlich kürzer: der Projektname steht nicht mehr im Dateinamen (unnötig, man befindet sich ja bereits im jeweiligen Projekt)
+- Neu: über der Dateiliste im Dokumentenmanager nach Dateiformat filtern (z.B. nur PDF, oder PDF und CSV zusammen) – kombinierbar mit der Verzeichnisauswahl
+
 ## 0.3.1.0 — 2026-09-14
 - Bestelllisten je Anbieter stehen jetzt zusätzlich zur PDF auch als Excel-/CSV-Tabelle zur Verfügung (im Dokumentenmanager und direkt in der Bestellung)
 
