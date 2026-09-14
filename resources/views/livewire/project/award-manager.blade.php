@@ -274,10 +274,16 @@
                     @endif
                 </p>
             </div>
-            <a href="{{ route('offer.orderlist.pdf', [$project->cis_row_id, $s['offer']->cis_row_id]) }}"
-               target="_blank" class="btn btn-ghost btn-sm">
-                <i class="fa fa-file-pdf mr-1.5"></i>PDF
-            </a>
+            <div class="flex items-center gap-1 shrink-0">
+                <a href="{{ route('offer.orderlist.pdf', [$project->cis_row_id, $s['offer']->cis_row_id]) }}"
+                   target="_blank" class="btn btn-ghost btn-sm">
+                    <i class="fa fa-file-pdf mr-1.5"></i>PDF
+                </a>
+                <a href="{{ route('offer.orderlist.table', [$project->cis_row_id, $s['offer']->cis_row_id, 'xlsx']) }}"
+                   class="btn btn-ghost btn-sm">Excel</a>
+                <a href="{{ route('offer.orderlist.table', [$project->cis_row_id, $s['offer']->cis_row_id, 'csv']) }}"
+                   class="btn btn-ghost btn-sm">CSV</a>
+            </div>
         </div>
         @endforeach
     </div>

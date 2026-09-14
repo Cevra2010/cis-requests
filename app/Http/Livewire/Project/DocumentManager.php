@@ -125,15 +125,23 @@ class DocumentManager extends Component
             ));
         }
 
-        // Je Anbieter mit tatsächlich zugeordneten Positionen eine eigene Bestellliste.
+        // Je Anbieter mit tatsächlich zugeordneten Positionen eine eigene Bestellliste,
+        // sowohl als PDF als auch als CSV-/Excel-Tabelle (gleicher Inhalt).
         foreach ($project->offersWithAwards() as $offer) {
+            $docName = 'Bestellliste - ' . $offer->source->name;
+
             $items->push($this->virtualDocument(
-                $project,
-                'Bestellliste - ' . $offer->source->name,
-                'pdf',
+                $project, $docName, 'pdf',
                 route('offer.orderlist.pdf', [$project->cis_row_id, $offer->cis_row_id]),
                 self::FOLDER_ORDER
             ));
+            foreach (['xlsx', 'csv'] as $format) {
+                $items->push($this->virtualDocument(
+                    $project, $docName, $format,
+                    route('offer.orderlist.table', [$project->cis_row_id, $offer->cis_row_id, $format]),
+                    self::FOLDER_ORDER
+                ));
+            }
         }
 
         if (Module::find('Export')?->isEnabled()) {

@@ -143,6 +143,7 @@ Route::middleware(['auth'])->group(function() {
 
     /** Angebote & Bestelllisten */
     Route::get('/Project/{project}/Offers/{offer}/OrderList/PDF',[OfferController::class, 'exportOrderListPdf'])->name('offer.orderlist.pdf');
+    Route::get('/Project/{project}/Offers/{offer}/OrderList/Table/{format}',[OfferController::class, 'exportOrderListTable'])->name('offer.orderlist.table');
 
     Route::get('/Documents/{document}/Download', [ProjectDocumentController::class, 'download'])->name('project.document.download');
 

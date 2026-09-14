@@ -11,11 +11,66 @@ use App\Models\PositionAward;
 use App\Models\Project;
 use App\Support\DocumentNaming;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Collection;
+use Modules\Export\Services\ExportFileBuilder;
 use Nwidart\Modules\Facades\Module;
 
 class OfferController extends Controller
 {
     public function exportOrderListPdf(string $project, string $offer)
+    {
+        [$p, $o, $rows] = $this->loadOrderList($project, $offer);
+
+        $total    = $rows->sum('sum');
+        $branding = (Module::find('Branding')?->isEnabled())
+            ? \Modules\Branding\Models\BrandingSetting::current()
+            : null;
+
+        $pdf = Pdf::loadView('project.order-list-pdf', [
+            'project'  => $p,
+            'offer'    => $o,
+            'rows'     => $rows,
+            'total'    => $total,
+            'branding' => $branding,
+        ])->setPaper('a4', 'portrait');
+
+        $filename = DocumentNaming::downloadFilename($p, 'Bestellliste - ' . $o->source->name, 'pdf');
+
+        return $pdf->stream($filename);
+    }
+
+    /** Dieselbe Bestellliste wie exportOrderListPdf(), als CSV-/Excel-Tabelle statt PDF. */
+    public function exportOrderListTable(string $project, string $offer, string $format, ExportFileBuilder $builder)
+    {
+        abort_unless(in_array($format, ['csv', 'xlsx'], true), 404);
+
+        [$p, $o, $rows] = $this->loadOrderList($project, $offer);
+
+        $headers = ['Pos.', 'Bezeichnung', 'Hinweis', 'Menge', 'Einzelpreis', 'Summe'];
+        $tableRows = $rows->values()->map(fn ($row, $i) => [
+            (string) ($i + 1),
+            $row->name,
+            (string) ($row->note ?? ''),
+            (string) $row->qty,
+            number_format($row->price, 2, ',', '.'),
+            number_format($row->sum, 2, ',', '.'),
+        ])->all();
+        $tableRows[] = ['', '', '', '', 'Gesamtsumme', number_format($rows->sum('sum'), 2, ',', '.')];
+
+        $content  = $builder->build($headers, $tableRows, $format, 'Bestellliste');
+        $filename = DocumentNaming::downloadFilename($p, 'Bestellliste - ' . $o->source->name, $format);
+        $mime     = $format === 'xlsx'
+            ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            : 'text/csv; charset=UTF-8';
+
+        return response($content, 200, [
+            'Content-Type'        => $mime,
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    /** @return array{0: Project, 1: Offer, 2: Collection} */
+    private function loadOrderList(string $project, string $offer): array
     {
         $p = Project::where('cis_row_id', $project)->firstOrFail();
         $o = Offer::where('cis_row_id', $offer)
@@ -78,21 +133,6 @@ class OfferController extends Controller
             }
         }
 
-        $total    = $rows->sum('sum');
-        $branding = (Module::find('Branding')?->isEnabled())
-            ? \Modules\Branding\Models\BrandingSetting::current()
-            : null;
-
-        $pdf = Pdf::loadView('project.order-list-pdf', [
-            'project'  => $p,
-            'offer'    => $o,
-            'rows'     => $rows,
-            'total'    => $total,
-            'branding' => $branding,
-        ])->setPaper('a4', 'portrait');
-
-        $filename = DocumentNaming::downloadFilename($p, 'Bestellliste - ' . $o->source->name, 'pdf');
-
-        return $pdf->stream($filename);
+        return [$p, $o, $rows];
     }
 }

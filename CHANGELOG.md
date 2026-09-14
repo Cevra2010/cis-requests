@@ -4,6 +4,9 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.3.1.0 — 2026-09-14
+- Bestelllisten je Anbieter stehen jetzt zusätzlich zur PDF auch als Excel-/CSV-Tabelle zur Verfügung (im Dokumentenmanager und direkt in der Bestellung)
+
 ## 0.3.0.0 — 2026-09-14
 - Export-Vorlagen jetzt klar in "Vor der Ausschreibung" und "Nach der Ausschreibung/Auswertung" eingeteilt, mit frei kombinierbaren Filtern (Produktkategorie, feste Produktquelle, Ausschreibungsrelevanz, Set-Produkt) und Sortierung je Vorlage
 - Export-Tab im Projekt entfernt – alle Exporte (PDF + Tabellen) stehen nur noch im Dokumentenmanager, dafür übersichtlich nach Verzeichnissen "Allgemein", "Ausschreibung" und "Bestellung" sortiert
