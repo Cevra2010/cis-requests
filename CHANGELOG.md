@@ -4,6 +4,15 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.3.0.0 — 2026-09-14
+- Export-Vorlagen jetzt klar in "Vor der Ausschreibung" und "Nach der Ausschreibung/Auswertung" eingeteilt, mit frei kombinierbaren Filtern (Produktkategorie, feste Produktquelle, Ausschreibungsrelevanz, Set-Produkt) und Sortierung je Vorlage
+- Export-Tab im Projekt entfernt – alle Exporte (PDF + Tabellen) stehen nur noch im Dokumentenmanager, dafür übersichtlich nach Verzeichnissen "Allgemein", "Ausschreibung" und "Bestellung" sortiert
+- Bestelllisten (je Anbieter) und Materialanforderungen (je interner Quelle) stehen jetzt einzeln je Anbieter/Quelle als eigenes Dokument im Dokumentenmanager zur Verfügung, statt zusammengefasst
+- Dokumente heißen im Dokumentenmanager jetzt einheitlich "Projektname-Dokumentenname"; beim Herunterladen wird zusätzlich Datum und Uhrzeit vorangestellt
+- Produktquellen-Übersicht zeigt jetzt auch, ob eine Quelle ausschreibungsrelevant ist
+- Bugfix: Ein leeres Suchfeld beim Anlegen eines verknüpften Produkts führte zu einem Fehler statt einer Meldung
+- Bugfix: Die Update-Notes konnten höher als der Bildschirm werden und ließen sich dann nicht mehr vollständig lesen
+
 ## 0.2.0.0 — 2026-09-06
 - Kategorie-Auswahl (bei Projekt/Produkt anlegen & bearbeiten) ist jetzt durchsuchbar statt eines klassischen Dropdowns
 - Set-Produkte sind jetzt auch bei der Produktauswahl im Projekt als "Set" gekennzeichnet

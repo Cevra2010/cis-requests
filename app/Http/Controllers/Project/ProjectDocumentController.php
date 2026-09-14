@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Project;
 
 use App\Http\Controllers\Controller;
 use App\Models\ProjectDocument;
+use App\Support\DocumentNaming;
 use Illuminate\Support\Facades\Storage;
 
 class ProjectDocumentController extends Controller
@@ -14,6 +15,9 @@ class ProjectDocumentController extends Controller
 
         abort_unless($document->exists(), 404, 'Datei nicht mehr vorhanden.');
 
-        return Storage::disk('local')->download($document->file_path, $document->name);
+        return Storage::disk('local')->download(
+            $document->file_path,
+            DocumentNaming::withDownloadTimestamp($document->name)
+        );
     }
 }

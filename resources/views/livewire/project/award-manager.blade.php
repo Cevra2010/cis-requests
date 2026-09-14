@@ -18,22 +18,25 @@
     {{-- ── Interne Beschaffung: nicht-ausschreibungsrelevante Positionen (feste Quelle) ── --}}
     @if($internalPositions->isNotEmpty())
     <div class="mb-5 rounded-xl border border-sky-200 bg-sky-50 overflow-hidden">
-        <div class="px-4 py-3 flex items-center justify-between gap-4 border-b border-sky-100">
-            <div>
-                <p class="text-sm font-semibold text-sky-800"><i class="fa fa-house mr-1.5"></i>Interne Beschaffung</p>
-                <p class="text-xs text-sky-700 mt-0.5">
-                    Feste, nicht-ausschreibungsrelevante Quelle statt Angebot – wird regulär geplant, aber nicht ausgeschrieben.
-                </p>
-            </div>
-            <a href="{{ route('project.material-request.pdf', $project->cis_row_id) }}" target="_blank"
-               class="btn btn-ghost btn-sm shrink-0">
-                <i class="fa fa-file-pdf mr-1.5"></i>Materialanforderung
-            </a>
+        <div class="px-4 py-3 border-b border-sky-100">
+            <p class="text-sm font-semibold text-sky-800"><i class="fa fa-house mr-1.5"></i>Interne Beschaffung</p>
+            <p class="text-xs text-sky-700 mt-0.5">
+                Feste, nicht-ausschreibungsrelevante Quelle statt Angebot – wird regulär geplant, aber nicht ausgeschrieben.
+            </p>
         </div>
         <div class="divide-y divide-sky-100">
-            @foreach($internalPositions->groupBy(fn($p) => $p->product->source?->name ?? '–') as $sourceName => $group)
+            @foreach($internalPositions->groupBy(fn($p) => $p->product->cis_row_id_source) as $group)
+            @php $source = $group->first()->product->source; @endphp
             <div class="px-4 py-2.5">
-                <p class="text-[10px] font-bold uppercase tracking-widest text-sky-600 mb-1.5">{{ $sourceName }}</p>
+                <div class="flex items-center justify-between gap-4 mb-1.5">
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-sky-600">{{ $source?->name ?? '–' }}</p>
+                    @if($source)
+                    <a href="{{ route('project.material-request.pdf', [$project->cis_row_id, $source->cis_row_id]) }}" target="_blank"
+                       class="btn btn-ghost btn-sm shrink-0 !py-0.5">
+                        <i class="fa fa-file-pdf mr-1.5"></i>Materialanforderung
+                    </a>
+                    @endif
+                </div>
                 @foreach($group as $item)
                 <div class="flex items-center justify-between text-sm py-0.5">
                     <span class="text-gray-700">{{ $item->product->name }} <span class="text-gray-400">× {{ $item->product_count }}</span></span>

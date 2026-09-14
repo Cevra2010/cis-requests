@@ -49,6 +49,11 @@ class SourceTable extends Component
                 'column' => 'url', 'value' => fn ($s) => $s->url,
                 'format' => fn ($v) => parse_url((string) $v, PHP_URL_HOST) ?? $v,
             ],
+            [
+                'key' => 'tender_relevant', 'label' => 'Ausschreibungsrelevant',
+                'sortable' => true, 'filterable' => true,
+                'value' => fn ($s) => $s->tender_relevant ? 'Ja' : 'Nein',
+            ],
         ];
     }
 

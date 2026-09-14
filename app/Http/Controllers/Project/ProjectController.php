@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Project;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use App\Models\ProjectTenderBlock;
+use App\Support\DocumentNaming;
 use Barryvdh\DomPDF\Facade\Pdf;
 use CisFoundation\CisCategoryManager\CisCategoryManager;
 use Illuminate\Http\Request;
@@ -268,7 +269,7 @@ class ProjectController extends Controller
             'branding'       => $branding,
         ])->setPaper('a4', 'portrait');
 
-        $filename = str($p->name)->slug() . '-ausschreibung.pdf';
+        $filename = DocumentNaming::downloadFilename($p, 'Ausschreibung', 'pdf');
 
         return $pdf->stream($filename);
     }
@@ -296,7 +297,7 @@ class ProjectController extends Controller
             'estimate' => $estimate,
         ])->setPaper('a4', 'portrait');
 
-        $filename = str($p->name)->slug() . '-uebersicht.pdf';
+        $filename = DocumentNaming::downloadFilename($p, 'Projektübersicht', 'pdf');
 
         return $pdf->stream($filename);
     }
@@ -307,23 +308,30 @@ class ProjectController extends Controller
      * anzufordernden Produkten/Mengen. Ersetzt für diese Positionen die
      * reguläre Bestellung an einen Anbieter.
      */
-    public function exportMaterialRequestPdf(string $project)
+    /**
+     * Eine eigene Materialanforderung je fester, nicht-ausschreibungsrelevanter
+     * Quelle (statt einer gemeinsamen PDF mit mehreren Abschnitten) – bei z.B.
+     * zwei genutzten internen Quellen stehen damit zwei getrennte Dokumente im
+     * Dokumentenmanager zur Verfügung, siehe Project::materialRequestGroups().
+     */
+    public function exportMaterialRequestPdf(string $project, string $source)
     {
         $p = Project::where('cis_row_id', $project)->firstOrFail();
+
+        $group = $p->materialRequestGroups()->first(fn ($g) => $g['source']?->cis_row_id === $source);
+        abort_if(! $group, 404);
 
         $branding = (Module::find('Branding')?->isEnabled())
             ? \Modules\Branding\Models\BrandingSetting::current()
             : null;
 
-        $groups = $p->materialRequestGroups();
-
         $pdf = Pdf::loadView('project.material-request-pdf', [
             'project'  => $p,
             'branding' => $branding,
-            'groups'   => $groups,
+            'groups'   => collect([$group]),
         ])->setPaper('a4', 'portrait');
 
-        $filename = str($p->name)->slug() . '-materialanforderung.pdf';
+        $filename = DocumentNaming::downloadFilename($p, 'Materialanforderung - ' . $group['source']->name, 'pdf');
 
         return $pdf->stream($filename);
     }

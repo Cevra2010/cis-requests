@@ -9,6 +9,7 @@ use App\Models\OfferChildItem;
 use App\Models\OfferItem;
 use App\Models\PositionAward;
 use App\Models\Project;
+use App\Support\DocumentNaming;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Nwidart\Modules\Facades\Module;
 
@@ -90,7 +91,7 @@ class OfferController extends Controller
             'branding' => $branding,
         ])->setPaper('a4', 'portrait');
 
-        $filename = str($p->name . '-bestellliste-' . $o->source->name)->slug() . '.pdf';
+        $filename = DocumentNaming::downloadFilename($p, 'Bestellliste - ' . $o->source->name, 'pdf');
 
         return $pdf->stream($filename);
     }

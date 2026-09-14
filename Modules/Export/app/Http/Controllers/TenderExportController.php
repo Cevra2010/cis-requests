@@ -4,6 +4,7 @@ namespace Modules\Export\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Project;
+use App\Support\DocumentNaming;
 use Modules\Export\Models\ExportTemplate;
 use Modules\Export\Services\ExportFileBuilder;
 use Modules\Export\Services\TenderExporter;
@@ -27,7 +28,7 @@ class TenderExportController extends Controller
         $data    = $exporter->build($project, $template);
         $content = $builder->build($data['headers'], $data['rows'], $format, $template->name, $data['import_key_index']);
 
-        $filename = str($project->name . '-' . $template->name)->slug() . '.' . $format;
+        $filename = DocumentNaming::downloadFilename($project, $template->name, $format);
         $mime = $format === 'xlsx'
             ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             : 'text/csv; charset=UTF-8';

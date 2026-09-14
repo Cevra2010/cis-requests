@@ -555,4 +555,18 @@ class Project extends Model
             ])
             ->values();
     }
+
+    /**
+     * Angebote dieses Projekts, denen tatsächlich mindestens eine Position/ein
+     * Unterprodukt zugeordnet wurde (= für die eine Bestellliste sinnvoll ist).
+     * Gemeinsame Grundlage für AwardManager (Bestelllisten je Anbieter) und
+     * DocumentManager (virtuelle Bestellliste-Dokumente je Anbieter).
+     */
+    public function offersWithAwards(): \Illuminate\Support\Collection
+    {
+        return $this->offers()->with('source')->orderBy('created_at')->get()
+            ->filter(fn (Offer $offer) => PositionAward::where('cis_row_id_offer', $offer->cis_row_id)->exists()
+                || ChildPositionAward::where('cis_row_id_offer', $offer->cis_row_id)->exists())
+            ->values();
+    }
 }

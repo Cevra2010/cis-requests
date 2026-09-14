@@ -4,6 +4,7 @@ namespace App\Http\Livewire\Project;
 
 use App\Models\Project;
 use App\Models\ProjectDocument;
+use App\Support\DocumentNaming;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -14,11 +15,11 @@ class DocumentManager extends Component
 {
     use WithFileUploads;
 
-    public const FOLDER_TABLES  = 'tables';
-    public const FOLDER_PDF     = 'pdf';
+    /** Verzeichnisse orientieren sich am Projekt-Workflow statt am Dateityp. */
+    public const FOLDER_GENERAL = 'general';
+    public const FOLDER_TENDER  = 'tender';
+    public const FOLDER_ORDER   = 'order';
     public const FOLDER_UPLOADS = 'uploads';
-
-    private const TABLE_EXTENSIONS = ['xlsx', 'xls', 'csv'];
 
     public string $projectId;
 
@@ -49,7 +50,7 @@ class DocumentManager extends Component
             ->get();
 
         foreach ($all as $document) {
-            $document->folders = self::foldersFor($document);
+            $document->folders = self::foldersForUpload($document);
         }
 
         $merged = $this->virtualDocuments()->concat($all);
@@ -57,8 +58,9 @@ class DocumentManager extends Component
 
         $counts = [
             'all'                => $merged->count(),
-            self::FOLDER_TABLES  => $merged->filter($inFolder(self::FOLDER_TABLES))->count(),
-            self::FOLDER_PDF     => $merged->filter($inFolder(self::FOLDER_PDF))->count(),
+            self::FOLDER_GENERAL => $merged->filter($inFolder(self::FOLDER_GENERAL))->count(),
+            self::FOLDER_TENDER  => $merged->filter($inFolder(self::FOLDER_TENDER))->count(),
+            self::FOLDER_ORDER   => $merged->filter($inFolder(self::FOLDER_ORDER))->count(),
             self::FOLDER_UPLOADS => $merged->filter($inFolder(self::FOLDER_UPLOADS))->count(),
         ];
 
@@ -70,29 +72,21 @@ class DocumentManager extends Component
     }
 
     /**
-     * Ein Dokument kann in mehreren Verzeichnissen gleichzeitig auftauchen:
-     * nach Dateiformat (Tabellen/PDF-Dateien) UND – zusätzlich, nicht
-     * ausschließend – unter "Uploads", wenn es tatsächlich hochgeladen wurde
-     * (im Gegensatz zu den automatisch erzeugten virtuellen Dokumenten).
+     * Ein hochgeladenes Dokument taucht immer zusätzlich unter "Uploads" auf
+     * (im Gegensatz zu den automatisch erzeugten virtuellen Dokumenten) sowie
+     * in genau einem Workflow-Verzeichnis: eine beim Angebotsvergleich
+     * importierte Händler-Datei unter "Ausschreibung" (gehört inhaltlich zum
+     * Angebotsprozess), alles andere unter "Allgemein" (unbekannter Zweck).
      *
      * @return array<int, string>
      */
-    private static function foldersFor(ProjectDocument $document): array
+    private static function foldersForUpload(ProjectDocument $document): array
     {
-        $ext     = $document->extension();
-        $folders = [];
+        $workflowFolder = $document->linked_type === ProjectDocument::LINK_OFFER_IMPORT
+            ? self::FOLDER_TENDER
+            : self::FOLDER_GENERAL;
 
-        if (in_array($ext, self::TABLE_EXTENSIONS, true)) {
-            $folders[] = self::FOLDER_TABLES;
-        } elseif ($ext === 'pdf') {
-            $folders[] = self::FOLDER_PDF;
-        }
-
-        if ($document->exists) {
-            $folders[] = self::FOLDER_UPLOADS;
-        }
-
-        return $folders;
+        return [$workflowFolder, self::FOLDER_UPLOADS];
     }
 
     /**
@@ -110,22 +104,35 @@ class DocumentManager extends Component
         }
 
         $items = collect([
-            $this->virtualDocument(
-                str($project->name)->slug() . '-ausschreibung.pdf',
-                route('project.export.pdf', $project->cis_row_id)
-            ),
-            $this->virtualDocument(
-                str($project->name)->slug() . '-uebersicht.pdf',
-                route('project.overview.pdf', $project->cis_row_id)
-            ),
+            $this->virtualDocument($project, 'Ausschreibung', 'pdf', route('project.export.pdf', $project->cis_row_id), self::FOLDER_TENDER),
+            $this->virtualDocument($project, 'Projektübersicht', 'pdf', route('project.overview.pdf', $project->cis_row_id), self::FOLDER_GENERAL),
         ]);
 
-        // Nur anbieten, wenn das Projekt tatsächlich mindestens eine Position mit
-        // fester, nicht-ausschreibungsrelevanter Quelle hat (sonst ein sinnloser Leer-Eintrag).
-        if ($project->materialRequestGroups()->isNotEmpty()) {
+        // Je genutzter fester, nicht-ausschreibungsrelevanter Quelle eine eigene
+        // Materialanforderung (statt einer gemeinsamen PDF mit mehreren
+        // Abschnitten) – bei z.B. zwei genutzten internen Quellen stehen damit
+        // zwei getrennte Dokumente zur Verfügung, siehe Project::materialRequestGroups().
+        foreach ($project->materialRequestGroups() as $group) {
+            if (! $group['source']) {
+                continue;
+            }
             $items->push($this->virtualDocument(
-                str($project->name)->slug() . '-materialanforderung.pdf',
-                route('project.material-request.pdf', $project->cis_row_id)
+                $project,
+                'Materialanforderung - ' . $group['source']->name,
+                'pdf',
+                route('project.material-request.pdf', [$project->cis_row_id, $group['source']->cis_row_id]),
+                self::FOLDER_ORDER
+            ));
+        }
+
+        // Je Anbieter mit tatsächlich zugeordneten Positionen eine eigene Bestellliste.
+        foreach ($project->offersWithAwards() as $offer) {
+            $items->push($this->virtualDocument(
+                $project,
+                'Bestellliste - ' . $offer->source->name,
+                'pdf',
+                route('offer.orderlist.pdf', [$project->cis_row_id, $offer->cis_row_id]),
+                self::FOLDER_ORDER
             ));
         }
 
@@ -134,16 +141,18 @@ class DocumentManager extends Component
                 ->filter(fn (ExportTemplate $t) => $t->columns->isNotEmpty());
 
             foreach ($templates as $template) {
-                foreach (['xlsx' => 'xlsx', 'csv' => 'csv'] as $format => $ext) {
-                    $document = $this->virtualDocument(
-                        "{$template->name}.{$ext}",
-                        route('export.tender.table', [$project->cis_row_id, $template->cis_row_id, $format])
-                    );
-                    // Zeigt im Dokumentenmanager, ob es sich um eine Vorlage "vor der
-                    // Ausschreibung" oder "nach der Ausschreibung/Auswertung" handelt
-                    // (siehe ExportTemplate::PHASES) – rein informatives Badge.
-                    $document->phase = $template->phase;
-                    $items->push($document);
+                // Vorlagen "vor der Ausschreibung" gehören zu "Ausschreibung", Vorlagen
+                // "nach der Ausschreibung/Auswertung" zu "Bestellung" (siehe ExportTemplate::PHASES).
+                $folder = $template->phase === 'post_tender' ? self::FOLDER_ORDER : self::FOLDER_TENDER;
+
+                foreach (['xlsx', 'csv'] as $format) {
+                    $items->push($this->virtualDocument(
+                        $project,
+                        $template->name,
+                        $format,
+                        route('export.tender.table', [$project->cis_row_id, $template->cis_row_id, $format]),
+                        $folder
+                    ));
                 }
             }
         }
@@ -151,13 +160,15 @@ class DocumentManager extends Component
         return $items;
     }
 
-    private function virtualDocument(string $name, string $url): ProjectDocument
+    private function virtualDocument(Project $project, string $docName, string $extension, string $url, string $folder): ProjectDocument
     {
+        $name = DocumentNaming::displayName($project, $docName) . '.' . $extension;
+
         $document = new ProjectDocument([
             'name'      => $name,
             'file_path' => $name,
         ]);
-        $document->folders     = self::foldersFor($document);
+        $document->folders     = [$folder];
         $document->downloadUrl = $url;
 
         return $document;

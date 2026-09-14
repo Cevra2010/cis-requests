@@ -31,6 +31,9 @@
                     <x-data-table.th field="url" label="Website" sortable filterable
                         :order-by="$orderBy" :order-direction="$orderDirection"
                         :options="$this->filterOptionsFor('url')" :active="$filters['url'] ?? []" />
+                    <x-data-table.th field="tender_relevant" label="Ausschreibungsrelevant" sortable filterable
+                        :order-by="$orderBy" :order-direction="$orderDirection"
+                        :options="$this->filterOptionsFor('tender_relevant')" :active="$filters['tender_relevant'] ?? []" />
                     <th class="text-right">Aktionen</th>
                 </tr>
             </thead>
@@ -66,6 +69,13 @@
                             <span class="text-gray-400">–</span>
                         @endif
                     </td>
+                    <td class="text-sm">
+                        @if($source->tender_relevant)
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700">Ja</span>
+                        @else
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700">Nein</span>
+                        @endif
+                    </td>
                     <td class="text-right">
                         <div class="flex items-center justify-end gap-1">
                             <a href="{{ route('source.edit', $source) }}" class="btn btn-ghost btn-sm">
@@ -79,7 +89,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="6" class="text-center py-16 text-gray-400">
+                    <td colspan="7" class="text-center py-16 text-gray-400">
                         <i class="fa fa-truck text-4xl mb-3 block"></i>
                         <p class="text-sm font-medium">Keine Produktquellen gefunden.</p>
                         <a href="{{ route('source.create') }}" class="btn btn-primary btn-sm mt-4">
