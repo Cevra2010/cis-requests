@@ -1,4 +1,8 @@
 <div wire:poll.3s.visible>
+    @if($lagerEnabled)
+        @include('lager::livewire._qr-scanner')
+    @endif
+
     <div class="mb-5">
         <div class="flex items-start justify-between gap-3 flex-wrap">
             <div class="min-w-0">
@@ -162,6 +166,11 @@
                             <option value="{{ $l->cis_row_id }}">{{ str_repeat('— ', $l->depth) }}{{ $l->name }}</option>
                         @endforeach
                     </select>
+                    <button type="button"
+                            @click="$store.qrScanner.launch((text) => { lagerortId = $store.qrScanner.extractId(text); })"
+                            title="QR-Code scannen" class="btn btn-ghost btn-sm !py-1 !px-2 shrink-0">
+                        <i class="fa fa-qrcode text-xs"></i>
+                    </button>
                     <input type="number" min="1" max="{{ $remainingToPlace }}" x-model.number="qty"
                            class="w-14 text-center cis-input py-1 px-1 text-xs">
                     <button type="button"

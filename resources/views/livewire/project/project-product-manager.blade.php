@@ -68,6 +68,28 @@
         {{-- Scrollable list --}}
         <div class="flex-1 overflow-y-auto divide-y divide-gray-50 bg-white">
             @forelse($available as $product)
+            @if(($product->free_stock ?? 0) > 0)
+                {{-- Bereits nicht zugeordneter Lagerbestand vorhanden: Wahl anbieten
+                     statt direkt auszuschreiben (Modul "Lager"). --}}
+                <div class="w-full px-4 py-2.5 hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center gap-1.5 mb-1.5">
+                        <p class="text-sm font-medium text-gray-800 truncate">{{ $product->name }}</p>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-sky-50 text-sky-600 shrink-0" title="Nicht zugeordneter Lagerbestand">
+                            <i class="fa fa-warehouse mr-0.5"></i>{{ $product->free_stock }} auf Lager
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" wire:click="add('{{ $product->cis_row_id }}')"
+                                class="btn btn-ghost btn-sm !py-1 !px-2 text-xs flex-1">
+                            <i class="fa fa-file-contract mr-1"></i>Ausschreiben
+                        </button>
+                        <button type="button" wire:click="addFromStock('{{ $product->cis_row_id }}')"
+                                class="btn btn-primary btn-sm !py-1 !px-2 text-xs flex-1">
+                            <i class="fa fa-warehouse mr-1"></i>Aus Lager
+                        </button>
+                    </div>
+                </div>
+            @else
             <button type="button"
                     wire:click="add('{{ $product->cis_row_id }}')"
                     class="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-primary-50 transition-colors group">
@@ -81,6 +103,7 @@
                 </div>
                 <i class="fa fa-plus text-[10px] text-gray-300 group-hover:text-primary-500 transition-colors shrink-0"></i>
             </button>
+            @endif
             @empty
             <div class="flex flex-col items-center justify-center h-full py-12 text-gray-400">
                 <i class="fa fa-magnifying-glass text-2xl mb-2"></i>
@@ -151,6 +174,12 @@
                                     <i class="fa fa-house mr-0.5"></i>{{ $item->source_name }}
                                 </span>
                             @endunless
+                            @if($item->sourced_from_stock)
+                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-sky-50 text-sky-600 shrink-0"
+                                      title="Aus vorhandenem Lagerbestand bezogen statt ausgeschrieben, nur für diese Position">
+                                    <i class="fa fa-warehouse mr-0.5"></i>Aus Lager
+                                </span>
+                            @endif
                         </div>
                         @if($item->group_price > 0)
                             <span class="text-[11px] text-gray-400">

@@ -511,7 +511,9 @@ class Project extends Model
             ->with('product.source')
             ->orderBy('sort_order')
             ->get()
-            ->reject(fn (ProjectProduct $p) => ! $p->product || (! $p->product->isTenderRelevant() && ! $p->product->include_in_estimate));
+            ->reject(fn (ProjectProduct $p) => ! $p->product
+                || $p->sourced_from_stock
+                || (! $p->product->isTenderRelevant() && ! $p->product->include_in_estimate));
 
         $lines = [];
 

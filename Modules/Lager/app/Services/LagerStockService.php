@@ -91,6 +91,82 @@ class LagerStockService
         });
     }
 
+    /** Summe des nicht einem Projekt zugeordneten (freien) Bestands eines Produkts, über alle Lagerorte hinweg. */
+    public function freeQuantityFor(string $productId): int
+    {
+        return (int) LagerStock::where('cis_row_id_product', $productId)
+            ->whereNull('cis_row_id_project')
+            ->sum('quantity');
+    }
+
+    /**
+     * Reserviert bis zu $quantity Stück freien (nicht zugeordneten) Bestands eines
+     * Produkts für ein Projekt – bei Bedarf über mehrere Lagerorte verteilt, falls
+     * an einem einzelnen nicht genug frei liegt. Gibt die tatsächlich reservierte
+     * Menge zurück (kann kleiner als $quantity sein, wenn nicht genug frei ist).
+     */
+    public function reserveFreeStockForProject(string $productId, string $projectId, int $quantity): int
+    {
+        if ($quantity <= 0) {
+            return 0;
+        }
+
+        return DB::transaction(function () use ($productId, $projectId, $quantity) {
+            $freeRows = LagerStock::where('cis_row_id_product', $productId)
+                ->whereNull('cis_row_id_project')
+                ->where('quantity', '>', 0)
+                ->lockForUpdate()
+                ->get();
+
+            $remaining = $quantity;
+            foreach ($freeRows as $row) {
+                if ($remaining <= 0) {
+                    break;
+                }
+                $take = min($remaining, $row->quantity);
+                $this->decrement($row, $take);
+                $this->incrementRow($productId, $row->cis_row_id_lagerort, $projectId, $take);
+                $remaining -= $take;
+            }
+
+            return $quantity - $remaining;
+        });
+    }
+
+    /**
+     * Gegenstück zu reserveFreeStockForProject(): gibt bis zu $quantity Stück des für
+     * ein Projekt reservierten Bestands eines Produkts wieder frei (nicht zugeordnet),
+     * bei Bedarf über mehrere Lagerorte verteilt. Genutzt, wenn eine "aus Lager bezogen"
+     * markierte Projektposition in der Menge reduziert wird.
+     */
+    public function releaseQuantityForProject(string $productId, string $projectId, int $quantity): int
+    {
+        if ($quantity <= 0) {
+            return 0;
+        }
+
+        return DB::transaction(function () use ($productId, $projectId, $quantity) {
+            $rows = LagerStock::where('cis_row_id_product', $productId)
+                ->where('cis_row_id_project', $projectId)
+                ->where('quantity', '>', 0)
+                ->lockForUpdate()
+                ->get();
+
+            $remaining = $quantity;
+            foreach ($rows as $row) {
+                if ($remaining <= 0) {
+                    break;
+                }
+                $release = min($remaining, $row->quantity);
+                $this->decrement($row, $release);
+                $this->incrementRow($productId, $row->cis_row_id_lagerort, null, $release);
+                $remaining -= $release;
+            }
+
+            return $quantity - $remaining;
+        });
+    }
+
     private function incrementRow(string $productId, string $lagerortId, ?string $projectId, int $quantity): void
     {
         $row = LagerStock::where('cis_row_id_product', $productId)

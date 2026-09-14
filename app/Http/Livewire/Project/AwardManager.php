@@ -34,12 +34,19 @@ class AwardManager extends Component
         // nur ihre Mitgliedsprodukte, die über aggregatedChildPositions() unten
         // ohnehin projektweit erfasst werden. Nicht-ausschreibungsrelevante
         // Positionen (feste, interne Quelle, siehe Product::isTenderRelevant())
-        // werden nicht regulär bestellt, siehe stattdessen $internalPositions unten.
-        $positions = $project->positions()->with(['product.source', 'award.offer.source', 'offerItems.offer.source'])->get()
-            ->reject(fn ($p) => ! $p->product || $p->product->isSet() || ! $p->product->isTenderRelevant())
+        // sowie aus Lagerbestand bezogene Positionen (sourced_from_stock, Modul
+        // "Lager") werden nicht regulär bestellt, siehe $internalPositions bzw.
+        // $stockSourcedPositions unten.
+        $allPositions = $project->positions()->with(['product.source', 'award.offer.source', 'offerItems.offer.source'])->get()
+            ->reject(fn ($p) => ! $p->product || $p->product->isSet());
+        $positions = $allPositions
+            ->reject(fn ($p) => $p->sourced_from_stock || ! $p->product->isTenderRelevant())
             ->values();
-        $internalPositions = $project->positions()->with('product.source')->get()
-            ->reject(fn ($p) => ! $p->product || $p->product->isSet() || $p->product->isTenderRelevant())
+        $internalPositions = $allPositions
+            ->reject(fn ($p) => $p->sourced_from_stock || $p->product->isTenderRelevant())
+            ->values();
+        $stockSourcedPositions = $allPositions
+            ->filter(fn ($p) => $p->sourced_from_stock)
             ->values();
         $offers    = $project->offers()->with('source')->orderBy('created_at')->get();
         $conflicts = AwardCalculator::conflicts($project);
@@ -66,7 +73,7 @@ class AwardManager extends Component
         })->filter(fn ($s) => $s['count'] > 0);
 
         return view('livewire.project.award-manager', compact(
-            'project', 'positions', 'internalPositions', 'offers', 'conflicts', 'summaries',
+            'project', 'positions', 'internalPositions', 'stockSourcedPositions', 'offers', 'conflicts', 'summaries',
             'childPositions', 'childAwards', 'childOfferItems'
         ));
     }

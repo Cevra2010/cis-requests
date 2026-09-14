@@ -52,6 +52,31 @@
     </div>
     @endif
 
+    {{-- ── Aus Lager bezogen: Positionen, für die bereits vorhandener Bestand statt Ausschreibung genutzt wird ── --}}
+    @if($stockSourcedPositions->isNotEmpty())
+    <div class="mb-5 rounded-xl border border-sky-200 bg-sky-50 overflow-hidden" x-data="{ open: false }">
+        <button type="button" @click="open = !open" class="w-full px-4 py-3 border-b border-sky-100 flex items-center justify-between gap-4 text-left">
+            <div>
+                <p class="text-sm font-semibold text-sky-800"><i class="fa fa-warehouse mr-1.5"></i>Aus Lager bezogen</p>
+                <p class="text-xs text-sky-700 mt-0.5">
+                    Bereits vorhandener Lagerbestand statt Angebot – wird regulär geplant, aber nicht ausgeschrieben.
+                </p>
+            </div>
+            <i class="fa text-sky-600 shrink-0" :class="open ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+        </button>
+        <div x-show="open" x-cloak class="divide-y divide-sky-100">
+            <div class="px-4 py-2.5">
+                @foreach($stockSourcedPositions as $item)
+                <div class="flex items-center justify-between text-sm py-0.5">
+                    <span class="text-gray-700">{{ $item->product->name }} <span class="text-gray-400">× {{ $item->product_count }}</span></span>
+                    <span class="text-gray-500">{{ number_format($project->effectiveGroupPrice($item->product), 2, ',', '.') }} €/Stk.</span>
+                </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- ── Konflikte ── --}}
     @if($conflicts->isNotEmpty())
     <div class="space-y-2 mb-5">

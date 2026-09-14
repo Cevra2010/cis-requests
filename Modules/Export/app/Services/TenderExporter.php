@@ -52,11 +52,13 @@ class TenderExporter
         // Welche Positionen überhaupt in den Export gelangen, entscheiden die
         // frei kombinierbaren Filter der Vorlage (siehe ExportFilterRegistry /
         // ExportTemplateFilterMatcher) – eine Vorlage ganz ohne Filter schließt
-        // nichts aus.
+        // nichts aus. Aus Lagerbestand bezogene Positionen (sourced_from_stock,
+        // Modul "Lager") werden unabhängig von den Filtern nie exportiert – für
+        // sie wird nichts beschafft, sie gehören in keine Tabelle.
         $positions = $project->positions()
             ->with(['product.category', 'product.childs.category', 'product.childs.source', 'product.source', 'award.offer.source', 'offerItems'])
             ->get()
-            ->reject(fn (ProjectProduct $p) => ! ExportTemplateFilterMatcher::matches($p->product, $template->filters));
+            ->reject(fn (ProjectProduct $p) => $p->sourced_from_stock || ! ExportTemplateFilterMatcher::matches($p->product, $template->filters));
 
         if ($template->sort_field) {
             $positions = $this->sorted(

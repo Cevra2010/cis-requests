@@ -22,8 +22,13 @@ $hasChildren = $node->children->isNotEmpty();
             <span class="text-[10px] text-gray-300 shrink-0">{{ $node->children->count() }}</span>
         @endif
 
-        <a href="{{ route('lager.buchen', $node->cis_row_id) }}" title="Ware in diesen Lagerort buchen"
+        <a href="{{ route('lager.lagerort.label.pdf', $node->cis_row_id) }}" target="_blank" title="QR-Etikett drucken"
            class="ml-auto text-gray-300 hover:text-primary-600 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            <i class="fa fa-qrcode text-xs"></i>
+        </a>
+
+        <a href="{{ route('lager.buchen', $node->cis_row_id) }}" title="Ware in diesen Lagerort buchen"
+           class="text-gray-300 hover:text-primary-600 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
             <i class="fa fa-box-open text-xs"></i>
         </a>
 

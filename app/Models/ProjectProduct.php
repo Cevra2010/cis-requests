@@ -17,7 +17,10 @@ class ProjectProduct extends Model
         'product_count',
         'note',
         'sort_order',
+        'sourced_from_stock',
     ];
+
+    protected $casts = ['sourced_from_stock' => 'boolean'];
 
     public function project()
     {

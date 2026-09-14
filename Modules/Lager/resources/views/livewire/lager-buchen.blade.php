@@ -1,4 +1,6 @@
 <div>
+    @include('lager::livewire._qr-scanner')
+
     <div class="flex items-center justify-between mb-4">
         <div>
             <h2 class="text-base font-semibold text-gray-800">Ware buchen</h2>
@@ -17,7 +19,14 @@
     </div>
     @elseif(! $lagerort)
     <div class="cis-card">
-        <p class="cis-label mb-3">Lagerort wählen</p>
+        <div class="flex items-center justify-between mb-3">
+            <p class="cis-label mb-0">Lagerort wählen</p>
+            <button type="button" x-data
+                    @click="$store.qrScanner.launch((text) => { window.location.href = '{{ route('lager.buchen', 'LAGERORT_ID') }}'.replace('LAGERORT_ID', $store.qrScanner.extractId(text)); })"
+                    class="btn btn-ghost btn-sm shrink-0">
+                <i class="fa fa-qrcode mr-1.5"></i>QR-Code scannen
+            </button>
+        </div>
         <div class="space-y-1">
             @forelse($lagerorte as $l)
                 <button type="button" wire:click="selectLagerort('{{ $l->cis_row_id }}')"

@@ -8,6 +8,7 @@ use App\Models\Project;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Nwidart\Modules\Facades\Module;
 
 class ProjectProductManager extends Component
 {
@@ -42,7 +43,8 @@ class ProjectProductManager extends Component
                 'products.name',
                 'project_product.product_count',
                 'project_product.note',
-                'project_product.sort_order'
+                'project_product.sort_order',
+                'project_product.sourced_from_stock'
             )
             ->get();
 
@@ -79,13 +81,23 @@ class ProjectProductManager extends Component
             ->orderBy('name')
             ->get(['cis_row_id', 'name', 'is_set']);
 
+        // Bereits vorhandener, keinem Projekt zugeordneter Lagerbestand – Signal "schon auf
+        // Lager, ausschreiben oder aus Lager beziehen?" (Modul "Lager", nur wenn aktiv).
+        $lagerEnabled = Module::find('Lager')?->isEnabled() ?? false;
+        if ($lagerEnabled) {
+            $stockService = app(\Modules\Lager\Services\LagerStockService::class);
+            foreach ($available as $product) {
+                $product->free_stock = $product->is_set ? 0 : $stockService->freeQuantityFor($product->cis_row_id);
+            }
+        }
+
         $categoryOptions = \CisFoundation\CisCategoryManager\CisCategoryManager::optionsForType('product.category');
 
         $canEdit = $project?->isEditableBy(auth()->user()) ?? true;
 
         $estimate = $project?->costEstimate() ?? ['total' => 0.0, 'positions_count' => 0, 'missing_count' => 0, 'fixed' => false];
 
-        return view('livewire.project.project-product-manager', compact('assigned', 'available', 'canEdit', 'categoryOptions', 'estimate'));
+        return view('livewire.project.project-product-manager', compact('assigned', 'available', 'canEdit', 'categoryOptions', 'estimate', 'lagerEnabled'));
     }
 
     public function add(string $productId): void
@@ -118,10 +130,62 @@ class ProjectProductManager extends Component
         $this->dispatch('products-updated');
     }
 
+    /**
+     * Fügt das Produkt hinzu, markiert die Position als "aus Lager bezogen" (bleibt
+     * dadurch außerhalb von Ausschreibung/Angebotsvergleich/Kostenschätzung/Bestellzuordnung,
+     * siehe die entsprechenden reject()-Stellen) und reserviert vorhandenen, bislang
+     * nicht zugeordneten Lagerbestand für dieses Projekt. Nur wenn das Lager-Modul aktiv ist.
+     */
+    public function addFromStock(string $productId): void
+    {
+        if (! $this->assertEditable($this->projectId)) {
+            return;
+        }
+        if (! Module::find('Lager')?->isEnabled()) {
+            return;
+        }
+
+        $alreadyAdded = DB::table('project_product')
+            ->where('cis_row_id_project', $this->projectId)
+            ->where('cis_row_id_product', $productId)
+            ->exists();
+
+        if ($alreadyAdded) {
+            return;
+        }
+
+        $maxOrder = DB::table('project_product')
+            ->where('cis_row_id_project', $this->projectId)
+            ->max('sort_order') ?? 0;
+
+        \App\Models\ProjectProduct::create([
+            'cis_row_id_project'  => $this->projectId,
+            'cis_row_id_product'  => $productId,
+            'product_count'       => 1,
+            'note'                => null,
+            'sort_order'          => (int) $maxOrder + 1,
+            'sourced_from_stock'  => true,
+        ]);
+
+        app(\Modules\Lager\Services\LagerStockService::class)->reserveFreeStockForProject($productId, $this->projectId, 1);
+
+        $this->dispatch('products-updated');
+    }
+
     public function remove(string $productId): void
     {
         if (! $this->assertEditable($this->projectId)) {
             return;
+        }
+
+        $position = DB::table('project_product')
+            ->where('cis_row_id_project', $this->projectId)
+            ->where('cis_row_id_product', $productId)
+            ->first();
+
+        if ($position && $position->sourced_from_stock && Module::find('Lager')?->isEnabled()) {
+            app(\Modules\Lager\Services\LagerStockService::class)
+                ->releaseQuantityForProject($productId, $this->projectId, (int) $position->product_count);
         }
 
         DB::table('project_product')
@@ -148,10 +212,27 @@ class ProjectProductManager extends Component
             return;
         }
 
+        $newCount = max(1, (int) $value);
+
+        $position = DB::table('project_product')
+            ->where('cis_row_id_project', $this->projectId)
+            ->where('cis_row_id_product', $productId)
+            ->first();
+
+        if ($position && $position->sourced_from_stock && Module::find('Lager')?->isEnabled()) {
+            $delta = $newCount - (int) $position->product_count;
+            $service = app(\Modules\Lager\Services\LagerStockService::class);
+            if ($delta > 0) {
+                $service->reserveFreeStockForProject($productId, $this->projectId, $delta);
+            } elseif ($delta < 0) {
+                $service->releaseQuantityForProject($productId, $this->projectId, -$delta);
+            }
+        }
+
         DB::table('project_product')
             ->where('cis_row_id_project', $this->projectId)
             ->where('cis_row_id_product', $productId)
-            ->update(['product_count' => max(1, (int) $value), 'updated_at' => now()]);
+            ->update(['product_count' => $newCount, 'updated_at' => now()]);
 
         $this->dispatch('products-updated');
     }

@@ -1,4 +1,6 @@
 <div>
+    @include('lager::livewire._qr-scanner')
+
     <div class="flex items-center justify-between mb-4">
         <div>
             <h2 class="text-base font-semibold text-gray-800">Warenübersicht</h2>
@@ -102,12 +104,19 @@
             <h3 class="text-base font-semibold text-gray-900 mb-1">In Lagerort verschieben</h3>
             <p class="text-xs text-gray-500 mb-4">{{ count($selected) }} Position(en) werden verschoben.</p>
 
-            <select wire:model="moveTargetId" class="cis-input w-full text-sm @error('moveTargetId') is-invalid @enderror">
-                <option value="">— Ziel-Lagerort wählen —</option>
-                @foreach($lagerorte as $l)
-                    <option value="{{ $l->cis_row_id }}">{{ str_repeat('— ', $l->depth) }}{{ $l->name }}</option>
-                @endforeach
-            </select>
+            <div class="flex items-center gap-2" x-data>
+                <select wire:model="moveTargetId" class="cis-input flex-1 text-sm @error('moveTargetId') is-invalid @enderror">
+                    <option value="">— Ziel-Lagerort wählen —</option>
+                    @foreach($lagerorte as $l)
+                        <option value="{{ $l->cis_row_id }}">{{ str_repeat('— ', $l->depth) }}{{ $l->name }}</option>
+                    @endforeach
+                </select>
+                <button type="button"
+                        @click="$store.qrScanner.launch((text) => { $wire.set('moveTargetId', $store.qrScanner.extractId(text)); })"
+                        title="QR-Code scannen" class="btn btn-ghost btn-sm shrink-0">
+                    <i class="fa fa-qrcode"></i>
+                </button>
+            </div>
             @error('moveTargetId')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
 
             <div class="flex items-center justify-end gap-2 mt-6">
