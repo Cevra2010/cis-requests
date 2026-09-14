@@ -23,6 +23,15 @@ class GoodsReceiptChecklist extends Component
     /** offen | abgeschlossen | alle */
     public string $filter = 'offen';
 
+    /**
+     * Vorausgewählter Ziel-Lagerort für den gesamten Erfassungsvorgang (Modul Lager,
+     * optional). Per Auswahl oder QR-Scan gesetzt; solange gesetzt, wird jede neu
+     * erfasste Menge automatisch dorthin eingebucht – kann während des Erfassens
+     * jederzeit geändert werden (z.B. neuen QR-Code scannen), falls eine Position
+     * woanders hin kommt.
+     */
+    public string $currentLagerortId = '';
+
     public function mount(string $token): void
     {
         $participant = GoodsReceiptParticipant::where('access_token', $token)->firstOrFail();
@@ -126,25 +135,30 @@ class GoodsReceiptChecklist extends Component
     public function setReceived(string $itemId, $value): void
     {
         $count = $value === '' || $value === null ? null : max(0, (int) $value);
-        $this->item($itemId)->setReceived($count, $this->participant());
+        $item  = $this->item($itemId);
+        $item->setReceived($count, $this->participant());
+        $this->autoBookLagerort($item);
     }
 
     public function increment(string $itemId): void
     {
         $item = $this->item($itemId);
         $item->setReceived(($item->received_count ?? 0) + 1, $this->participant());
+        $this->autoBookLagerort($item);
     }
 
     public function decrement(string $itemId): void
     {
         $item = $this->item($itemId);
         $item->setReceived(max(0, ($item->received_count ?? 0) - 1), $this->participant());
+        $this->autoBookLagerort($item);
     }
 
     public function markFull(string $itemId): void
     {
         $item = $this->item($itemId);
         $item->setReceived($item->expected_count, $this->participant());
+        $this->autoBookLagerort($item);
     }
 
     public function markMissing(string $itemId): void
@@ -196,6 +210,32 @@ class GoodsReceiptChecklist extends Component
         }
 
         app(\Modules\Lager\Services\LagerStockService::class)->receiveIntoStock($item, $lagerort, $quantity);
+    }
+
+    /**
+     * Bucht die seit der letzten Buchung neu erfasste Menge automatisch in den
+     * vorausgewählten Ziel-Lagerort ein (siehe $currentLagerortId) – der eigentliche
+     * gewünschte Ablauf: Ziel einmal wählen/scannen, danach lädt jede erfasste Menge
+     * direkt dort. Ohne gewählten Ziel-Lagerort passiert nichts (dann bleibt nur die
+     * manuelle Einzel-Buchung je Position, siehe assignLagerort()).
+     */
+    private function autoBookLagerort(GoodsReceiptItem $item): void
+    {
+        if ($this->currentLagerortId === '' || ! \Nwidart\Modules\Facades\Module::find('Lager')?->isEnabled()) {
+            return;
+        }
+
+        $lagerort = \Modules\Lager\Models\Lagerort::find($this->currentLagerortId);
+        if (! $lagerort) {
+            return;
+        }
+
+        $service   = app(\Modules\Lager\Services\LagerStockService::class);
+        $remaining = ($item->received_count ?? 0) - $service->placedQuantity($item->cis_row_id);
+
+        if ($remaining > 0) {
+            $service->receiveIntoStock($item, $lagerort, $remaining);
+        }
     }
 
     public function updateStatusCategory(string $itemId, string $categoryId): void

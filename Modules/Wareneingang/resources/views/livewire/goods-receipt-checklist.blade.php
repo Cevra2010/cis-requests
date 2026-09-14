@@ -36,6 +36,32 @@
         </div>
     </div>
 
+    @if($lagerEnabled)
+    <div class="mb-4 p-3 rounded-xl border-2 {{ $currentLagerortId ? 'border-sky-300 bg-sky-50' : 'border-dashed border-gray-200 bg-gray-50' }}">
+        <label class="text-xs font-medium {{ $currentLagerortId ? 'text-sky-700' : 'text-gray-500' }} block mb-1.5">
+            <i class="fa fa-warehouse mr-1"></i>Ziel-Lagerort
+            @if($currentLagerortId)
+                <span class="text-[11px] font-normal">– jede erfasste Menge wird automatisch hier eingebucht</span>
+            @else
+                <span class="text-[11px] font-normal">– optional: wählen oder scannen, dann bucht jede erfasste Menge automatisch dorthin</span>
+            @endif
+        </label>
+        <div class="flex items-center gap-1.5">
+            <select wire:model.live="currentLagerortId" class="cis-input py-2 px-2 text-sm flex-1">
+                <option value="">— kein Ziel gewählt —</option>
+                @foreach($lagerorte as $l)
+                    <option value="{{ $l->cis_row_id }}">{{ str_repeat('— ', $l->depth) }}{{ $l->name }}</option>
+                @endforeach
+            </select>
+            <button type="button"
+                    @click="$store.qrScanner.launch((text) => { $wire.set('currentLagerortId', $store.qrScanner.extractId(text)); })"
+                    title="QR-Code scannen" class="btn btn-ghost btn-sm !py-2 !px-2.5 shrink-0">
+                <i class="fa fa-qrcode"></i>
+            </button>
+        </div>
+    </div>
+    @endif
+
     <div class="mb-4">
         @if($participant->nameIsEditable())
             <label class="cis-label text-xs">Dein Name (optional)</label>
@@ -87,6 +113,11 @@
                         <p class="text-xs text-gray-400 italic">{{ $item->position->note }}</p>
                     @endif
                     <p class="text-xs text-gray-500 mt-0.5">Bestellt: <strong>{{ $item->expected_count }}</strong></p>
+                    @if($lagerEnabled && ($lagerPlacedCount[$item->cis_row_id] ?? 0) > 0)
+                        <p class="text-[11px] text-sky-600 mt-0.5">
+                            <i class="fa fa-warehouse mr-0.5"></i>{{ $lagerPlacedCount[$item->cis_row_id] }} im Lager eingebucht
+                        </p>
+                    @endif
                     @if($item->lastParticipant)
                         <p class="text-[11px] text-gray-400 mt-0.5">
                             <i class="fa fa-user-pen mr-0.5"></i>zuletzt von {{ $item->lastParticipant->displayName() }}

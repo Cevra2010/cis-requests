@@ -4,6 +4,9 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.5.1.0 — 2026-09-14
+- Wareneingang: neuer Ziel-Lagerort-Bereich oben in der Checkliste (Auswahl oder QR-Scan) – solange gesetzt, wird jede erfasste Menge automatisch dorthin eingebucht, statt es für jede Position einzeln bestätigen zu müssen; das Ziel lässt sich während der Erfassung jederzeit wechseln (z.B. anderen QR-Code scannen), falls eine Lieferung woanders hin soll
+
 ## 0.5.0.0 — 2026-09-14
 - Lagerorte können jetzt QR-Etiketten ausdrucken (Baum unter Ordnung → Lagerort → QR-Symbol) und per Handy-Kamera gescannt werden – sowohl beim Einbuchen im Wareneingang als auch bei "Ware buchen" und beim Verschieben in der Warenübersicht
 - Neu: beim Hinzufügen eines Produkts zu einem Projekt wird angezeigt, wenn bereits nicht zugeordneter Lagerbestand vorhanden ist ("X auf Lager") – Wahl zwischen "Ausschreiben" und "Aus Lager beziehen"; aus Lager bezogene Positionen werden regulär geplant, aber nicht ausgeschrieben, nicht in die Kostenschätzung, den Angebotsvergleich, die Bestellzuordnung oder Tabellenexporte übernommen
