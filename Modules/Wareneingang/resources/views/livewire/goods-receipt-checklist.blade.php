@@ -46,19 +46,26 @@
                 <span class="text-[11px] font-normal">– optional: wählen oder scannen, dann bucht jede erfasste Menge automatisch dorthin</span>
             @endif
         </label>
-        <div class="flex items-center gap-1.5">
-            <select wire:model.live="currentLagerortId" class="cis-input py-2 px-2 text-sm flex-1">
-                <option value="">— kein Ziel gewählt —</option>
-                @foreach($lagerorte as $l)
-                    <option value="{{ $l->cis_row_id }}">{{ str_repeat('— ', $l->depth) }}{{ $l->name }}</option>
-                @endforeach
-            </select>
-            <button type="button"
-                    @click="$store.qrScanner.launch((text) => { $wire.set('currentLagerortId', $store.qrScanner.extractId(text)); })"
-                    title="QR-Code scannen" class="btn btn-ghost btn-sm !py-2 !px-2.5 shrink-0">
-                <i class="fa fa-qrcode"></i>
-            </button>
-        </div>
+        @if($lagerorte->isEmpty())
+            <p class="text-xs text-gray-400 italic">Diesem Projekt sind noch keine Lagerorte zugeteilt (siehe Projekt → Lager).</p>
+        @else
+            <div class="flex items-center gap-1.5">
+                <select wire:change="setCurrentLagerort($event.target.value)" class="cis-input py-2 px-2 text-sm flex-1">
+                    <option value="">— kein Ziel gewählt —</option>
+                    @foreach($lagerorte as $l)
+                        <option value="{{ $l->cis_row_id }}" {{ $currentLagerortId === $l->cis_row_id ? 'selected' : '' }}>{{ $l->path() }}</option>
+                    @endforeach
+                </select>
+                <button type="button"
+                        @click="$store.qrScanner.launch((text) => { $wire.setCurrentLagerort($store.qrScanner.extractId(text)); })"
+                        title="QR-Code scannen" class="btn btn-ghost btn-sm !py-2 !px-2.5 shrink-0">
+                    <i class="fa fa-qrcode"></i>
+                </button>
+            </div>
+        @endif
+        @if($lagerortWarning !== '')
+            <p class="text-xs text-red-600 mt-1.5"><i class="fa fa-triangle-exclamation mr-1"></i>{{ $lagerortWarning }}</p>
+        @endif
     </div>
     @endif
 
@@ -113,10 +120,12 @@
                         <p class="text-xs text-gray-400 italic">{{ $item->position->note }}</p>
                     @endif
                     <p class="text-xs text-gray-500 mt-0.5">Bestellt: <strong>{{ $item->expected_count }}</strong></p>
-                    @if($lagerEnabled && ($lagerPlacedCount[$item->cis_row_id] ?? 0) > 0)
-                        <p class="text-[11px] text-sky-600 mt-0.5">
-                            <i class="fa fa-warehouse mr-0.5"></i>{{ $lagerPlacedCount[$item->cis_row_id] }} im Lager eingebucht
-                        </p>
+                    @if($lagerEnabled)
+                        @foreach($lagerPlacements[$item->cis_row_id] ?? [] as $entry)
+                            <p class="text-[11px] text-sky-600 mt-0.5">
+                                <i class="fa fa-warehouse mr-0.5"></i>{{ $entry['quantity'] }} in {{ $entry['lagerort']->name }} eingebucht
+                            </p>
+                        @endforeach
                     @endif
                     @if($item->lastParticipant)
                         <p class="text-[11px] text-gray-400 mt-0.5">
@@ -182,7 +191,7 @@
                 </div>
             </div>
 
-            @if($lagerEnabled && $checked)
+            @if($lagerEnabled && $checked && $lagerorte->isNotEmpty())
             @php $remainingToPlace = $item->received_count - ($lagerPlacedCount[$item->cis_row_id] ?? 0); @endphp
             @if($remainingToPlace > 0)
             <div class="mt-2 p-2 rounded-lg bg-sky-50 border border-sky-100"
@@ -194,7 +203,7 @@
                     <select x-model="lagerortId" class="cis-input py-1 px-2 text-xs flex-1">
                         <option value="">— Lagerort —</option>
                         @foreach($lagerorte as $l)
-                            <option value="{{ $l->cis_row_id }}">{{ str_repeat('— ', $l->depth) }}{{ $l->name }}</option>
+                            <option value="{{ $l->cis_row_id }}">{{ $l->path() }}</option>
                         @endforeach
                     </select>
                     <button type="button"

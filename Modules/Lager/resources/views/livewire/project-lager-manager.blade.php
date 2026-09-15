@@ -35,20 +35,6 @@
 
     <div class="cis-card">
         <h3 class="text-sm font-semibold text-gray-700 mb-3">Für dieses Projekt reservierter Bestand</h3>
-        @if($stock->isEmpty())
-            <p class="text-sm text-gray-400 italic">Aktuell kein reservierter Bestand für dieses Projekt.</p>
-        @else
-            <div class="space-y-1.5">
-                @foreach($stock as $row)
-                <div wire:key="pstock-{{ $row->cis_row_id }}" class="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 text-sm">
-                    <div>
-                        <span class="font-medium text-gray-800">{{ $row->product?->name ?? '–' }}</span>
-                        <span class="text-gray-400 ml-1">{{ $row->lagerort?->path() }}</span>
-                    </div>
-                    <span class="text-gray-600 tabular-nums">{{ $row->quantity }}×</span>
-                </div>
-                @endforeach
-            </div>
-        @endif
+        @livewire('lager.lager-uebersicht', ['projectId' => $projectId])
     </div>
 </div>

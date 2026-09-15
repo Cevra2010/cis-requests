@@ -4,6 +4,14 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.6.0.0 — 2026-09-15
+- Lager-Warenübersicht (Hauptmenü "Lager" und neu auch im Projekt-Tab "Lager") nutzt jetzt dieselbe Tabelle mit Spalten-Filtern, Sortierung und Pagination wie Benutzer/Produkte – inkl. Filtern nach Lagerort
+- Projekt-Tab "Lager" zeigt jetzt direkt die Produkte mit aktuellem Lagerort in dieser Tabelle; der Tab steht in der Reihenfolge jetzt vor "Wareneingang"
+- Im Wareneingang sind als Ziel-Lagerort (Auswahl wie auch QR-Scan) nur noch die dem Projekt zugeteilten Lagerorte wählbar; wird per QR-Code ein Lagerort gescannt, der dem Projekt nicht zugeteilt ist, erscheint der Hinweis "Lagerort nicht dem Projekt zugeteilt" statt ihn stillschweigend zu übernehmen
+- Neu: Lagerort direkt per QR-Scan in der Warenübersicht nachschlagen ("Lagerort scannen") – zeigt sofort, welche Produkte dort aktuell eingelagert sind
+- "X im Lager eingebucht" heißt jetzt "X in <Lagerort> eingebucht"
+- QR-Etikett (PDF) bietet jetzt drei Größen (groß/mittel/klein, klein max. 4 cm) zur Auswahl auf einem Blatt, jede mit eigenem Rahmen zum Ausschneiden und dem Lagerort-Namen im Klartext
+
 ## 0.5.1.0 — 2026-09-14
 - Wareneingang: neuer Ziel-Lagerort-Bereich oben in der Checkliste (Auswahl oder QR-Scan) – solange gesetzt, wird jede erfasste Menge automatisch dorthin eingebucht, statt es für jede Position einzeln bestätigen zu müssen; das Ziel lässt sich während der Erfassung jederzeit wechseln (z.B. anderen QR-Code scannen), falls eine Lieferung woanders hin soll
 

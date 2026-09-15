@@ -325,15 +325,6 @@
             Bestellung
         </button>
         @endif
-        @if($tabVisibility['wareneingang'])
-        <button type="button"
-                @click="tab = 'wareneingang'"
-                :class="tab === 'wareneingang' ? 'border-b-2 border-primary-600 text-primary-600 bg-white' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'"
-                class="px-4 py-2.5 text-sm font-medium transition-colors rounded-t-lg -mb-px">
-            <i class="fa fa-truck-ramp-box mr-1.5"></i>
-            Wareneingang
-        </button>
-        @endif
         @if($tabVisibility['lager'])
         <button type="button"
                 @click="tab = 'lager'"
@@ -341,6 +332,15 @@
                 class="px-4 py-2.5 text-sm font-medium transition-colors rounded-t-lg -mb-px">
             <i class="fa fa-warehouse mr-1.5"></i>
             Lager
+        </button>
+        @endif
+        @if($tabVisibility['wareneingang'])
+        <button type="button"
+                @click="tab = 'wareneingang'"
+                :class="tab === 'wareneingang' ? 'border-b-2 border-primary-600 text-primary-600 bg-white' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'"
+                class="px-4 py-2.5 text-sm font-medium transition-colors rounded-t-lg -mb-px">
+            <i class="fa fa-truck-ramp-box mr-1.5"></i>
+            Wareneingang
         </button>
         @endif
     </div>
@@ -378,17 +378,17 @@
     </div>
     @endif
 
-    @if($tabVisibility['wareneingang'])
-    {{-- Tab: Wareneingang --}}
-    <div x-show="tab === 'wareneingang'" x-cloak>
-        @livewire('wareneingang.goods-receipt-manager', ['projectId' => $project->cis_row_id])
-    </div>
-    @endif
-
     @if($tabVisibility['lager'])
     {{-- Tab: Lager --}}
     <div x-show="tab === 'lager'" x-cloak>
         @livewire('lager.project-lager-manager', ['projectId' => $project->cis_row_id])
+    </div>
+    @endif
+
+    @if($tabVisibility['wareneingang'])
+    {{-- Tab: Wareneingang --}}
+    <div x-show="tab === 'wareneingang'" x-cloak>
+        @livewire('wareneingang.goods-receipt-manager', ['projectId' => $project->cis_row_id])
     </div>
     @endif
 

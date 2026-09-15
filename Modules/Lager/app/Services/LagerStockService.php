@@ -50,6 +50,19 @@ class LagerStockService
         return (int) LagerPlacement::where('cis_row_id_goods_receipt_item', $goodsReceiptItemId)->sum('quantity');
     }
 
+    /** Aufschlüsselung der bereits platzierten Menge je Lagerort (Anzeige "X in Lagerort eingebucht"). */
+    public function placedByLagerort(string $goodsReceiptItemId): \Illuminate\Support\Collection
+    {
+        return LagerPlacement::where('cis_row_id_goods_receipt_item', $goodsReceiptItemId)
+            ->selectRaw('cis_row_id_lagerort, SUM(quantity) as quantity')
+            ->groupBy('cis_row_id_lagerort')
+            ->havingRaw('SUM(quantity) > 0')
+            ->get()
+            ->map(fn ($row) => ['lagerort' => Lagerort::find($row->cis_row_id_lagerort), 'quantity' => (int) $row->quantity])
+            ->filter(fn (array $entry) => $entry['lagerort'] !== null)
+            ->values();
+    }
+
     /**
      * Verschiebt eine Menge von einer Bestandszeile in einen anderen Lagerort
      * (gleiches Produkt/Projekt bleibt erhalten). Für Block-Verschiebung ruft

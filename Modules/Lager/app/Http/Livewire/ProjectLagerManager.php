@@ -5,7 +5,6 @@ namespace Modules\Lager\Http\Livewire;
 use App\Models\Project;
 use Livewire\Component;
 use Modules\Lager\Models\Lagerort;
-use Modules\Lager\Models\LagerStock;
 
 /**
  * Projekt-Tab "Lager": diesem Projekt zugewiesene Lagerorte (Zuweisen/
@@ -47,13 +46,6 @@ class ProjectLagerManager extends Component
 
         $availableLagerorte = Lagerort::flatTree()->reject(fn (Lagerort $l) => in_array($l->cis_row_id, $assignedIds, true));
 
-        $stock = LagerStock::with(['product', 'lagerort'])
-            ->where('cis_row_id_project', $this->projectId)
-            ->where('quantity', '>', 0)
-            ->get()
-            ->sortBy(fn (LagerStock $s) => $s->product?->name)
-            ->values();
-
-        return view('lager::livewire.project-lager-manager', compact('assignedLagerorte', 'availableLagerorte', 'stock'));
+        return view('lager::livewire.project-lager-manager', compact('assignedLagerorte', 'availableLagerorte'));
     }
 }

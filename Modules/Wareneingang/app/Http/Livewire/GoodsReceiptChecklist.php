@@ -32,6 +32,9 @@ class GoodsReceiptChecklist extends Component
      */
     public string $currentLagerortId = '';
 
+    /** Hinweis, wenn ein per Auswahl/QR-Scan gewählter Lagerort dem Projekt nicht zugeteilt ist. */
+    public string $lagerortWarning = '';
+
     public function mount(string $token): void
     {
         $participant = GoodsReceiptParticipant::where('access_token', $token)->firstOrFail();
@@ -79,16 +82,21 @@ class GoodsReceiptChecklist extends Component
 
         // Optionale Erweiterung durch das Lager-Modul (Weg A aus der Planung: direkt beim
         // Erfassen der Menge auch gleich den Lagerort zuweisen) – nur wenn Lager installiert
-        // UND aktiv ist; ohne das Modul bleibt dieser Block komplett leer/wirkungslos.
+        // UND aktiv ist; ohne das Modul bleibt dieser Block komplett leer/wirkungslos. Wählbar
+        // sind ausschließlich die dem Projekt zugeteilten Lagerorte (siehe Projekt → Lager).
         $lagerEnabled     = \Nwidart\Modules\Facades\Module::find('Lager')?->isEnabled() ?? false;
         $lagerorte        = collect();
         $lagerPlacedCount = [];
+        $lagerPlacements  = [];
 
         if ($lagerEnabled) {
-            $lagerorte = \Modules\Lager\Models\Lagerort::flatTree();
-            $service   = app(\Modules\Lager\Services\LagerStockService::class);
+            $lagerorte = $receipt->project
+                ? \Modules\Lager\Models\Lagerort::whereIn('cis_row_id', $this->assignedLagerortIds())->orderBy('name')->get()
+                : collect();
+            $service = app(\Modules\Lager\Services\LagerStockService::class);
             foreach ($allItems as $i) {
                 $lagerPlacedCount[$i->cis_row_id] = $service->placedQuantity($i->cis_row_id);
+                $lagerPlacements[$i->cis_row_id]  = $service->placedByLagerort($i->cis_row_id);
             }
         }
 
@@ -104,6 +112,7 @@ class GoodsReceiptChecklist extends Component
             'lagerEnabled'          => $lagerEnabled,
             'lagerorte'             => $lagerorte,
             'lagerPlacedCount'      => $lagerPlacedCount,
+            'lagerPlacements'       => $lagerPlacements,
         ]);
     }
 
@@ -117,6 +126,14 @@ class GoodsReceiptChecklist extends Component
         return GoodsReceiptItem::where('cis_row_id', $itemId)
             ->whereHas('receipt.participants', fn ($q) => $q->where('access_token', $this->token))
             ->firstOrFail();
+    }
+
+    /** cis_row_id der diesem Wareneingangs-Projekt zugeteilten Lagerorte (Projekt → Lager). */
+    private function assignedLagerortIds(): array
+    {
+        $project = $this->participant()->receipt->project;
+
+        return $project ? $project->lagerorte()->pluck('cis_row_id')->all() : [];
     }
 
     public function updatedName(string $value): void
@@ -203,13 +220,42 @@ class GoodsReceiptChecklist extends Component
             return;
         }
 
+        if (! in_array($lagerortId, $this->assignedLagerortIds(), true)) {
+            $this->lagerortWarning = 'Lagerort nicht dem Projekt zugeteilt.';
+            return;
+        }
+
         $item     = $this->item($itemId);
         $lagerort = \Modules\Lager\Models\Lagerort::find($lagerortId);
         if (! $lagerort) {
             return;
         }
 
+        $this->lagerortWarning = '';
         app(\Modules\Lager\Services\LagerStockService::class)->receiveIntoStock($item, $lagerort, $quantity);
+    }
+
+    /**
+     * Setzt den Ziel-Lagerort für die Auto-Buchung (siehe autoBookLagerort()) – per
+     * Auswahl oder QR-Scan. Nur die dem Projekt zugeteilten Lagerorte sind gültig; ein
+     * gescannter Lagerort außerhalb dieser Zuteilung wird abgelehnt und stattdessen als
+     * Hinweis angezeigt, statt ihn stillschweigend zu übernehmen.
+     */
+    public function setCurrentLagerort(string $lagerortId): void
+    {
+        $this->lagerortWarning = '';
+
+        if ($lagerortId === '') {
+            $this->currentLagerortId = '';
+            return;
+        }
+
+        if (! in_array($lagerortId, $this->assignedLagerortIds(), true)) {
+            $this->lagerortWarning = 'Lagerort nicht dem Projekt zugeteilt.';
+            return;
+        }
+
+        $this->currentLagerortId = $lagerortId;
     }
 
     /**
