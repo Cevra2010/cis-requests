@@ -27,8 +27,11 @@ class ProjectLagerManager extends Component
             return;
         }
 
+        // Zuteilung erfolgt rekursiv: nur die untersten Elemente werden gespeichert.
+        $leafIds = Lagerort::leafIdsByNode()[$this->newLagerortId] ?? [];
+
         $project = Project::where('cis_row_id', $this->projectId)->firstOrFail();
-        $project->lagerorte()->syncWithoutDetaching([$this->newLagerortId]);
+        $project->lagerorte()->syncWithoutDetaching($leafIds);
         $this->newLagerortId = '';
     }
 
@@ -44,7 +47,10 @@ class ProjectLagerManager extends Component
         $assignedLagerorte = $project->lagerorte()->get();
         $assignedIds       = $assignedLagerorte->pluck('cis_row_id')->all();
 
-        $availableLagerorte = Lagerort::flatTree()->reject(fn (Lagerort $l) => in_array($l->cis_row_id, $assignedIds, true));
+        $leafMap = Lagerort::leafIdsByNode();
+        $availableLagerorte = Lagerort::flatTree()->reject(
+            fn (Lagerort $l) => array_diff($leafMap[$l->cis_row_id] ?? [$l->cis_row_id], $assignedIds) === []
+        );
 
         return view('lager::livewire.project-lager-manager', compact('assignedLagerorte', 'availableLagerorte'));
     }

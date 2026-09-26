@@ -92,6 +92,38 @@ class Lagerort extends Model
         return $build(null);
     }
 
+    /**
+     * Je Lagerort die IDs seiner untersten Elemente (Blätter): ein Blatt liefert sich selbst,
+     * ein Knoten mit Kindern rekursiv alle Blätter darunter. Im Speicher berechnet (eine Query).
+     *
+     * @return array<string, array<int, string>>
+     */
+    public static function leafIdsByNode(): array
+    {
+        $byParent = static::query()->get(['cis_row_id', 'cis_row_id_parent'])
+            ->groupBy(fn (self $n) => (string) $n->cis_row_id_parent);
+
+        $result = [];
+        $leaves = function (string $id) use (&$leaves, $byParent, &$result): array {
+            $children = $byParent->get($id, collect());
+            if ($children->isEmpty()) {
+                return $result[$id] = [$id];
+            }
+            $ids = [];
+            foreach ($children as $child) {
+                $ids = array_merge($ids, $leaves($child->cis_row_id));
+            }
+
+            return $result[$id] = $ids;
+        };
+
+        foreach ($byParent->flatten(1) as $node) {
+            $leaves($node->cis_row_id);
+        }
+
+        return $result;
+    }
+
     /** Alle Lagerorte als flache, tiefensortierte Liste mit ->depth (für Auswahllisten). */
     public static function flatTree(): Collection
     {
