@@ -4,6 +4,10 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.8.0.0 — 2026-09-26
+- Wareneingang: neuer Buchungsablauf – erfasste Positionen sind zunächst nur vorgemerkt: vollständig erfasste rutschen in „Offen“ mit grünem Rahmen nach unten, erst „Jetzt buchen“ finalisiert die Buchung (inkl. Einlagerung in den zuvor gewählten Ziel-Lagerort, der je Position beim Erfassen gemerkt wird) und verschiebt sie nach „Abgeschlossen“
+- Die Gesamtübersicht zeigt alle Positionen mit aktuellem Stand, vorgemerkte Positionen sind als „noch nicht gebucht“ gekennzeichnet
+
 ## 0.7.0.0 — 2026-09-26
 - Lager: Lagerorte haben jetzt einen Typ (Name + Kürzel, z.B. Halle „H“, Regal „Reg“), pflegbar unter „Ordnung“ → „Lagerort-Typen“; der Standardtyp „Standard“ (S) existiert immer, mindestens ein Typ bleibt erhalten
 - Jeder Lagerort erhält eine ID aus der Hierarchie (z.B. H1R2SC3-F4), sichtbar im Lagerort-Baum, im Projekt-Tab und auf dem QR-Etikett

@@ -41,9 +41,9 @@
         <label class="text-xs font-medium {{ $currentLagerortId ? 'text-sky-700' : 'text-gray-500' }} block mb-1.5">
             <i class="fa fa-warehouse mr-1"></i>Ziel-Lagerort
             @if($currentLagerortId)
-                <span class="text-[11px] font-normal">– jede erfasste Menge wird automatisch hier eingebucht</span>
+                <span class="text-[11px] font-normal">– erfasste Positionen werden bei „Jetzt buchen“ hier eingebucht</span>
             @else
-                <span class="text-[11px] font-normal">– optional: wählen oder scannen, dann bucht jede erfasste Menge automatisch dorthin</span>
+                <span class="text-[11px] font-normal">– optional: wählen oder scannen; erfasste Positionen werden bei „Jetzt buchen“ dorthin eingebucht</span>
             @endif
         </label>
         @if($lagerorte->isEmpty())
@@ -110,7 +110,10 @@
         @php
             $checked  = $item->isChecked();
             $closed   = $item->isClosed();
-            $borderClass = $closed ? 'border-emerald-300' : ($checked ? 'border-amber-300' : 'border-gray-200');
+            $staged   = $item->hasDraft();
+            $stagedFull = $item->isDraftComplete();
+            $touched  = $checked || $staged;
+            $borderClass = ($closed || $stagedFull) ? 'border-emerald-300' : (($checked || $staged) ? 'border-amber-300' : 'border-gray-200');
         @endphp
         <div wire:key="item-{{ $item->cis_row_id }}" class="rounded-xl border-2 {{ $borderClass }} bg-white p-4">
             <div class="flex items-start justify-between gap-3">
@@ -127,15 +130,25 @@
                             </p>
                         @endforeach
                     @endif
+                    @if($staged)
+                        <p class="text-[11px] text-emerald-600 mt-0.5">
+                            <i class="fa fa-hourglass-half mr-0.5"></i>erfasst, noch nicht gebucht
+                            @if($item->draft_lagerort_id && ($target = $lagerorte->firstWhere('cis_row_id', $item->draft_lagerort_id)))
+                                &middot; Ziel: {{ $target->name }}
+                            @endif
+                        </p>
+                    @endif
                     @if($item->lastParticipant)
                         <p class="text-[11px] text-gray-400 mt-0.5">
                             <i class="fa fa-user-pen mr-0.5"></i>zuletzt von {{ $item->lastParticipant->displayName() }}
                         </p>
                     @endif
                 </div>
-                @if($closed)
+                @if($closed && ! $staged)
                     <i class="fa fa-circle-check text-emerald-500 text-lg shrink-0"></i>
-                @elseif($checked)
+                @elseif($stagedFull)
+                    <i class="fa fa-circle-check text-emerald-300 text-lg shrink-0"></i>
+                @elseif($touched)
                     <i class="fa fa-triangle-exclamation text-amber-500 text-lg shrink-0"></i>
                 @endif
             </div>
@@ -146,7 +159,7 @@
                             class="w-10 h-10 rounded-lg border border-gray-200 text-gray-500 text-lg leading-none active:bg-gray-100">−</button>
                     <input type="number" min="0" inputmode="numeric"
                            wire:change="setReceived('{{ $item->cis_row_id }}', $event.target.value)"
-                           value="{{ $item->received_count }}"
+                           value="{{ $item->currentCount() }}"
                            placeholder="–"
                            class="w-16 text-center cis-input py-2 text-sm tabular-nums">
                     <button type="button" wire:click="increment('{{ $item->cis_row_id }}')"
@@ -158,7 +171,7 @@
                             class="btn btn-ghost btn-sm !text-emerald-600">
                         <i class="fa fa-check mr-1"></i> Vollständig
                     </button>
-                    @if(! $checked)
+                    @if(! $touched)
                     <button type="button" wire:click="markMissing('{{ $item->cis_row_id }}')"
                             class="btn btn-ghost btn-sm !text-red-500">
                         <i class="fa fa-xmark mr-1"></i> Fehlt
@@ -251,6 +264,15 @@
         </p>
         @endforelse
     </div>
+
+    @if($pendingCount > 0)
+    <div class="sticky bottom-3 mt-4 z-10">
+        <button type="button" wire:click="bookNow" wire:loading.attr="disabled" wire:target="bookNow"
+                class="btn btn-primary w-full shadow-lg">
+            <i class="fa fa-box-archive mr-1.5"></i> Jetzt buchen ({{ $pendingCount }})
+        </button>
+    </div>
+    @endif
 
     <div class="mt-6 pt-4 border-t border-gray-100">
         @if($receipt->isComplete())

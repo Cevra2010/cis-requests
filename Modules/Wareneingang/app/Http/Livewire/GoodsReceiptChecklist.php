@@ -76,7 +76,13 @@ class GoodsReceiptChecklist extends Component
             ));
         }
 
-        $items = $items->sortBy(fn (GoodsReceiptItem $i) => $i->position?->sort_order ?? 0)->values();
+        // Vollständig erfasste, noch nicht gebuchte Positionen rutschen in "Offen" nach unten.
+        $items = $items->sortBy([
+            [fn (GoodsReceiptItem $i) => ($this->filter === 'offen' && $i->isDraftComplete()) ? 1 : 0, 'asc'],
+            [fn (GoodsReceiptItem $i) => $i->position?->sort_order ?? 0, 'asc'],
+        ])->values();
+
+        $pendingCount = $allItems->filter(fn (GoodsReceiptItem $i) => $i->hasDraft())->count();
 
         $statusCategoryOptions = \CisFoundation\CisCategoryManager\CisCategoryManager::optionsForType('wareneingang.item_status');
 
@@ -107,6 +113,7 @@ class GoodsReceiptChecklist extends Component
             'openCount'             => $openCount,
             'closedCount'           => $closedCount,
             'totalCount'            => $allItems->count(),
+            'pendingCount'          => $pendingCount,
             'otherParticipants'     => $otherParticipants,
             'statusCategoryOptions' => $statusCategoryOptions,
             'lagerEnabled'          => $lagerEnabled,
@@ -152,37 +159,32 @@ class GoodsReceiptChecklist extends Component
     public function setReceived(string $itemId, $value): void
     {
         $count = $value === '' || $value === null ? null : max(0, (int) $value);
-        $item  = $this->item($itemId);
-        $item->setReceived($count, $this->participant());
-        $this->autoBookLagerort($item);
+        $this->stage($this->item($itemId), $count);
     }
 
     public function increment(string $itemId): void
     {
         $item = $this->item($itemId);
-        $item->setReceived(($item->received_count ?? 0) + 1, $this->participant());
-        $this->autoBookLagerort($item);
+        $this->stage($item, ($item->currentCount() ?? 0) + 1);
     }
 
     public function decrement(string $itemId): void
     {
         $item = $this->item($itemId);
-        $item->setReceived(max(0, ($item->received_count ?? 0) - 1), $this->participant());
-        $this->autoBookLagerort($item);
+        $this->stage($item, max(0, ($item->currentCount() ?? 0) - 1));
     }
 
     public function markFull(string $itemId): void
     {
         $item = $this->item($itemId);
-        $item->setReceived($item->expected_count, $this->participant());
-        $this->autoBookLagerort($item);
+        $this->stage($item, $item->expected_count);
     }
 
     public function markMissing(string $itemId): void
     {
         $item = $this->item($itemId);
-        if ($item->received_count === null) {
-            $item->setReceived(0, $this->participant());
+        if ($item->currentCount() === null) {
+            $this->stage($item, 0);
         }
     }
 
@@ -236,7 +238,7 @@ class GoodsReceiptChecklist extends Component
     }
 
     /**
-     * Setzt den Ziel-Lagerort für die Auto-Buchung (siehe autoBookLagerort()) – per
+     * Setzt den Ziel-Lagerort für neu erfasste Positionen (siehe stage()/bookNow()) – per
      * Auswahl oder QR-Scan. Nur die dem Projekt zugeteilten Lagerorte sind gültig; ein
      * gescannter Lagerort außerhalb dieser Zuteilung wird abgelehnt und stattdessen als
      * Hinweis angezeigt, statt ihn stillschweigend zu übernehmen.
@@ -259,29 +261,47 @@ class GoodsReceiptChecklist extends Component
     }
 
     /**
-     * Bucht die seit der letzten Buchung neu erfasste Menge automatisch in den
-     * vorausgewählten Ziel-Lagerort ein (siehe $currentLagerortId) – der eigentliche
-     * gewünschte Ablauf: Ziel einmal wählen/scannen, danach lädt jede erfasste Menge
-     * direkt dort. Ohne gewählten Ziel-Lagerort passiert nichts (dann bleibt nur die
-     * manuelle Einzel-Buchung je Position, siehe assignLagerort()).
+     * Erfasst eine Menge vorläufig (noch nicht gebucht) und merkt sich den aktuell
+     * gewählten Ziel-Lagerort (siehe $currentLagerortId) je Position – so kann das Ziel
+     * während des Erfassens gewechselt werden. Erst bookNow() finalisiert.
      */
-    private function autoBookLagerort(GoodsReceiptItem $item): void
+    private function stage(GoodsReceiptItem $item, ?int $count): void
     {
-        if ($this->currentLagerortId === '' || ! \Nwidart\Modules\Facades\Module::find('Lager')?->isEnabled()) {
-            return;
-        }
+        $lagerortId = ($this->currentLagerortId !== ''
+            && \Nwidart\Modules\Facades\Module::find('Lager')?->isEnabled())
+            ? $this->currentLagerortId
+            : null;
 
-        $lagerort = \Modules\Lager\Models\Lagerort::find($this->currentLagerortId);
-        if (! $lagerort) {
-            return;
-        }
+        $item->setDraft($count, $this->participant(), $lagerortId);
+    }
 
-        $service   = app(\Modules\Lager\Services\LagerStockService::class);
-        $remaining = ($item->received_count ?? 0) - $service->placedQuantity($item->cis_row_id);
+    /** "Jetzt buchen": finalisiert alle vorläufig erfassten Positionen und bucht sie ggf. in den gemerkten Ziel-Lagerort ein. */
+    public function bookNow(): void
+    {
+        $participant = $this->participant();
+        $lagerOn     = \Nwidart\Modules\Facades\Module::find('Lager')?->isEnabled() ?? false;
 
-        if ($remaining > 0) {
-            $service->receiveIntoStock($item, $lagerort, $remaining);
-        }
+        \Illuminate\Support\Facades\DB::transaction(function () use ($participant, $lagerOn) {
+            $items = $participant->receipt->items()->whereNotNull('draft_count')->get();
+
+            foreach ($items as $item) {
+                $lagerortId = $item->draft_lagerort_id;
+                $item->commitDraft($participant);
+
+                if (! $lagerOn || ! $lagerortId) {
+                    continue;
+                }
+                $lagerort = \Modules\Lager\Models\Lagerort::find($lagerortId);
+                if (! $lagerort) {
+                    continue;
+                }
+                $service   = app(\Modules\Lager\Services\LagerStockService::class);
+                $remaining = ($item->received_count ?? 0) - $service->placedQuantity($item->cis_row_id);
+                if ($remaining > 0) {
+                    $service->receiveIntoStock($item, $lagerort, $remaining);
+                }
+            }
+        });
     }
 
     public function updateStatusCategory(string $itemId, string $categoryId): void
