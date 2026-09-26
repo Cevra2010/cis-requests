@@ -113,7 +113,7 @@
             $staged   = $item->hasDraft();
             $stagedFull = $item->isDraftComplete();
             $touched  = $checked || $staged;
-            $borderClass = ($closed || $stagedFull) ? 'border-emerald-300' : (($checked || $staged) ? 'border-amber-300' : 'border-gray-200');
+            $borderClass = ($staged ? $stagedFull : $closed) ? 'border-emerald-300' : (($checked || $staged) ? 'border-amber-300' : 'border-gray-200');
         @endphp
         <div wire:key="item-{{ $item->cis_row_id }}" class="rounded-xl border-2 {{ $borderClass }} bg-white p-4">
             <div class="flex items-start justify-between gap-3">

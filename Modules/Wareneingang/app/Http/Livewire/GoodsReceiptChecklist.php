@@ -76,9 +76,10 @@ class GoodsReceiptChecklist extends Component
             ));
         }
 
-        // Vollständig erfasste, noch nicht gebuchte Positionen rutschen in "Offen" nach unten.
+        // "Grüne" Positionen (vollständig erfasst oder gebucht) rutschen ans Listenende –
+        // so steht immer das noch zu bearbeitende oben.
         $items = $items->sortBy([
-            [fn (GoodsReceiptItem $i) => ($this->filter === 'offen' && $i->isDraftComplete()) ? 1 : 0, 'asc'],
+            [fn (GoodsReceiptItem $i) => ($i->hasDraft() ? $i->isDraftComplete() : $i->isClosed()) ? 1 : 0, 'asc'],
             [fn (GoodsReceiptItem $i) => $i->position?->sort_order ?? 0, 'asc'],
         ])->values();
 
