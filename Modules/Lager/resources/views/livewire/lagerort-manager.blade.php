@@ -48,6 +48,15 @@
                            placeholder="z.B. Lager Nord, Raum 1, Gitterbox 2, Fach 3">
                     @error('formName')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
+                <div>
+                    <label class="cis-label" for="formTypeId">Typ</label>
+                    <select id="formTypeId" wire:model="formTypeId" class="cis-input w-full">
+                        @foreach($types as $t)
+                            <option value="{{ $t->cis_row_id }}">{{ $t->name }} ({{ $t->abbreviation }})</option>
+                        @endforeach
+                    </select>
+                    @error('formTypeId')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
             </div>
 
             @if($formId)

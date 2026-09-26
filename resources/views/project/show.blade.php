@@ -54,7 +54,7 @@
         'angebote'      => $reached('tender'),
         'bestellung'    => $reached('evaluated'),
         'wareneingang'  => $wareneingangEnabled && $reached('ordered'),
-        'lager'         => $lagerEnabled && $reached('ordered'),
+        'lager'         => $lagerEnabled,
     ];
 
     // ── Tab, der beim Öffnen des Projekts automatisch aktiv ist (passend zum Status).
@@ -286,6 +286,15 @@
 
     {{-- Tab bar --}}
     <div class="flex gap-1 border-b border-gray-200 mb-5">
+        @if($tabVisibility['lager'])
+        <button type="button"
+                @click="tab = 'lager'"
+                :class="tab === 'lager' ? 'border-b-2 border-primary-600 text-primary-600 bg-white' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'"
+                class="px-4 py-2.5 text-sm font-medium transition-colors rounded-t-lg -mb-px">
+            <i class="fa fa-warehouse mr-1.5"></i>
+            Lager
+        </button>
+        @endif
         <button type="button"
                 @click="tab = 'beladung'"
                 :class="tab === 'beladung' ? 'border-b-2 border-primary-600 text-primary-600 bg-white' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'"
@@ -323,15 +332,6 @@
                 class="px-4 py-2.5 text-sm font-medium transition-colors rounded-t-lg -mb-px">
             <i class="fa fa-cart-shopping mr-1.5"></i>
             Bestellung
-        </button>
-        @endif
-        @if($tabVisibility['lager'])
-        <button type="button"
-                @click="tab = 'lager'"
-                :class="tab === 'lager' ? 'border-b-2 border-primary-600 text-primary-600 bg-white' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'"
-                class="px-4 py-2.5 text-sm font-medium transition-colors rounded-t-lg -mb-px">
-            <i class="fa fa-warehouse mr-1.5"></i>
-            Lager
         </button>
         @endif
         @if($tabVisibility['wareneingang'])

@@ -4,6 +4,7 @@ namespace Modules\Lager\Http\Livewire;
 
 use Livewire\Component;
 use Modules\Lager\Models\Lagerort;
+use Modules\Lager\Models\LagerortType;
 
 /**
  * Lagerort-Baum ("unter Ordnung" erreichbar) – bewusst eine eigene Komponente
@@ -19,6 +20,7 @@ class LagerortManager extends Component
     public ?string $formId = null;
     public ?string $formParentId = null;
     public string $formName = '';
+    public string $formTypeId = '';
 
     public ?string $moveTargetParentId = null;
     public ?string $moveAfterId = null;
@@ -33,6 +35,7 @@ class LagerortManager extends Component
     {
         $this->resetForm();
         $this->formParentId  = $parentId;
+        $this->formTypeId    = LagerortType::default()->cis_row_id;
         $this->showFormModal = true;
     }
 
@@ -43,6 +46,7 @@ class LagerortManager extends Component
         $this->formId         = $lagerort->cis_row_id;
         $this->formParentId   = $lagerort->cis_row_id_parent;
         $this->formName       = $lagerort->name;
+        $this->formTypeId     = (string) $lagerort->cis_row_id_type;
         $this->showFormModal  = true;
 
         $this->moveTargetParentId = $lagerort->cis_row_id_parent;
@@ -54,16 +58,22 @@ class LagerortManager extends Component
 
     public function save(): void
     {
-        $this->validate(['formName' => 'required|string|max:255']);
+        $this->validate([
+            'formName'   => 'required|string|max:255',
+            'formTypeId' => 'required|exists:lagerort_types,cis_row_id',
+        ]);
 
         if ($this->formId) {
             // Reihenfolge/Elternelement werden ausschließlich über reorder() geändert.
-            Lagerort::where('cis_row_id', $this->formId)->update(['name' => $this->formName]);
+            $lagerort = Lagerort::findOrFail($this->formId);
+            $lagerort->update(['name' => $this->formName, 'cis_row_id_type' => $this->formTypeId]);
+            $lagerort->ensureUniqueNumber();
         } else {
             $maxOrder = Lagerort::where('cis_row_id_parent', $this->formParentId)->max('sort_order') ?? -1;
             Lagerort::create([
                 'cis_row_id_parent' => $this->formParentId,
                 'name'              => $this->formName,
+                'cis_row_id_type'   => $this->formTypeId,
                 'sort_order'        => $maxOrder + 1,
             ]);
         }
@@ -82,6 +92,7 @@ class LagerortManager extends Component
         $this->formId             = null;
         $this->formParentId       = null;
         $this->formName           = '';
+        $this->formTypeId         = '';
         $this->moveTargetParentId = null;
         $this->moveAfterId        = null;
         $this->resetErrorBag();
@@ -99,6 +110,7 @@ class LagerortManager extends Component
         }
 
         $node->update(['cis_row_id_parent' => $newParentId]);
+        $node->ensureUniqueNumber();
 
         $siblings = Lagerort::where('cis_row_id_parent', $newParentId)
             ->where('cis_row_id', '!=', $id)
@@ -197,6 +209,6 @@ class LagerortManager extends Component
         $deleteLagerort  = $this->deleteId ? Lagerort::find($this->deleteId) : null;
         $deleteDescCount = $deleteLagerort ? count($deleteLagerort->selfAndDescendantIds()) - 1 : 0;
 
-        return view('lager::livewire.lagerort-manager', compact('tree', 'deleteLagerort', 'deleteDescCount'));
+        return view('lager::livewire.lagerort-manager', compact('tree', 'deleteLagerort', 'deleteDescCount') + ['types' => LagerortType::orderBy('name')->get()]);
     }
 }

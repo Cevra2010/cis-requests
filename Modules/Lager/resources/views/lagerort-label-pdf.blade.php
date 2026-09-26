@@ -29,6 +29,7 @@
     }
     .label-path { color: #9ca3af; }
     .label-name { font-weight: bold; color: #111827; }
+    .label-code { font-family: DejaVu Sans Mono, monospace; color: #6b7280; font-size: 9pt; margin-top: 1mm; }
 
     .label-box-lg { padding: 10mm; }
     .label-box-lg .label-qr { width: 65mm; height: 65mm; }
@@ -41,8 +42,9 @@
     .label-box-md .label-name { font-size: 14pt; margin-top: 1mm; }
 
     .label-box-sm { padding: 2mm; max-height: 40mm; }
-    .label-box-sm .label-qr { width: 22mm; height: 22mm; }
-    .label-box-sm .label-name { font-size: 9pt; margin-top: 1.5mm; }
+    .label-box-sm .label-qr { width: 20mm; height: 20mm; }
+    .label-box-sm .label-name { font-size: 9pt; margin-top: 1mm; }
+    .label-box-sm .label-code { font-size: 7pt; margin-top: 0; }
 </style>
 </head>
 <body>
@@ -71,17 +73,20 @@
     <img src="{{ $qrDataUri }}" class="label-qr" alt="QR-Code">
     <div class="label-path">{{ $lagerort->path() }}</div>
     <div class="label-name">{{ $lagerort->name }}</div>
+    <div class="label-code">{{ $lagerort->code() }}</div>
 </div>
 
 <div class="label-box label-box-md">
     <img src="{{ $qrDataUri }}" class="label-qr" alt="QR-Code">
     <div class="label-path">{{ $lagerort->path() }}</div>
     <div class="label-name">{{ $lagerort->name }}</div>
+    <div class="label-code">{{ $lagerort->code() }}</div>
 </div>
 
 <div class="label-box label-box-sm">
     <img src="{{ $qrDataUri }}" class="label-qr" alt="QR-Code">
     <div class="label-name">{{ $lagerort->name }}</div>
+    <div class="label-code">{{ $lagerort->code() }}</div>
 </div>
 
 </body>

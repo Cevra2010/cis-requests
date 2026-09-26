@@ -4,6 +4,11 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.7.0.0 — 2026-09-26
+- Lager: Lagerorte haben jetzt einen Typ (Name + Kürzel, z.B. Halle „H“, Regal „Reg“), pflegbar unter „Ordnung“ → „Lagerort-Typen“; der Standardtyp „Standard“ (S) existiert immer, mindestens ein Typ bleibt erhalten
+- Jeder Lagerort erhält eine ID aus der Hierarchie (z.B. H1R2SC3-F4), sichtbar im Lagerort-Baum, im Projekt-Tab und auf dem QR-Etikett
+- Projekt-Tab „Lager“: Zuteilung erfolgt rekursiv (nur unterste Elemente, z.B. Gitterboxen), Anzeige als Tabelle mit QR-Code-Ansicht; der Tab steht jetzt ganz vorne und ist von Projektbeginn an verfügbar
+
 ## 0.6.0.0 — 2026-09-15
 - Lager-Warenübersicht (Hauptmenü "Lager" und neu auch im Projekt-Tab "Lager") nutzt jetzt dieselbe Tabelle mit Spalten-Filtern, Sortierung und Pagination wie Benutzer/Produkte – inkl. Filtern nach Lagerort
 - Projekt-Tab "Lager" zeigt jetzt direkt die Produkte mit aktuellem Lagerort in dieser Tabelle; der Tab steht in der Reihenfolge jetzt vor "Wareneingang"

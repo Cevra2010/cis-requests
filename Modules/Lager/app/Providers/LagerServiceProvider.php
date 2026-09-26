@@ -37,6 +37,7 @@ class LagerServiceProvider extends ModuleServiceProvider
         parent::boot();
 
         Livewire::component('lager.lagerort-manager', LagerortManager::class);
+        Livewire::component('lager.lagerort-type-manager', \Modules\Lager\Http\Livewire\LagerortTypeManager::class);
         Livewire::component('lager.lager-uebersicht', LagerUebersicht::class);
         Livewire::component('lager.lager-buchen', LagerBuchen::class);
         Livewire::component('lager.project-lager-manager', ProjectLagerManager::class);

@@ -17,6 +17,7 @@ $hasChildren = $node->children->isNotEmpty();
 
         <i class="fa fa-box-archive text-gray-300 text-xs shrink-0"></i>
         <span class="text-sm font-medium text-gray-800">{{ $node->name }}</span>
+        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 shrink-0" title="Lagerort-ID">{{ $node->code() }}</span>
 
         @if($hasChildren)
             <span class="text-[10px] text-gray-300 shrink-0">{{ $node->children->count() }}</span>

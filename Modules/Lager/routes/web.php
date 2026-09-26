@@ -11,6 +11,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/Lager/Buchen/{lagerort?}', fn (?string $lagerort = null) => view('lager::buchen', ['lagerortId' => $lagerort]))->name('lager.buchen');
     Route::get('/Lager/Lagerorte/{lagerort}/Etikett/PDF', [LagerortController::class, 'labelPdf'])->name('lager.lagerort.label.pdf');
 
+    Route::get('/Lager/Lagerorte/{lagerort}/QR', [LagerortController::class, 'qr'])->name('lager.lagerort.qr');
+
     // Ziel des QR-Codes auf dem Etikett: mit der normalen Handykamera gescannt
     // (außerhalb der App, kein eingebauter Scanner) landet man direkt auf
     // "Ware buchen" für diesen Lagerort.

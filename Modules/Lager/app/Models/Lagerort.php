@@ -19,9 +19,66 @@ class Lagerort extends Model
 
     protected $table = 'lagerorte';
 
-    protected $fillable = ['cis_row_id_parent', 'name', 'sort_order'];
+    protected $fillable = ['cis_row_id_parent', 'cis_row_id_type', 'name', 'number', 'sort_order'];
 
-    protected $casts = ['sort_order' => 'integer'];
+    protected $casts = ['sort_order' => 'integer', 'number' => 'integer'];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $l) {
+            $l->cis_row_id_type = $l->cis_row_id_type ?: LagerortType::default()->cis_row_id;
+            if (! $l->number) {
+                $l->number = $l->nextNumber();
+            }
+        });
+    }
+
+    public function type()
+    {
+        return $this->belongsTo(LagerortType::class, 'cis_row_id_type', 'cis_row_id');
+    }
+
+    /** Nächste freie laufende Nummer unter demselben Elternelement für den gleichen Typ. */
+    public function nextNumber(): int
+    {
+        return (int) static::where('cis_row_id_parent', $this->cis_row_id_parent)
+            ->where('cis_row_id_type', $this->cis_row_id_type)
+            ->where('cis_row_id', '!=', (string) $this->cis_row_id)
+            ->max('number') + 1;
+    }
+
+    /** Vergibt bei Typwechsel/Verschieben eine neue Nummer, falls die aktuelle unter dem Elternelement schon vergeben ist. */
+    public function ensureUniqueNumber(): void
+    {
+        $taken = static::where('cis_row_id_parent', $this->cis_row_id_parent)
+            ->where('cis_row_id_type', $this->cis_row_id_type)
+            ->where('cis_row_id', '!=', $this->cis_row_id)
+            ->where('number', $this->number)
+            ->exists();
+        if ($taken || ! $this->number) {
+            $this->update(['number' => $this->nextNumber()]);
+        }
+    }
+
+    /** Kurzsegment dieses Elements, z.B. "H1" (Typ-Kürzel + Nummer). */
+    public function segment(): string
+    {
+        return ($this->type?->abbreviation ?? 'S') . $this->number;
+    }
+
+    /** Feste Lagerort-ID aus der Hierarchie, z.B. "H1R2SC3-F4" (Elternsegmente, dann "-" vor dem letzten). */
+    public function code(): string
+    {
+        $segments = [];
+        $node     = $this;
+        while ($node) {
+            array_unshift($segments, $node->segment());
+            $node = $node->parent;
+        }
+        $last = array_pop($segments);
+
+        return $segments ? implode('', $segments) . '-' . $last : $last;
+    }
 
     public function parent()
     {

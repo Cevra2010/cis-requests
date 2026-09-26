@@ -16,6 +16,18 @@ class ProjectLagerManager extends Component
 
     public string $newLagerortId = '';
 
+    public ?string $qrLagerortId = null;
+
+    public function showQr(string $lagerortId): void
+    {
+        $this->qrLagerortId = $lagerortId;
+    }
+
+    public function closeQr(): void
+    {
+        $this->qrLagerortId = null;
+    }
+
     public function mount(string $projectId): void
     {
         $this->projectId = $projectId;
@@ -44,7 +56,7 @@ class ProjectLagerManager extends Component
     public function render()
     {
         $project           = Project::where('cis_row_id', $this->projectId)->firstOrFail();
-        $assignedLagerorte = $project->lagerorte()->get();
+        $assignedLagerorte = $project->lagerorte()->with('type')->get();
         $assignedIds       = $assignedLagerorte->pluck('cis_row_id')->all();
 
         $leafMap = Lagerort::leafIdsByNode();
@@ -52,6 +64,6 @@ class ProjectLagerManager extends Component
             fn (Lagerort $l) => array_diff($leafMap[$l->cis_row_id] ?? [$l->cis_row_id], $assignedIds) === []
         );
 
-        return view('lager::livewire.project-lager-manager', compact('assignedLagerorte', 'availableLagerorte'));
+        return view('lager::livewire.project-lager-manager', compact('assignedLagerorte', 'availableLagerorte') + ['qrLagerort' => $this->qrLagerortId ? Lagerort::find($this->qrLagerortId) : null]);
     }
 }

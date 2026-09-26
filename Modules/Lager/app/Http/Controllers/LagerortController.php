@@ -20,18 +20,28 @@ class LagerortController extends Controller
      * eingebaute Scanner (siehe resources/js/qr-scanner.js) denselben Text
      * stattdessen nur in das gerade offene Lagerort-Auswahlfeld ein.
      */
-    public function labelPdf(string $lagerort)
+    private function buildQr(Lagerort $lagerort)
     {
-        $lagerort = Lagerort::findOrFail($lagerort);
-
-        $scanUrl = route('lager.scan', $lagerort->cis_row_id);
-
-        $qrCode = (new Builder(
+        return (new Builder(
             writer: new PngWriter(),
-            data: $scanUrl,
+            data: route('lager.scan', $lagerort->cis_row_id),
             size: 400,
             margin: 16,
         ))->build();
+    }
+
+    /** QR-Code als PNG (Ansicht im Projekt-Tab "Lager"). */
+    public function qr(string $lagerort)
+    {
+        $qrCode = $this->buildQr(Lagerort::findOrFail($lagerort));
+
+        return response($qrCode->getString(), 200, ['Content-Type' => $qrCode->getMimeType()]);
+    }
+
+    public function labelPdf(string $lagerort)
+    {
+        $lagerort = Lagerort::findOrFail($lagerort);
+        $qrCode   = $this->buildQr($lagerort);
 
         $branding = (Module::find('Branding')?->isEnabled())
             ? \Modules\Branding\Models\BrandingSetting::current()

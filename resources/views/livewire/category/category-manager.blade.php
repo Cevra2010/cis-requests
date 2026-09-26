@@ -24,6 +24,12 @@
                     <span>Lagerorte</span>
                     <span class="text-[10px] text-gray-400">Lager</span>
                 </button>
+                <button type="button" wire:click="setType('lagerorttypen')"
+                        class="w-full flex items-center justify-between px-4 py-2.5 text-sm border-b border-gray-50 transition-colors text-left
+                               {{ $activeType === 'lagerorttypen' ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-50' }}">
+                    <span>Lagerort-Typen</span>
+                    <span class="text-[10px] text-gray-400">Lager</span>
+                </button>
                 @endif
             </div>
         </div>
@@ -32,6 +38,8 @@
         <div class="flex-1 min-w-0">
             @if($activeType === 'lagerorte')
                 @livewire('lager.lagerort-manager', key('embedded-lagerort-manager'))
+            @elseif($activeType === 'lagerorttypen')
+                @livewire('lager.lagerort-type-manager', key('embedded-lagerort-type-manager'))
             @else
             <div class="flex items-center justify-between mb-4">
                 <p class="text-sm text-gray-500">
