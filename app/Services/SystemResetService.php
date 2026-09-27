@@ -77,6 +77,13 @@ class SystemResetService
 
             $this->deleteCoreBusinessTables();
 
+            // Workflow-Freigeber referenzieren Benutzer/Gruppen/Rollen, die gleich gelöscht
+            // werden – ohne dies blieben "restricted"-Schritte für den neuen Administrator
+            // dauerhaft ohne gültigen Freigeber. Die Schritte selbst werden mitgelöscht,
+            // Defaults werden beim nächsten Zugriff automatisch neu geseedet.
+            DB::table('workflow_approvers')->delete();
+            DB::table('workflow_statuses')->delete();
+
             DB::table('user_permissions')->delete();
             DB::table('user_roles')->delete();
             DB::table('role_permissions')->delete();
@@ -126,6 +133,7 @@ class SystemResetService
         DB::table('project_documents')->delete();
         DB::table('project_product')->delete();
         DB::table('project_last_touch')->delete();
+        DB::table('project_status_transitions')->delete();
         DB::table('projects')->delete();
 
         DB::table('product_child')->delete();
@@ -140,6 +148,9 @@ class SystemResetService
 
         DB::table('group_permissions')->delete();
         DB::table('user_groups')->delete();
+        // Workflow-Freigeber, die auf eine gleich gelöschte Gruppe zeigen, würden sonst
+        // dauerhaft ins Leere zeigen (siehe WorkflowApprover::isDangling()).
+        DB::table('workflow_approvers')->where('principal_type', 'group')->delete();
         DB::table('groups')->delete();
 
         DB::table('settings')->delete();

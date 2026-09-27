@@ -18,47 +18,16 @@ class AppServiceProvider extends ServiceProvider
 
     protected function registerPermissions(): void
     {
+        // Wer Projekt-Workflow-Schritte freigeben darf, wird seit v0.9.0.0 nicht mehr über
+        // Permission-Slugs geregelt, sondern direkt im Workflow-Bildschirm konfiguriert
+        // (siehe App\Services\Workflow\WorkflowApprover). Nur die Konfiguration DIESES
+        // Bildschirms selbst bleibt eine normale Permission – sicherheitsrelevant, weil sich
+        // ein Editor sonst selbst zum Freigeber machen könnte.
+        CisPermissionManager::registerGroup('workflow', 'Workflow');
         CisPermissionManager::register(
-            'project.tender.override_lock',
-            'Fixierte Ausschreibung bearbeiten',
-            description: 'Erlaubt das Bearbeiten von Produkten und Ausschreibungstext, nachdem ein Projekt fixiert wurde.'
-        );
-
-        CisPermissionManager::registerGroup('project.status', 'Projektstatus-Freigaben');
-        CisPermissionManager::register(
-            'project.status.set.ready_for_tender',
-            "Status „Bereit zur Ausschreibung“ setzen",
-            description: 'Erlaubt das Setzen bzw. Zurücknehmen des Status „Bereit zur Ausschreibung“ (z.B. durch Sachbearbeiter).'
-        );
-        CisPermissionManager::register(
-            'project.status.set.tender',
-            "Status „Ausschreibung“ setzen",
-            description: 'Erlaubt das Eröffnen bzw. Zurücknehmen der förmlichen Ausschreibung – fixiert Produkte/Ausschreibungstext (z.B. nur Sachgebietsleitung).'
-        );
-        CisPermissionManager::register(
-            'project.status.set.ready_for_evaluation',
-            "Status „Bereit zur Auswertung“ setzen",
-            description: 'Erlaubt das Setzen bzw. Zurücknehmen des Status „Bereit zur Auswertung“.'
-        );
-        CisPermissionManager::register(
-            'project.status.set.evaluated',
-            "Status „Ausgewertet“ setzen",
-            description: 'Erlaubt das Setzen bzw. Zurücknehmen des Status „Ausgewertet“.'
-        );
-        CisPermissionManager::register(
-            'project.status.set.ordered',
-            "Status „Bestellt“ setzen",
-            description: 'Erlaubt das Setzen bzw. Zurücknehmen des Status „Bestellt“.'
-        );
-        CisPermissionManager::register(
-            'project.status.set.orders_in_revision',
-            "Status „Bestellungen in Revision“ setzen",
-            description: 'Erlaubt das Setzen bzw. Zurücknehmen des Status „Bestellungen in Revision“.'
-        );
-        CisPermissionManager::register(
-            'project.status.set.completed',
-            "Status „Abgeschlossen“ setzen",
-            description: 'Erlaubt das Setzen bzw. Zurücknehmen des Status „Abgeschlossen“.'
+            'workflow.manage',
+            'Workflow verwalten',
+            description: 'Erlaubt das Bearbeiten der Projekt-Workflows (Schritte, Freigeber, Maßnahmen).'
         );
 
         CisPermissionManager::registerGroup('system', 'System');
@@ -78,6 +47,13 @@ class AppServiceProvider extends ServiceProvider
             ->setRoute('dashboard')
             ->setIcon('house')
             ->setPriority(10);
+
+        $menu->registerEntry('workflow')
+            ->setText('Workflow')
+            ->setRoute('workflow')
+            ->setIcon('diagram-project')
+            ->setPriority(15)
+            ->setVisible(fn () => auth()->user()?->hasPermission('workflow.manage') ?? false);
 
         $menu->registerEntry('projects')
             ->setText('Projekte')

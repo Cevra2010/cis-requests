@@ -4,6 +4,12 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.9.0.0 — 2026-09-27
+- Neuer Bereich „Workflow“ (im Menü direkt unter „Dashboard“): der Projektverlauf ist jetzt je Projekttyp (Produkt-/Fahrzeugausschreibung) frei konfigurierbar – Schritte hinzufügen, umbenennen, deaktivieren oder entfernen (z.B. „Bereit zur Ausschreibung“ überspringen), dabei sind nur logisch sinnvolle Reihenfolgen erlaubt
+- Wer einen Projektschritt freigeben darf, wird nicht mehr über die klassische Rechteverwaltung geregelt, sondern direkt im Workflow-Bildschirm je Schritt festgelegt (Benutzer, Gruppen oder Rollen) – bestehende Freigabe-Rechte wurden beim Update automatisch übernommen
+- Der Projektverlauf im Projekt selbst ist jetzt ein zusammenhängender Wizard statt einzelner Buttons, inkl. Verlaufsanzeige (wer hat wann welchen Schritt gesetzt)
+- Bugfix: Projekte ließen sich bislang über das Bearbeiten-Formular auf einen beliebigen Status setzen, ohne dass die dafür nötige Freigabe geprüft wurde
+
 ## 0.8.0.0 — 2026-09-26
 - Wareneingang: neuer Buchungsablauf – erfasste Positionen sind zunächst nur vorgemerkt: vollständig erfasste rutschen in „Offen“ mit grünem Rahmen nach unten, erst „Jetzt buchen“ finalisiert die Buchung (inkl. Einlagerung in den zuvor gewählten Ziel-Lagerort, der je Position beim Erfassen gemerkt wird) und verschiebt sie nach „Abgeschlossen“
 - Die Gesamtübersicht zeigt alle Positionen mit aktuellem Stand, vorgemerkte Positionen sind als „noch nicht gebucht“ gekennzeichnet

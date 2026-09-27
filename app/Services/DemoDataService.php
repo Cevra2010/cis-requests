@@ -221,7 +221,6 @@ class DemoDataService
             $project = Project::create([
                 'name'          => $def['name'],
                 'description'   => $def['description'],
-                'status_code'   => 'draft',
                 'category_id'   => $def['category']?->id,
                 'client'        => 'Freiwillige Feuerwehr Musterstadt',
                 'tender_year'   => (int) now()->format('Y'),
@@ -360,7 +359,6 @@ class DemoDataService
         $project = Project::create([
             'name'        => 'Demo-Projekt: Neubeschaffung Löschfahrzeug',
             'description' => 'Beispielprojekt für eine Fahrzeugausschreibung mit Fahrzeug-Konfiguration.',
-            'status_code' => 'draft',
             'type'        => 'vehicle',
             'client'      => 'Freiwillige Feuerwehr Musterstadt',
             'tender_year' => (int) now()->format('Y'),

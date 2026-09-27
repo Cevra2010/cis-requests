@@ -4,6 +4,13 @@
     Gruppe/Rolle: $granted  (slug → bool)
     Benutzer:     $userPerms (slug → UserPermission)
 --}}
+@if(auth()->user()?->hasPermission('workflow.manage'))
+<div class="mb-4 px-4 py-2.5 rounded-xl bg-sky-50 border border-sky-200 text-sm text-sky-800">
+    <i class="fa fa-circle-info mr-1.5"></i>
+    Freigaben für Projekt-Workflow-Schritte und das Bearbeiten fixierter Ausschreibungen werden nicht mehr hier,
+    sondern unter <a href="{{ route('workflow') }}" class="underline font-medium">„Workflow“</a> je Projekttyp verwaltet.
+</div>
+@endif
 @unless(isset($userPerms))
 <div class="flex items-center justify-end gap-2 mb-4">
     <button type="button" onclick="document.querySelectorAll('.js-perm-checkbox').forEach(cb => cb.checked = true)"

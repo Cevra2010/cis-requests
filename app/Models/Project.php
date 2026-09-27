@@ -3,6 +3,9 @@
 namespace App\Models;
 
 use App\Models\Traits\CisUuid;
+use App\Services\Workflow\WorkflowColors;
+use App\Services\Workflow\WorkflowDefinition;
+use App\Services\Workflow\WorkflowRegistry;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -15,7 +18,6 @@ class Project extends Model
         'tender_text',
         'name',
         'description',
-        'status_code',
         'type',
         'category_id',
         'assignee_type',
@@ -32,46 +34,9 @@ class Project extends Model
         'tender_locked_at' => 'datetime',
     ];
 
-    public const OVERRIDE_LOCK_PERMISSION = 'project.tender.override_lock';
-
     public const TYPES = [
         'product' => 'Produktausschreibung',
         'vehicle' => 'Fahrzeugausschreibung',
-    ];
-
-    public const STATUSES = [
-        'draft'                => ['label' => 'Entwurf',                   'badge' => 'bg-gray-100 text-gray-600'],
-        'ready_for_tender'     => ['label' => 'Bereit zur Ausschreibung',   'badge' => 'bg-blue-100 text-blue-700'],
-        'tender'               => ['label' => 'Ausschreibung',             'badge' => 'bg-amber-100 text-amber-700'],
-        'ready_for_evaluation' => ['label' => 'Bereit zur Auswertung',     'badge' => 'bg-orange-100 text-orange-700'],
-        'evaluated'            => ['label' => 'Ausgewertet',               'badge' => 'bg-cyan-100 text-cyan-700'],
-        'ordered'              => ['label' => 'Bestellt',                  'badge' => 'bg-indigo-100 text-indigo-700'],
-        'orders_in_revision'   => ['label' => 'Bestellungen in Revision',  'badge' => 'bg-red-100 text-red-700'],
-        'completed'            => ['label' => 'Abgeschlossen',             'badge' => 'bg-green-100 text-green-700'],
-    ];
-
-    /** Reihenfolge des Projekt-Workflows. */
-    public const STATUS_ORDER = [
-        'draft', 'ready_for_tender', 'tender', 'ready_for_evaluation',
-        'evaluated', 'ordered', 'orders_in_revision', 'completed',
-    ];
-
-    /** Ab diesem Status (inklusive) gelten Produkte/Ausschreibungstext als fixiert. */
-    public const LOCK_FROM_STATUS = 'tender';
-
-    /**
-     * Berechtigung, die nötig ist, um die Grenze zu diesem Status zu überschreiten
-     * (in beide Richtungen – vorrücken auf diesen Status oder von ihm zurückfallen
-     * auf den vorherigen). "draft" ist der Startzustand und daher nicht gelistet.
-     */
-    public const STATUS_PERMISSIONS = [
-        'ready_for_tender'     => 'project.status.set.ready_for_tender',
-        'tender'                => 'project.status.set.tender',
-        'ready_for_evaluation'  => 'project.status.set.ready_for_evaluation',
-        'evaluated'             => 'project.status.set.evaluated',
-        'ordered'               => 'project.status.set.ordered',
-        'orders_in_revision'    => 'project.status.set.orders_in_revision',
-        'completed'             => 'project.status.set.completed',
     ];
 
     /** @var string|null 'lock'|'unlock', gesetzt in saving(), ausgewertet in saved() */
@@ -80,12 +45,20 @@ class Project extends Model
     protected static function booted(): void
     {
         static::saving(function (Project $project) {
+            // status_code ist bewusst NICHT fillable (siehe unten) – ein neues Projekt
+            // bekommt seinen Startschritt hier, statt über ein Formularfeld.
+            if (! $project->exists && blank($project->status_code)) {
+                $project->status_code = self::initialStatusCode($project->type);
+            }
+
             if (! $project->isDirty('status_code')) {
                 return;
             }
 
-            $wasLocked = self::codeIsLocked($project->getOriginal('status_code'));
-            $nowLocked = $project->isLocked();
+            $wasLocked = $project->exists
+                ? self::codeIsLocked($project->getOriginal('status_code'), $project->getOriginal('type') ?? $project->type ?: 'product')
+                : false;
+            $nowLocked = self::codeIsLocked($project->status_code, $project->type ?: 'product');
 
             if (! $wasLocked && $nowLocked) {
                 $project->tender_locked_at = now();
@@ -106,94 +79,153 @@ class Project extends Model
             }
             $project->pendingLockTransition = null;
         });
+
+        static::created(function (Project $project) {
+            ProjectStatusTransition::create([
+                'cis_row_id_project' => $project->cis_row_id,
+                'from_code'          => null,
+                'to_code'            => $project->status_code,
+                'from_label'         => null,
+                'to_label'           => $project->currentStep()?->label ?? $project->status_code,
+                'direction'          => 'initial',
+                'cis_row_id_user'    => auth()->user()?->cis_row_id,
+            ]);
+        });
+    }
+
+    /** Der Workflow dieses Projekts (nach Projekttyp) – Reihenfolge, Sperr-/Freigabe-Logik. Siehe App\Services\Workflow. */
+    public function workflow(): WorkflowDefinition
+    {
+        return WorkflowRegistry::for($this->type ?: 'product');
+    }
+
+    public function currentStep(): ?WorkflowStatus
+    {
+        return $this->workflow()->step($this->status_code);
+    }
+
+    public function nextStep(): ?WorkflowStatus
+    {
+        return $this->workflow()->next($this->status_code);
+    }
+
+    public function previousStep(): ?WorkflowStatus
+    {
+        return $this->workflow()->previous($this->status_code);
+    }
+
+    /** Hat dieses Projekt einen Schritt mit diesem Meilenstein erreicht/überschritten (z.B. WorkflowStepKinds::MILESTONE_OFFERS)? */
+    public function hasReachedMilestone(string $milestone): bool
+    {
+        return $this->workflow()->hasReached($this->status_code, $milestone);
+    }
+
+    public function canOverrideLock(?User $user): bool
+    {
+        return $this->workflow()->canOverrideLock($user);
+    }
+
+    /** Startschritt eines Projekttyps (immer der Kind "draft" laut WorkflowValidator). */
+    public static function initialStatusCode(?string $projectType = null): string
+    {
+        return WorkflowRegistry::for($projectType ?: 'product')->initialCode();
+    }
+
+    public function statusTransitions()
+    {
+        return $this->hasMany(ProjectStatusTransition::class, 'cis_row_id_project', 'cis_row_id')
+            ->orderByDesc('created_at');
     }
 
     public function statusLabel(): string
     {
-        return self::STATUSES[$this->status_code]['label'] ?? $this->status_code;
+        return $this->currentStep()?->label ?? (string) $this->status_code;
     }
 
     public function statusBadgeClasses(): string
     {
-        return self::STATUSES[$this->status_code]['badge'] ?? 'bg-gray-100 text-gray-600';
+        return WorkflowColors::badge($this->currentStep()?->color);
     }
 
-    public static function codeIsLocked(?string $code): bool
+    public static function codeIsLocked(?string $code, string $projectType): bool
     {
-        $lockIndex = array_search(self::LOCK_FROM_STATUS, self::STATUS_ORDER, true);
-        $index     = $code !== null ? array_search($code, self::STATUS_ORDER, true) : false;
-
-        return $index !== false && $index >= $lockIndex;
+        return WorkflowRegistry::for($projectType)->isLocked($code);
     }
 
     public function nextStatusCode(): ?string
     {
-        $index = array_search($this->status_code, self::STATUS_ORDER, true);
-
-        return $index !== false ? (self::STATUS_ORDER[$index + 1] ?? null) : null;
+        return $this->nextStep()?->code;
     }
 
     public function previousStatusCode(): ?string
     {
-        $index = array_search($this->status_code, self::STATUS_ORDER, true);
-
-        return $index !== false && $index > 0 ? self::STATUS_ORDER[$index - 1] : null;
-    }
-
-    /** Berechtigung, die zum Vorrücken auf den nächsten Status nötig ist (falls es einen gibt). */
-    public function nextTransitionPermission(): ?string
-    {
-        $next = $this->nextStatusCode();
-        return $next ? (self::STATUS_PERMISSIONS[$next] ?? null) : null;
-    }
-
-    /** Berechtigung, die zum Zurückfallen auf den vorherigen Status nötig ist. */
-    public function previousTransitionPermission(): ?string
-    {
-        return self::STATUS_PERMISSIONS[$this->status_code] ?? null;
+        return $this->previousStep()?->code;
     }
 
     public function canAdvanceStatus(?User $user): bool
     {
-        if (! $this->nextStatusCode()) {
-            return false;
-        }
-        $permission = $this->nextTransitionPermission();
-        return $permission === null || ($user?->hasPermission($permission, $this->cis_row_id) ?? false);
+        return $this->workflow()->canApprove($this->nextStep(), $user);
     }
 
     public function canRevertStatus(?User $user): bool
     {
-        if (! $this->previousStatusCode()) {
+        $previous = $this->previousStep();
+        if (! $previous) {
             return false;
         }
-        $permission = $this->previousTransitionPermission();
-        return $permission === null || ($user?->hasPermission($permission, $this->cis_row_id) ?? false);
+        if (! $this->workflow()->canApprove($this->currentStep(), $user)) {
+            return false;
+        }
+        $willUnlock = $this->isLocked() && ! $this->workflow()->isLocked($previous->code);
+
+        return ! $willUnlock || $this->canOverrideLock($user);
     }
 
     /** Rückt das Projekt einen Workflow-Schritt weiter. */
-    public function advanceStatus(): void
+    public function advanceStatus(): ?ProjectStatusTransition
     {
-        $next = $this->nextStatusCode();
-        if ($next) {
-            $this->update(['status_code' => $next]);
-        }
+        $next = $this->nextStep();
+
+        return $next ? $this->transitionTo($next, 'advance') : null;
     }
 
     /** Setzt das Projekt einen Workflow-Schritt zurück. */
-    public function revertStatus(): void
+    public function revertStatus(): ?ProjectStatusTransition
     {
-        $prev = $this->previousStatusCode();
-        if ($prev) {
-            $this->update(['status_code' => $prev]);
-        }
+        $previous = $this->previousStep();
+
+        return $previous ? $this->transitionTo($previous, 'revert') : null;
     }
 
-    /** Springt automatisch auf "Bereit zur Auswertung", sobald der Ausschreibungszeitraum überschritten ist. */
+    /**
+     * Einziger Schreibweg für einen Statuswechsel: status_code ist nicht fillable
+     * (schließt die frühere Möglichkeit, ihn per Formularfeld zu manipulieren),
+     * daher forceFill() statt update(). Schreibt zusätzlich die Verlaufszeile.
+     */
+    protected function transitionTo(WorkflowStatus $target, string $direction): ProjectStatusTransition
+    {
+        $fromCode  = $this->status_code;
+        $fromLabel = $this->currentStep()?->label;
+
+        $this->forceFill(['status_code' => $target->code])->save();
+
+        return ProjectStatusTransition::create([
+            'cis_row_id_project' => $this->cis_row_id,
+            'from_code'          => $fromCode,
+            'to_code'            => $target->code,
+            'from_label'         => $fromLabel,
+            'to_label'           => $target->label,
+            'direction'          => $direction,
+            'cis_row_id_user'    => $direction === 'auto' ? null : auth()->user()?->cis_row_id,
+        ]);
+    }
+
+    /** Rückt automatisch vor, sobald der aktuelle Schritt "Auto-Vorrücken nach Frist" trägt und die Fälligkeit überschritten ist. */
     public function syncAutoStatus(): void
     {
-        if ($this->status_code === 'tender' && $this->due_date && $this->due_date->isPast()) {
-            $this->update(['status_code' => 'ready_for_evaluation']);
+        $target = $this->workflow()->autoAdvanceTarget($this->status_code);
+        if ($target && $this->due_date && $this->due_date->isPast()) {
+            $this->transitionTo($target, 'auto');
         }
     }
 
@@ -380,12 +412,12 @@ class Project extends Model
     }
 
     // ── Ausschreibungs-Fixierung ─────────────────────────────────────────────
-    // Die Fixierung hängt am Status (siehe LOCK_FROM_STATUS) – tender_locked_at/_by
-    // werden automatisch beim Statuswechsel gepflegt (siehe booted()).
+    // Die Fixierung hängt am Status (siehe WorkflowStepKinds::MILESTONE_LOCK) –
+    // tender_locked_at/_by werden automatisch beim Statuswechsel gepflegt (siehe booted()).
 
     public function isLocked(): bool
     {
-        return self::codeIsLocked($this->status_code);
+        return self::codeIsLocked($this->status_code, $this->type ?: 'product');
     }
 
     public function lockedByUser(): ?User
@@ -399,7 +431,7 @@ class Project extends Model
         if (! $this->isLocked()) {
             return true;
         }
-        return $user?->hasPermission(self::OVERRIDE_LOCK_PERMISSION, $this->cis_row_id) ?? false;
+        return $this->canOverrideLock($user);
     }
 
     // ── Preis-Fixierung ──────────────────────────────────────────────────────

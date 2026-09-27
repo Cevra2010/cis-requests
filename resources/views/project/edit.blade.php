@@ -50,15 +50,15 @@
             {{-- Status + Kategorie --}}
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="cis-label" for="status_code">Status <span class="text-red-500">*</span></label>
-                    <select id="status_code" name="status_code" class="cis-input w-full" required>
-                        @foreach($statuses as $code => $meta)
-                            <option value="{{ $code }}"
-                                {{ old('status_code', $project->status_code) === $code ? 'selected' : '' }}>
-                                {{ $meta['label'] }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <label class="cis-label">Status</label>
+                    <div class="flex items-center gap-2 h-[42px]">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $project->statusBadgeClasses() }}">
+                            {{ $project->statusLabel() }}
+                        </span>
+                        <a href="{{ route('project.show', $project->cis_row_id) }}" class="text-xs text-primary-600 hover:underline">
+                            Im Projektverlauf ändern →
+                        </a>
+                    </div>
                 </div>
 
                 <div>

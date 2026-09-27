@@ -37,8 +37,7 @@ class ProjectController extends Controller
     public function create()
     {
         $categories = CisCategoryManager::optionsForType('project.category');
-        $statuses   = Project::STATUSES;
-        return view('project.create', compact('categories', 'statuses'));
+        return view('project.create', compact('categories'));
     }
 
     public function store(Request $request)
@@ -46,7 +45,6 @@ class ProjectController extends Controller
         $data = $request->validate([
             'name'          => 'required|string|max:255',
             'description'   => 'nullable|string',
-            'status_code'   => 'required|string|in:' . implode(',', array_keys(Project::STATUSES)),
             'type'          => 'required|string|in:' . implode(',', array_keys(Project::TYPES)),
             'category_id'   => 'nullable|integer',
             'assignee_type' => 'nullable|string|in:user,group',
@@ -104,12 +102,10 @@ class ProjectController extends Controller
     {
         $p          = Project::where('cis_row_id', $project)->firstOrFail();
         $categories = CisCategoryManager::optionsForType('project.category');
-        $statuses   = Project::STATUSES;
 
         return view('project.edit', [
             'project'    => $p,
             'categories' => $categories,
-            'statuses'   => $statuses,
         ]);
     }
 
@@ -119,7 +115,6 @@ class ProjectController extends Controller
         $data = $request->validate([
             'name'          => 'required|string|max:255',
             'description'   => 'nullable|string',
-            'status_code'   => 'required|string|in:' . implode(',', array_keys(Project::STATUSES)),
             'category_id'   => 'nullable|integer',
             'assignee_type' => 'nullable|string|in:user,group',
             'assignee_id'   => 'nullable|string',
@@ -144,9 +139,11 @@ class ProjectController extends Controller
     {
         $original = Project::where('cis_row_id', $project)->firstOrFail();
 
-        $copy              = $original->replicate();
-        $copy->name        = 'Kopie von ' . $original->name;
-        $copy->status_code = 'draft';
+        $copy = $original->replicate();
+        $copy->name              = 'Kopie von ' . $original->name;
+        $copy->status_code       = Project::initialStatusCode($original->type);
+        $copy->tender_locked_at  = null;
+        $copy->tender_locked_by  = null;
         $copy->save();
 
         session()->flash('success', 'Projekt wurde als "' . $copy->name . '" dupliziert.');
@@ -165,17 +162,17 @@ class ProjectController extends Controller
     public function advanceStatus(string $project)
     {
         $p    = Project::where('cis_row_id', $project)->firstOrFail();
-        $next = $p->nextStatusCode();
+        $next = $p->nextStep();
         abort_unless($next, 404);
         abort_unless($p->canAdvanceStatus(auth()->user()), 403);
 
-        $willLock = ! $p->isLocked() && Project::codeIsLocked($next);
+        $willLock = ! $p->isLocked() && Project::codeIsLocked($next->code, $p->type ?: 'product');
 
         $p->advanceStatus();
 
         $message = $willLock
             ? 'Ausschreibung wurde fixiert. Produkte und Ausschreibungstext sind jetzt gesperrt.'
-            : 'Status wurde auf "' . Project::STATUSES[$next]['label'] . '" gesetzt.';
+            : 'Status wurde auf "' . $next->label . '" gesetzt.';
 
         session()->flash('success', $message);
         return redirect()->route('project.show', $p->cis_row_id);
@@ -184,20 +181,17 @@ class ProjectController extends Controller
     public function revertStatus(string $project)
     {
         $p    = Project::where('cis_row_id', $project)->firstOrFail();
-        $prev = $p->previousStatusCode();
+        $prev = $p->previousStep();
         abort_unless($prev, 404);
         abort_unless($p->canRevertStatus(auth()->user()), 403);
 
-        $willUnlock = $p->isLocked() && ! Project::codeIsLocked($prev);
-        if ($willUnlock) {
-            abort_unless(auth()->user()->hasPermission(Project::OVERRIDE_LOCK_PERMISSION, $p->cis_row_id), 403);
-        }
+        $willUnlock = $p->isLocked() && ! Project::codeIsLocked($prev->code, $p->type ?: 'product');
 
         $p->revertStatus();
 
         $message = $willUnlock
             ? 'Fixierung wurde aufgehoben. Produkte und Ausschreibungstext sind wieder bearbeitbar.'
-            : 'Status wurde auf "' . Project::STATUSES[$prev]['label'] . '" zurückgesetzt.';
+            : 'Status wurde auf "' . $prev->label . '" zurückgesetzt.';
 
         session()->flash('success', $message);
         return redirect()->route('project.show', $p->cis_row_id);

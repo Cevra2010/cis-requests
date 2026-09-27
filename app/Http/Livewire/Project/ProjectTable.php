@@ -4,6 +4,8 @@ namespace App\Http\Livewire\Project;
 
 use App\Http\Livewire\Concerns\HasFilterableTable;
 use App\Models\Project;
+use App\Models\WorkflowStatus;
+use App\Services\Workflow\WorkflowRegistry;
 use CisFoundation\CisCategoryManager\CisCategoryManager;
 use Livewire\Component;
 
@@ -11,10 +13,12 @@ class ProjectTable extends Component
 {
     use HasFilterableTable;
 
-    /** Springt überfällige Ausschreibungen automatisch auf "Bereit zur Auswertung" – wie zuvor in ProjectController::index(). */
+    /** Springt Projekte auf Schritten mit Auto-Vorrücken automatisch weiter, sobald die Fälligkeit überschritten ist. */
     public function mount(): void
     {
-        Project::where('status_code', 'tender')
+        $autoAdvanceCodes = WorkflowStatus::where('auto_advance_on_due', true)->pluck('code')->unique();
+
+        Project::whereIn('status_code', $autoAdvanceCodes)
             ->where('due_date', '<', now())
             ->get()
             ->each->syncAutoStatus();
@@ -42,7 +46,8 @@ class ProjectTable extends Component
                 'key' => 'status', 'label' => 'Status',
                 'sortable' => true, 'filterable' => true,
                 'column' => 'status_code', 'value' => fn ($p) => $p->status_code,
-                'optionsSource' => fn () => collect(Project::STATUSES)->map(fn ($s) => $s['label'])->all(),
+                'sortValue' => fn ($p) => $p->statusLabel(),
+                'optionsSource' => fn () => WorkflowRegistry::statusOptions(),
             ],
             [
                 'key' => 'locked', 'label' => 'Ausschreibung',

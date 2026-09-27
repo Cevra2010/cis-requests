@@ -42,25 +42,13 @@
                 @error('type')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
 
-            {{-- Status + Kategorie --}}
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="cis-label" for="status_code">Status <span class="text-red-500">*</span></label>
-                    <select id="status_code" name="status_code" class="cis-input w-full" required>
-                        @foreach($statuses as $code => $meta)
-                            <option value="{{ $code }}" {{ old('status_code', 'draft') === $code ? 'selected' : '' }}>
-                                {{ $meta['label'] }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div>
-                    <label class="cis-label" for="category_id">Kategorie</label>
-                    <x-cis-category-select type="project.category" name="category_id"
-                                           :value="old('category_id')" />
-                </div>
+            {{-- Kategorie --}}
+            <div>
+                <label class="cis-label" for="category_id">Kategorie</label>
+                <x-cis-category-select type="project.category" name="category_id"
+                                       :value="old('category_id')" />
             </div>
+            <p class="text-xs text-gray-400 -mt-3">Das Projekt startet automatisch am ersten Schritt des Workflows.</p>
 
             {{-- Verantwortlicher (AssigneeSearch) --}}
             <div>

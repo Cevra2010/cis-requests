@@ -15,60 +15,25 @@
 @endsection
 
 @php
-    $canOverrideLock = auth()->user()?->hasPermission(\App\Models\Project::OVERRIDE_LOCK_PERMISSION, $project->cis_row_id) ?? false;
-    $nextStatusCode  = $project->nextStatusCode();
-    $prevStatusCode  = $project->previousStatusCode();
-    $nextCrossesLock = $nextStatusCode && ! $project->isLocked() && \App\Models\Project::codeIsLocked($nextStatusCode);
-    $prevUnlocks     = $prevStatusCode && $project->isLocked() && ! \App\Models\Project::codeIsLocked($prevStatusCode);
-
-    // ── Freigabe der Statusübergänge ──────────────────────────────────────────
-    $canAdvance = $project->canAdvanceStatus(auth()->user());
-    $canRevert  = $project->canRevertStatus(auth()->user()) && (! $prevUnlocks || $canOverrideLock);
-
-    $advanceBlockedReasons = [];
-    if ($nextStatusCode && ! $project->canAdvanceStatus(auth()->user())) {
-        $label = \App\Models\Permission::where('slug', $project->nextTransitionPermission())->value('label');
-        $advanceBlockedReasons[] = 'Erfordert die Berechtigung „' . ($label ?? $project->nextTransitionPermission()) . '“.';
-    }
-    $revertBlockedReasons = [];
-    if ($prevStatusCode && ! $project->canRevertStatus(auth()->user())) {
-        $label = \App\Models\Permission::where('slug', $project->previousTransitionPermission())->value('label');
-        $revertBlockedReasons[] = 'Erfordert die Berechtigung „' . ($label ?? $project->previousTransitionPermission()) . '“.';
-    }
-    if ($prevStatusCode && $prevUnlocks && ! $canOverrideLock) {
-        $revertBlockedReasons[] = 'Erfordert die Berechtigung, fixierte Ausschreibungen zu bearbeiten.';
-    }
     $wareneingangEnabled = \Nwidart\Modules\Facades\Module::find('Wareneingang')?->isEnabled() ?? false;
     $lagerEnabled        = \Nwidart\Modules\Facades\Module::find('Lager')?->isEnabled() ?? false;
 
-    // ── Tab-Sichtbarkeit: einmal erreichte Stufen bleiben sichtbar (zurückschauen
-    //    ist immer möglich), noch nicht erreichte Folgestufen bleiben ausgeblendet.
-    $statusOrder = \App\Models\Project::STATUS_ORDER;
-    $statusIndex = array_search($project->status_code, $statusOrder, true);
-    $statusIndex = $statusIndex === false ? 0 : $statusIndex;
-    $reached     = fn (string $code) => $statusIndex >= array_search($code, $statusOrder, true);
+    // Bündelt Reihenfolge/Sperr-/Freigabe-Logik für die Wizard-Partial (siehe unten).
+    $wizard = \App\Services\Workflow\ProjectWorkflowView::for($project, auth()->user());
 
+    // ── Tab-Sichtbarkeit: einmal erreichte Meilensteine bleiben sichtbar (zurückschauen
+    //    ist immer möglich), noch nicht erreichte bleiben ausgeblendet.
     $tabVisibility = [
         'beladung'      => true,
         'ausschreibung' => ! $project->isVehicle(),
-        'angebote'      => $reached('tender'),
-        'bestellung'    => $reached('evaluated'),
-        'wareneingang'  => $wareneingangEnabled && $reached('ordered'),
+        'angebote'      => $project->hasReachedMilestone(\App\Services\Workflow\WorkflowStepKinds::MILESTONE_OFFERS),
+        'bestellung'    => $project->hasReachedMilestone(\App\Services\Workflow\WorkflowStepKinds::MILESTONE_AWARDING),
+        'wareneingang'  => $wareneingangEnabled && $project->hasReachedMilestone(\App\Services\Workflow\WorkflowStepKinds::MILESTONE_GOODS_RECEIPT),
         'lager'         => $lagerEnabled,
     ];
 
-    // ── Tab, der beim Öffnen des Projekts automatisch aktiv ist (passend zum Status).
-    $defaultTabByStatus = [
-        'draft'                 => 'beladung',
-        'ready_for_tender'      => 'ausschreibung',
-        'tender'                => 'angebote',
-        'ready_for_evaluation'  => 'angebote',
-        'evaluated'             => 'bestellung',
-        'ordered'               => 'wareneingang',
-        'orders_in_revision'    => 'wareneingang',
-        'completed'             => 'wareneingang',
-    ];
-    $suggestedTab = $defaultTabByStatus[$project->status_code] ?? 'beladung';
+    // ── Tab, der beim Öffnen des Projekts automatisch aktiv ist (aus dem aktuellen Workflow-Schritt).
+    $suggestedTab = $project->currentStep()?->default_tab ?? 'beladung';
     if (empty($tabVisibility[$suggestedTab])) {
         foreach (['wareneingang', 'bestellung', 'angebote', 'ausschreibung', 'beladung'] as $fallback) {
             if ($tabVisibility[$fallback]) {
@@ -128,103 +93,6 @@
                 <p class="mt-1 text-sm text-gray-500">{{ $project->description }}</p>
             @endif
 
-            <div class="mt-3 flex items-center gap-2 flex-wrap"
-                 x-data="{ confirmOpen: false, pending: null }">
-
-                @if($nextStatusCode)
-                    <form method="POST" action="{{ route('project.status.advance', $project->cis_row_id) }}" x-ref="advanceForm">
-                        @csrf
-                    </form>
-                    <div class="group relative">
-                        <button type="button"
-                                @if($canAdvance) @click="pending = 'advance'; confirmOpen = true" @else disabled @endif
-                                class="btn btn-primary btn-sm {{ ! $canAdvance ? 'opacity-40 cursor-not-allowed' : '' }}">
-                            @if($nextCrossesLock)<i class="fa fa-lock mr-1.5"></i>@else<i class="fa fa-arrow-right mr-1.5"></i>@endif
-                            {{ $project->statusLabel() }} → {{ \App\Models\Project::STATUSES[$nextStatusCode]['label'] }}
-                        </button>
-                        @if(! $canAdvance)
-                        <div class="absolute left-0 top-full mt-1.5 hidden group-hover:block z-10 w-64 px-3 py-2 rounded-lg bg-gray-900 text-white text-xs shadow-lg">
-                            <i class="fa fa-lock mr-1"></i> {{ implode(' ', $advanceBlockedReasons) }}
-                        </div>
-                        @endif
-                    </div>
-                @endif
-
-                @if($prevStatusCode)
-                    <form method="POST" action="{{ route('project.status.revert', $project->cis_row_id) }}" x-ref="revertForm">
-                        @csrf
-                    </form>
-                    <div class="group relative">
-                        <button type="button"
-                                @if($canRevert) @click="pending = 'revert'; confirmOpen = true" @else disabled @endif
-                                class="btn btn-ghost btn-sm {{ ! $canRevert ? 'opacity-40 cursor-not-allowed' : '' }}">
-                            <i class="fa fa-rotate-left mr-1.5"></i> Zurück
-                        </button>
-                        @if(! $canRevert)
-                        <div class="absolute left-0 top-full mt-1.5 hidden group-hover:block z-10 w-64 px-3 py-2 rounded-lg bg-gray-900 text-white text-xs shadow-lg">
-                            <i class="fa fa-lock mr-1"></i> {{ implode(' ', $revertBlockedReasons) }}
-                        </div>
-                        @endif
-                    </div>
-                @endif
-
-                {{-- ── Bestätigungs-Modal ── --}}
-                <div x-show="confirmOpen" x-cloak
-                     class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-                    <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6" @click.outside="confirmOpen = false">
-                        <template x-if="pending === 'advance'">
-                            <div>
-                                <div class="flex items-center gap-2 mb-2">
-                                    @if($nextCrossesLock)
-                                        <i class="fa fa-lock text-indigo-500"></i>
-                                        <h3 class="text-base font-semibold text-gray-900">Ausschreibung fixieren?</h3>
-                                    @else
-                                        <i class="fa fa-arrow-right text-primary-500"></i>
-                                        <h3 class="text-base font-semibold text-gray-900">Status ändern?</h3>
-                                    @endif
-                                </div>
-                                <p class="text-sm text-gray-500">
-                                    @if($nextCrossesLock)
-                                        Produkte und Ausschreibungstext können danach nur noch mit erweiterten Rechten geändert werden.
-                                    @else
-                                        Status wird auf „{{ $nextStatusCode ? \App\Models\Project::STATUSES[$nextStatusCode]['label'] : '' }}“ gesetzt.
-                                    @endif
-                                </p>
-                            </div>
-                        </template>
-                        <template x-if="pending === 'revert'">
-                            <div>
-                                <div class="flex items-center gap-2 mb-2">
-                                    <i class="fa fa-rotate-left text-gray-500"></i>
-                                    <h3 class="text-base font-semibold text-gray-900">Status zurücksetzen?</h3>
-                                </div>
-                                <p class="text-sm text-gray-500">
-                                    Status wird zurück auf „{{ $prevStatusCode ? \App\Models\Project::STATUSES[$prevStatusCode]['label'] : '' }}“ gesetzt.
-                                    @if($prevUnlocks) Die Fixierung wird dadurch aufgehoben. @endif
-                                </p>
-                            </div>
-                        </template>
-
-                        <div class="flex items-center justify-end gap-2 mt-5">
-                            <button type="button" @click="confirmOpen = false" class="btn btn-ghost btn-sm">Abbrechen</button>
-                            <button type="button"
-                                    @click="pending === 'advance' ? $refs.advanceForm.submit() : $refs.revertForm.submit()"
-                                    class="btn btn-primary btn-sm">
-                                Bestätigen
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            @if($project->isLocked())
-                <p class="mt-1.5 text-xs text-gray-400">
-                    Fixiert seit {{ $project->tender_locked_at?->format('d.m.Y H:i') }}
-                    @if($project->lockedByUser())
-                        von {{ $project->lockedByUser()->name() }}
-                    @endif
-                </p>
-            @endif
         </div>
 
         <dl class="grid grid-cols-2 gap-x-8 gap-y-2 text-sm shrink-0">
@@ -255,30 +123,11 @@
         </dl>
     </div>
 
-    {{-- Status-Verlauf --}}
-    <div class="mt-5 pt-5 border-t border-gray-100 flex items-start">
-        @foreach($statusOrder as $i => $code)
-            @php
-                $meta      = \App\Models\Project::STATUSES[$code];
-                $isCurrent = $code === $project->status_code;
-                $isPast    = $statusIndex > $i;
-            @endphp
-            <div class="flex items-center {{ ! $loop->last ? 'flex-1' : '' }}">
-                <div class="flex flex-col items-center shrink-0 w-20">
-                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0
-                                {{ $isCurrent ? 'bg-primary-600 text-white ring-4 ring-primary-100' : ($isPast ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-400') }}">
-                        @if($isPast)<i class="fa fa-check text-[9px]"></i>@else{{ $i + 1 }}@endif
-                    </div>
-                    <span class="mt-1.5 text-[10px] text-center leading-tight {{ $isCurrent ? 'text-gray-800 font-semibold' : 'text-gray-400' }}">
-                        {{ $meta['label'] }}
-                    </span>
-                </div>
-                @if(! $loop->last)
-                    <div class="flex-1 h-0.5 rounded {{ $isPast ? 'bg-primary-200' : 'bg-gray-100' }}" style="margin-top: -14px;"></div>
-                @endif
-            </div>
-        @endforeach
-    </div>
+</div>
+
+{{-- Projektverlauf (Wizard) --}}
+<div class="cis-card mb-5">
+    @include('project.partials.workflow-wizard', ['wizard' => $wizard, 'project' => $project])
 </div>
 
 {{-- Tabs --}}

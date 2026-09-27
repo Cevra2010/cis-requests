@@ -141,6 +141,11 @@ class SetupWizard extends Component
 
             $role->users()->attach((string) $user->cis_row_id);
 
+            // Damit der neue Administrator sofort Workflow-Schritte freigeben und
+            // Fixierungen aufheben kann (Freigaben sind vom klassischen Rechtesystem
+            // entkoppelt, siehe App\Services\Workflow).
+            \App\Services\Workflow\WorkflowDefaults::grantRoleEverywhere($role->cis_row_id);
+
             Setting::set('company_name', $this->companyName ?: null);
             Setting::set('company_street', $this->companyStreet ?: null);
             Setting::set('company_postal_code', $this->companyPostalCode ?: null);

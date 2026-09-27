@@ -57,6 +57,9 @@ Route::middleware(['auth'])->group(function() {
     Route::post('/Dashboard/Me',         [UserController::class, 'selfUpdate'])          ->name('dashboard.self.update');
     Route::post('/Dashboard/Me/Password',[UserController::class, 'selfPasswordUpdate'])  ->name('dashboard.self.password');
 
+    /** Workflow */
+    Route::get('/Workflow', [\App\Http\Controllers\Workflow\WorkflowController::class, 'index'])->name('workflow');
+
     /** Settings */
     Route::get('/Settings',[\App\Http\Controllers\Setting\SettingController::class,'index'])->name("setting");
 
