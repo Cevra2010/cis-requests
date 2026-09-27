@@ -283,11 +283,15 @@ class WorkflowEditor extends Component
         WorkflowApprover::where('cis_row_id', $approverId)->where('project_type', $this->projectType)->delete();
     }
 
-    /** Legt eine neue, noch inaktive Maßnahme am ausgewählten Schritt an und öffnet direkt den Editor dafür. */
-    public function addActionAt(string $type, int $position): void
+    /**
+     * Legt eine neue, noch inaktive Maßnahme am per $stepId übergebenen Schritt an (dem
+     * Ablageziel des Drag&Drop auf der Karte, NICHT notwendigerweise dem gerade
+     * ausgewählten Schritt) und öffnet direkt den Editor dafür.
+     */
+    public function addActionAt(string $stepId, string $type, int $position): void
     {
         $this->authorizeManage();
-        $step = $this->selectedStep();
+        $step       = WorkflowStatus::where('cis_row_id', $stepId)->where('project_type', $this->projectType)->first();
         $actionType = WorkflowActionTypes::find($type);
         if (! $step || ! $actionType) {
             return;
@@ -348,15 +352,14 @@ class WorkflowEditor extends Component
     {
         $steps = WorkflowStatus::where('project_type', $this->projectType)
             ->orderBy('sort_order')
-            ->with('approvers')
+            ->with(['approvers', 'actions'])
             ->get();
 
         $usedKinds      = $steps->pluck('kind')->reject(fn ($k) => $k === 'custom')->all();
         $availableKinds = WorkflowStepKinds::availableToAdd($usedKinds);
 
-        $selected           = $this->selectedStep();
-        $selectedWarnings   = $selected ? WorkflowValidator::warnings($selected) : [];
-        $selectedActions    = $selected ? $selected->actions()->get() : collect();
+        $selected              = $this->selectedStep();
+        $selectedWarnings      = $selected ? WorkflowValidator::warnings($selected) : [];
         $lockOverrideApprovers = WorkflowApprover::where('project_type', $this->projectType)
             ->where('scope', 'lock_override')->get();
 
@@ -365,7 +368,6 @@ class WorkflowEditor extends Component
             'availableKinds'        => $availableKinds,
             'selected'              => $selected,
             'selectedWarnings'      => $selectedWarnings,
-            'selectedActions'       => $selectedActions,
             'actionTypes'           => WorkflowActionTypes::all(),
             'lockOverrideApprovers' => $lockOverrideApprovers,
             'projectTypes'          => Project::TYPES,

@@ -50,18 +50,18 @@
                     </button>
                 </div>
 
-                <div class=”mt-5 pt-4 border-t border-gray-100”>
-                    <h3 class=”text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2”>Maßnahmen</h3>
-                    <p class=”text-[11px] text-gray-400 mb-2”>Auf einen Schritt ziehen, um eine Maßnahme anzulegen.</p>
-                    <div class=”js-action-palette space-y-1.5” x-data=”workflowActionPalette()” x-init=”init()”>
+                <div class="mt-5 pt-4 border-t border-gray-100">
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">Maßnahmen</h3>
+                    <p class="text-[11px] text-gray-400 mb-2">Direkt auf eine Schritt-Karte in der Mitte ziehen.</p>
+                    <div class="js-action-palette space-y-1.5" x-data="workflowActionPalette()" x-init="init()">
                         @forelse($actionTypes as $type)
-                            <div data-action-type=”{{ $type->key() }}”
-                                 class=”flex items-center gap-2 px-3 py-2 rounded-lg text-sm border border-dashed border-gray-200 bg-white cursor-grab hover:bg-gray-50 text-gray-700”>
-                                <i class=”fa fa-{{ $type->icon() }} text-gray-400 text-xs”></i>
+                            <div data-action-type="{{ $type->key() }}"
+                                 class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm border border-dashed border-gray-200 bg-white cursor-grab hover:bg-gray-50 text-gray-700">
+                                <i class="fa fa-{{ $type->icon() }} text-gray-400 text-xs"></i>
                                 <span>{{ $type->label() }}</span>
                             </div>
                         @empty
-                            <p class=”text-xs text-gray-400 italic”>Keine Maßnahmenarten verfügbar.</p>
+                            <p class="text-xs text-gray-400 italic">Keine Maßnahmenarten verfügbar.</p>
                         @endforelse
                     </div>
                 </div>
@@ -75,54 +75,84 @@
                     @foreach($steps as $step)
                     <div wire:key="step-{{ $step->cis_row_id }}" data-id="{{ $step->cis_row_id }}"
                          wire:click="selectStep('{{ $step->cis_row_id }}')"
-                         class="group flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors
+                         class="group p-3 rounded-xl border-2 cursor-pointer transition-colors
                                 {{ $selected?->cis_row_id === $step->cis_row_id ? 'border-primary-400 bg-primary-50/50' : 'border-gray-100 hover:bg-gray-50' }}
                                 {{ ! $step->is_active ? 'opacity-50' : '' }}">
-                        @unless($step->isRequired())
-                            <span class="js-drag-handle w-4 h-4 flex items-center justify-center text-gray-300 hover:text-gray-500 cursor-grab shrink-0" title="Ziehen zum Verschieben">
-                                <i class="fa fa-grip-vertical text-[11px]"></i>
-                            </span>
-                        @else
-                            <span class="w-4 shrink-0"></span>
-                        @endunless
+                        <div class="flex items-center gap-3">
+                            @unless($step->isRequired())
+                                <span class="js-drag-handle w-4 h-4 flex items-center justify-center text-gray-300 hover:text-gray-500 cursor-grab shrink-0" title="Ziehen zum Verschieben">
+                                    <i class="fa fa-grip-vertical text-[11px]"></i>
+                                </span>
+                            @else
+                                <span class="w-4 shrink-0"></span>
+                            @endunless
 
-                        <span class="w-2.5 h-2.5 rounded-full {{ \App\Services\Workflow\WorkflowColors::dot($step->color) }} shrink-0"></span>
+                            <span class="w-2.5 h-2.5 rounded-full {{ \App\Services\Workflow\WorkflowColors::dot($step->color) }} shrink-0"></span>
 
-                        <div class="min-w-0 flex-1">
-                            <p class="text-sm font-medium text-gray-800 truncate">
-                                {{ $step->label }}
-                                @if($step->isRequired())
-                                    <span class="ml-1 text-[9px] uppercase tracking-wide text-gray-400">Pflicht</span>
-                                @endif
-                            </p>
-                            <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                                @if($step->hasMilestone(\App\Services\Workflow\WorkflowStepKinds::MILESTONE_LOCK))
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600"><i class="fa fa-lock mr-0.5"></i>Fixierung</span>
-                                @endif
-                                @if($step->hasMilestone(\App\Services\Workflow\WorkflowStepKinds::MILESTONE_OFFERS))
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">Angebote</span>
-                                @endif
-                                @if($step->hasMilestone(\App\Services\Workflow\WorkflowStepKinds::MILESTONE_AWARDING))
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">Bestellung</span>
-                                @endif
-                                @if($step->hasMilestone(\App\Services\Workflow\WorkflowStepKinds::MILESTONE_GOODS_RECEIPT))
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded {{ $step->moduleEnabled() ? 'bg-gray-100 text-gray-500' : 'bg-gray-50 text-gray-300' }}">
-                                        Wareneingang{{ $step->moduleEnabled() ? '' : ' (Modul inaktiv)' }}
-                                    </span>
-                                @endif
-                                @php $usage = $step->usageCount(); @endphp
-                                @if($usage > 0)
-                                    <span class="text-[10px] text-gray-400">{{ $usage }} Projekt(e)</span>
-                                @endif
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-medium text-gray-800 truncate">
+                                    {{ $step->label }}
+                                    @if($step->isRequired())
+                                        <span class="ml-1 text-[9px] uppercase tracking-wide text-gray-400">Pflicht</span>
+                                    @endif
+                                </p>
+                                <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                    @if($step->hasMilestone(\App\Services\Workflow\WorkflowStepKinds::MILESTONE_LOCK))
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600"><i class="fa fa-lock mr-0.5"></i>Fixierung</span>
+                                    @endif
+                                    @if($step->hasMilestone(\App\Services\Workflow\WorkflowStepKinds::MILESTONE_OFFERS))
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">Angebote</span>
+                                    @endif
+                                    @if($step->hasMilestone(\App\Services\Workflow\WorkflowStepKinds::MILESTONE_AWARDING))
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">Bestellung</span>
+                                    @endif
+                                    @if($step->hasMilestone(\App\Services\Workflow\WorkflowStepKinds::MILESTONE_GOODS_RECEIPT))
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded {{ $step->moduleEnabled() ? 'bg-gray-100 text-gray-500' : 'bg-gray-50 text-gray-300' }}">
+                                            Wareneingang{{ $step->moduleEnabled() ? '' : ' (Modul inaktiv)' }}
+                                        </span>
+                                    @endif
+                                    @php $usage = $step->usageCount(); @endphp
+                                    @if($usage > 0)
+                                        <span class="text-[10px] text-gray-400">{{ $usage }} Projekt(e)</span>
+                                    @endif
+                                </div>
                             </div>
+
+                            <button type="button" wire:click.stop="toggleActive('{{ $step->cis_row_id }}')"
+                                    @disabled($step->isRequired())
+                                    title="{{ $step->is_active ? 'Deaktivieren' : 'Aktivieren' }}"
+                                    class="text-xs px-2 py-1 rounded-md {{ $step->isRequired() ? 'text-gray-200' : 'text-gray-400 hover:bg-gray-100' }} shrink-0">
+                                <i class="fa {{ $step->is_active ? 'fa-toggle-on text-primary-500' : 'fa-toggle-off' }}"></i>
+                            </button>
                         </div>
 
-                        <button type="button" wire:click.stop="toggleActive('{{ $step->cis_row_id }}')"
-                                @disabled($step->isRequired())
-                                title="{{ $step->is_active ? 'Deaktivieren' : 'Aktivieren' }}"
-                                class="text-xs px-2 py-1 rounded-md {{ $step->isRequired() ? 'text-gray-200' : 'text-gray-400 hover:bg-gray-100' }} shrink-0">
-                            <i class="fa {{ $step->is_active ? 'fa-toggle-on text-primary-500' : 'fa-toggle-off' }}"></i>
-                        </button>
+                        <div class="js-action-dropzone mt-2 pt-2 border-t border-gray-100 space-y-1 min-h-[10px]"
+                             data-step-id="{{ $step->cis_row_id }}" wire:key="actions-{{ $step->cis_row_id }}">
+                            @forelse($step->actions as $action)
+                                @php $actionType = \App\Services\Workflow\Actions\WorkflowActionTypes::find($action->type); @endphp
+                                <div wire:key="action-{{ $action->cis_row_id }}" data-id="{{ $action->cis_row_id }}"
+                                     class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-50 border border-gray-100 {{ ! $action->is_active ? 'opacity-50' : '' }}">
+                                    <span class="js-action-drag-handle w-3 h-3 flex items-center justify-center text-gray-300 hover:text-gray-500 cursor-grab shrink-0">
+                                        <i class="fa fa-grip-vertical text-[9px]"></i>
+                                    </span>
+                                    <i class="fa fa-{{ $actionType?->icon() ?? 'bolt' }} text-gray-400 text-[10px] shrink-0"></i>
+                                    <button type="button" wire:click.stop="editAction('{{ $action->cis_row_id }}')"
+                                            class="flex-1 min-w-0 text-left text-[11px] text-gray-600 truncate hover:underline">
+                                        {{ $actionType?->summary($action->config ?? []) ?? $action->type }}
+                                    </button>
+                                    <button type="button" wire:click.stop="toggleActionActive('{{ $action->cis_row_id }}')"
+                                            title="{{ $action->is_active ? 'Deaktivieren' : 'Aktivieren' }}"
+                                            class="text-[10px] text-gray-400 hover:bg-gray-100 rounded px-1 shrink-0">
+                                        <i class="fa {{ $action->is_active ? 'fa-toggle-on text-primary-500' : 'fa-toggle-off' }}"></i>
+                                    </button>
+                                    <button type="button" wire:click.stop="deleteAction('{{ $action->cis_row_id }}')" class="text-gray-300 hover:text-red-500 shrink-0">
+                                        <i class="fa fa-trash text-[9px]"></i>
+                                    </button>
+                                </div>
+                            @empty
+                                <p class="text-[10px] text-gray-300 italic">Maßnahme hierher ziehen</p>
+                            @endforelse
+                        </div>
                     </div>
                     @endforeach
                 </div>
@@ -216,37 +246,6 @@
                     </div>
                     @endunless
 
-                    <div class="mt-5 pt-4 border-t border-gray-100">
-                        <p class="cis-label mb-2">Maßnahmen</p>
-                        <p class="text-[11px] text-gray-400 mb-2">Feuert, sobald ein Projekt diesen Schritt per Vorrücken erreicht.</p>
-                        <div class="js-action-dropzone space-y-1.5 min-h-[8px]" x-data="workflowActionDropzone()" x-init="init()"
-                             wire:key="actions-{{ $selected->cis_row_id }}">
-                            @forelse($selectedActions as $action)
-                                @php $actionType = \App\Services\Workflow\Actions\WorkflowActionTypes::find($action->type); @endphp
-                                <div wire:key="action-{{ $action->cis_row_id }}" data-id="{{ $action->cis_row_id }}"
-                                     class="flex items-center gap-2 px-2.5 py-2 rounded-lg border border-gray-100 bg-gray-50 {{ ! $action->is_active ? 'opacity-50' : '' }}">
-                                    <span class="js-action-drag-handle w-4 h-4 flex items-center justify-center text-gray-300 hover:text-gray-500 cursor-grab shrink-0">
-                                        <i class="fa fa-grip-vertical text-[11px]"></i>
-                                    </span>
-                                    <i class="fa fa-{{ $actionType?->icon() ?? 'bolt' }} text-gray-400 text-xs shrink-0"></i>
-                                    <button type="button" wire:click="editAction('{{ $action->cis_row_id }}')" class="flex-1 min-w-0 text-left text-xs text-gray-700 truncate hover:underline">
-                                        {{ $actionType?->summary($action->config ?? []) ?? $action->type }}
-                                    </button>
-                                    <button type="button" wire:click="toggleActionActive('{{ $action->cis_row_id }}')"
-                                            title="{{ $action->is_active ? 'Deaktivieren' : 'Aktivieren' }}"
-                                            class="text-xs text-gray-400 hover:bg-gray-100 rounded px-1 shrink-0">
-                                        <i class="fa {{ $action->is_active ? 'fa-toggle-on text-primary-500' : 'fa-toggle-off' }}"></i>
-                                    </button>
-                                    <button type="button" wire:click="deleteAction('{{ $action->cis_row_id }}')" class="text-gray-300 hover:text-red-500 shrink-0">
-                                        <i class="fa fa-trash text-xs"></i>
-                                    </button>
-                                </div>
-                            @empty
-                                <p class="text-xs text-gray-400 italic py-2">Noch keine Maßnahme – aus „Bausteine" links hierher ziehen.</p>
-                            @endforelse
-                        </div>
-                    </div>
-
                     @unless($selected->isRequired())
                     <div class="mt-5 pt-4 border-t border-gray-100">
                         <button type="button" wire:click="deleteStep('{{ $selected->cis_row_id }}')"
@@ -304,6 +303,27 @@
                         },
                     });
                 });
+
+                this.$el.querySelectorAll('.js-action-dropzone:not([data-sortable-ready])').forEach((el) => {
+                    el.dataset.sortableReady = '1';
+                    const stepId = el.dataset.stepId;
+                    Sortable.create(el, {
+                        group: { name: 'workflow-actions', pull: true, put: true },
+                        handle: '.js-action-drag-handle',
+                        animation: 150,
+                        onAdd: (evt) => {
+                            const type = evt.item.dataset.actionType;
+                            const position = evt.newIndex;
+                            evt.item.remove();
+                            $wire.addActionAt(stepId, type, position);
+                        },
+                        onEnd: (evt) => {
+                            if (evt.from !== evt.to) return;
+                            const ids = [...el.children].map((child) => child.dataset.id).filter(Boolean);
+                            $wire.reorderActions(ids);
+                        },
+                    });
+                });
             },
         }));
 
@@ -314,29 +334,6 @@
                     group: { name: 'workflow-actions', pull: 'clone', put: false },
                     sort: false,
                     animation: 150,
-                });
-            },
-        }));
-
-        Alpine.data('workflowActionDropzone', () => ({
-            init() {
-                if (typeof Sortable === 'undefined') return;
-                const el = this.$el;
-                Sortable.create(el, {
-                    group: { name: 'workflow-actions', pull: true, put: true },
-                    handle: '.js-action-drag-handle',
-                    animation: 150,
-                    onAdd: (evt) => {
-                        const type = evt.item.dataset.actionType;
-                        const position = evt.newIndex;
-                        evt.item.remove();
-                        $wire.addActionAt(type, position);
-                    },
-                    onEnd: (evt) => {
-                        if (evt.from !== evt.to) return;
-                        const ids = [...el.children].map((child) => child.dataset.id).filter(Boolean);
-                        $wire.reorderActions(ids);
-                    },
                 });
             },
         }));

@@ -4,6 +4,10 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.10.0.1 — 2026-09-27
+- Bugfix: im Workflow-Bildschirm ließ sich die Maßnahme „E-Mail senden“ nicht per Drag&Drop auf einen Schritt ziehen (fehlerhafte Anführungszeichen verhinderten die Initialisierung)
+- Die Maßnahmen eines Schritts werden jetzt direkt auf dessen Karte in der Zeitleiste angezeigt und dorthin gezogen, statt im weiter entfernten Detail-Bereich
+
 ## 0.10.0.0 — 2026-09-27
 - Workflow-Maßnahmen (Phase 2): im Workflow-Bildschirm lässt sich jedem Schritt per Drag&Drop die Maßnahme "E-Mail senden" hinzufügen – Empfänger frei aus Systembenutzern, Gruppen oder externen E-Mail-Adressen, Betreff und Text mit einfügbaren Projektvariablen (Projektname, Auftraggeber, neuer/vorheriger Status, Fälligkeitsdatum, Kostenschätzung, u.a.)
 - Eine Maßnahme feuert automatisch, sobald ein Projekt den zugehörigen Schritt per Vorrücken erreicht; ein fehlgeschlagener E-Mail-Versand blockiert dabei nie die eigentliche Statusänderung
