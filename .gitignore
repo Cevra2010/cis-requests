@@ -18,3 +18,4 @@ yarn-error.log
 /.vscode
 /.claude/launch.json
 /.claude/PROJECT_LOG.md
+/.claude/settings.local.json

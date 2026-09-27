@@ -138,6 +138,18 @@
                             Status wird auf „{{ $wizard->next?->label }}“ gesetzt.
                         @endif
                     </p>
+                    @if(count($wizard->nextActions))
+                        <div class="mt-3 pt-3 border-t border-gray-100">
+                            <p class="text-xs font-medium text-gray-600 mb-1.5">Folgende Maßnahmen werden ausgeführt:</p>
+                            <ul class="space-y-1">
+                                @foreach($wizard->nextActions as $a)
+                                    <li class="text-xs text-gray-500 flex items-center gap-1.5">
+                                        <i class="fa fa-{{ $a['icon'] }} text-gray-300"></i>{{ $a['summary'] }}
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
                 </div>
             </template>
             <template x-if="pending === 'revert'">

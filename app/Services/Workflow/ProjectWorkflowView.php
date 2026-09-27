@@ -5,6 +5,7 @@ namespace App\Services\Workflow;
 use App\Models\Project;
 use App\Models\User;
 use App\Models\WorkflowStatus;
+use App\Services\Workflow\Actions\WorkflowActionTypes;
 use Illuminate\Support\Collection;
 
 /**
@@ -27,6 +28,7 @@ class ProjectWorkflowView
         public array $revertBlockedReasons,
         public ?WorkflowStatus $autoAdvanceTarget,
         public Collection $history,
+        public array $nextActions = [],
     ) {
     }
 
@@ -65,6 +67,22 @@ class ProjectWorkflowView
             }
         }
 
+        $nextActions = [];
+        if ($next) {
+            $nextActions = \App\Models\WorkflowAction::where('cis_row_id_workflow_status', $next->cis_row_id)
+                ->where('trigger', 'enter')
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->get()
+                ->map(function ($a) {
+                    $type = WorkflowActionTypes::find($a->type);
+                    return $type ? ['icon' => $type->icon(), 'summary' => $type->summary($a->config ?? [])] : null;
+                })
+                ->filter()
+                ->values()
+                ->all();
+        }
+
         return new self(
             project: $project,
             steps: $workflow->sequenceFor($project->status_code),
@@ -79,6 +97,7 @@ class ProjectWorkflowView
             revertBlockedReasons: $revertBlockedReasons,
             autoAdvanceTarget: $workflow->autoAdvanceTarget($project->status_code),
             history: $project->statusTransitions()->with('user')->limit(50)->get(),
+            nextActions: $nextActions,
         );
     }
 

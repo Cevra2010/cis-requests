@@ -3,8 +3,10 @@
 namespace App\Http\Livewire\Workflow;
 
 use App\Models\Project;
+use App\Models\WorkflowAction;
 use App\Models\WorkflowApprover;
 use App\Models\WorkflowStatus;
+use App\Services\Workflow\Actions\WorkflowActionTypes;
 use App\Services\Workflow\WorkflowColors;
 use App\Services\Workflow\WorkflowDefaults;
 use App\Services\Workflow\WorkflowRegistry;
@@ -281,6 +283,67 @@ class WorkflowEditor extends Component
         WorkflowApprover::where('cis_row_id', $approverId)->where('project_type', $this->projectType)->delete();
     }
 
+    /** Legt eine neue, noch inaktive Maßnahme am ausgewählten Schritt an und öffnet direkt den Editor dafür. */
+    public function addActionAt(string $type, int $position): void
+    {
+        $this->authorizeManage();
+        $step = $this->selectedStep();
+        $actionType = WorkflowActionTypes::find($type);
+        if (! $step || ! $actionType) {
+            return;
+        }
+
+        $existing = WorkflowAction::where('cis_row_id_workflow_status', $step->cis_row_id)->orderBy('sort_order')->get();
+        foreach ($existing->slice($position)->values() as $i => $a) {
+            $a->update(['sort_order' => $position + 1 + $i]);
+        }
+
+        $action = WorkflowAction::create([
+            'cis_row_id_workflow_status' => $step->cis_row_id,
+            'trigger'                    => 'enter',
+            'type'                       => $type,
+            'sort_order'                 => $position,
+            'is_active'                  => false,
+            'config'                     => $actionType->defaultConfig(),
+        ]);
+
+        $this->dispatch('edit-workflow-action', id: $action->cis_row_id);
+    }
+
+    public function reorderActions(array $orderedIds): void
+    {
+        $this->authorizeManage();
+        foreach ($orderedIds as $index => $id) {
+            WorkflowAction::where('cis_row_id', $id)->update(['sort_order' => $index]);
+        }
+    }
+
+    public function editAction(string $actionId): void
+    {
+        $this->dispatch('edit-workflow-action', id: $actionId);
+    }
+
+    public function toggleActionActive(string $actionId): void
+    {
+        $this->authorizeManage();
+        $action = WorkflowAction::find($actionId);
+        if ($action) {
+            $action->update(['is_active' => ! $action->is_active]);
+        }
+    }
+
+    public function deleteAction(string $actionId): void
+    {
+        $this->authorizeManage();
+        WorkflowAction::where('cis_row_id', $actionId)->delete();
+    }
+
+    /** Kein eigener Zustand nötig – der Event-Empfang allein löst das Re-Render aus, damit die Maßnahmen-Zusammenfassung nach dem Speichern im Modal sofort aktuell ist. */
+    #[On('workflow-action-saved')]
+    public function refreshAfterActionSave(): void
+    {
+    }
+
     public function render()
     {
         $steps = WorkflowStatus::where('project_type', $this->projectType)
@@ -293,6 +356,7 @@ class WorkflowEditor extends Component
 
         $selected           = $this->selectedStep();
         $selectedWarnings   = $selected ? WorkflowValidator::warnings($selected) : [];
+        $selectedActions    = $selected ? $selected->actions()->get() : collect();
         $lockOverrideApprovers = WorkflowApprover::where('project_type', $this->projectType)
             ->where('scope', 'lock_override')->get();
 
@@ -301,6 +365,8 @@ class WorkflowEditor extends Component
             'availableKinds'        => $availableKinds,
             'selected'              => $selected,
             'selectedWarnings'      => $selectedWarnings,
+            'selectedActions'       => $selectedActions,
+            'actionTypes'           => WorkflowActionTypes::all(),
             'lockOverrideApprovers' => $lockOverrideApprovers,
             'projectTypes'          => Project::TYPES,
             'tabs'                  => WorkflowDefaults::TABS,

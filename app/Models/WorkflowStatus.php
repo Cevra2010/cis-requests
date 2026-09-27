@@ -42,6 +42,13 @@ class WorkflowStatus extends Model
             ->where('scope', 'transition');
     }
 
+    public function actions()
+    {
+        return $this->hasMany(WorkflowAction::class, 'cis_row_id_workflow_status', 'cis_row_id')
+            ->where('trigger', 'enter')
+            ->orderBy('sort_order');
+    }
+
     public function isCustom(): bool
     {
         return $this->kind === 'custom';

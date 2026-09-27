@@ -50,9 +50,20 @@
                     </button>
                 </div>
 
-                <div class="mt-5 pt-4 border-t border-gray-100">
-                    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">Maßnahmen</h3>
-                    <p class="text-xs text-gray-400 italic">Folgen in Kürze (z.B. „E-Mail senden“).</p>
+                <div class=”mt-5 pt-4 border-t border-gray-100”>
+                    <h3 class=”text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2”>Maßnahmen</h3>
+                    <p class=”text-[11px] text-gray-400 mb-2”>Auf einen Schritt ziehen, um eine Maßnahme anzulegen.</p>
+                    <div class=”js-action-palette space-y-1.5” x-data=”workflowActionPalette()” x-init=”init()”>
+                        @forelse($actionTypes as $type)
+                            <div data-action-type=”{{ $type->key() }}”
+                                 class=”flex items-center gap-2 px-3 py-2 rounded-lg text-sm border border-dashed border-gray-200 bg-white cursor-grab hover:bg-gray-50 text-gray-700”>
+                                <i class=”fa fa-{{ $type->icon() }} text-gray-400 text-xs”></i>
+                                <span>{{ $type->label() }}</span>
+                            </div>
+                        @empty
+                            <p class=”text-xs text-gray-400 italic”>Keine Maßnahmenarten verfügbar.</p>
+                        @endforelse
+                    </div>
                 </div>
             </div>
         </div>
@@ -205,6 +216,37 @@
                     </div>
                     @endunless
 
+                    <div class="mt-5 pt-4 border-t border-gray-100">
+                        <p class="cis-label mb-2">Maßnahmen</p>
+                        <p class="text-[11px] text-gray-400 mb-2">Feuert, sobald ein Projekt diesen Schritt per Vorrücken erreicht.</p>
+                        <div class="js-action-dropzone space-y-1.5 min-h-[8px]" x-data="workflowActionDropzone()" x-init="init()"
+                             wire:key="actions-{{ $selected->cis_row_id }}">
+                            @forelse($selectedActions as $action)
+                                @php $actionType = \App\Services\Workflow\Actions\WorkflowActionTypes::find($action->type); @endphp
+                                <div wire:key="action-{{ $action->cis_row_id }}" data-id="{{ $action->cis_row_id }}"
+                                     class="flex items-center gap-2 px-2.5 py-2 rounded-lg border border-gray-100 bg-gray-50 {{ ! $action->is_active ? 'opacity-50' : '' }}">
+                                    <span class="js-action-drag-handle w-4 h-4 flex items-center justify-center text-gray-300 hover:text-gray-500 cursor-grab shrink-0">
+                                        <i class="fa fa-grip-vertical text-[11px]"></i>
+                                    </span>
+                                    <i class="fa fa-{{ $actionType?->icon() ?? 'bolt' }} text-gray-400 text-xs shrink-0"></i>
+                                    <button type="button" wire:click="editAction('{{ $action->cis_row_id }}')" class="flex-1 min-w-0 text-left text-xs text-gray-700 truncate hover:underline">
+                                        {{ $actionType?->summary($action->config ?? []) ?? $action->type }}
+                                    </button>
+                                    <button type="button" wire:click="toggleActionActive('{{ $action->cis_row_id }}')"
+                                            title="{{ $action->is_active ? 'Deaktivieren' : 'Aktivieren' }}"
+                                            class="text-xs text-gray-400 hover:bg-gray-100 rounded px-1 shrink-0">
+                                        <i class="fa {{ $action->is_active ? 'fa-toggle-on text-primary-500' : 'fa-toggle-off' }}"></i>
+                                    </button>
+                                    <button type="button" wire:click="deleteAction('{{ $action->cis_row_id }}')" class="text-gray-300 hover:text-red-500 shrink-0">
+                                        <i class="fa fa-trash text-xs"></i>
+                                    </button>
+                                </div>
+                            @empty
+                                <p class="text-xs text-gray-400 italic py-2">Noch keine Maßnahme – aus „Bausteine" links hierher ziehen.</p>
+                            @endforelse
+                        </div>
+                    </div>
+
                     @unless($selected->isRequired())
                     <div class="mt-5 pt-4 border-t border-gray-100">
                         <button type="button" wire:click="deleteStep('{{ $selected->cis_row_id }}')"
@@ -241,6 +283,8 @@
         @livewire('workflow.principal-picker', ['context' => 'lock_override'], key('picker-lock-override-' . $projectType))
     </div>
 
+    @livewire('workflow.action-editor', key('action-editor'))
+
     @script
     <script>
         Alpine.data('workflowStepList', () => ({
@@ -259,6 +303,40 @@
                             $wire.reorderSteps(ids);
                         },
                     });
+                });
+            },
+        }));
+
+        Alpine.data('workflowActionPalette', () => ({
+            init() {
+                if (typeof Sortable === 'undefined') return;
+                Sortable.create(this.$el, {
+                    group: { name: 'workflow-actions', pull: 'clone', put: false },
+                    sort: false,
+                    animation: 150,
+                });
+            },
+        }));
+
+        Alpine.data('workflowActionDropzone', () => ({
+            init() {
+                if (typeof Sortable === 'undefined') return;
+                const el = this.$el;
+                Sortable.create(el, {
+                    group: { name: 'workflow-actions', pull: true, put: true },
+                    handle: '.js-action-drag-handle',
+                    animation: 150,
+                    onAdd: (evt) => {
+                        const type = evt.item.dataset.actionType;
+                        const position = evt.newIndex;
+                        evt.item.remove();
+                        $wire.addActionAt(type, position);
+                    },
+                    onEnd: (evt) => {
+                        if (evt.from !== evt.to) return;
+                        const ids = [...el.children].map((child) => child.dataset.id).filter(Boolean);
+                        $wire.reorderActions(ids);
+                    },
                 });
             },
         }));

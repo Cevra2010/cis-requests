@@ -209,7 +209,7 @@ class Project extends Model
 
         $this->forceFill(['status_code' => $target->code])->save();
 
-        return ProjectStatusTransition::create([
+        $transition = ProjectStatusTransition::create([
             'cis_row_id_project' => $this->cis_row_id,
             'from_code'          => $fromCode,
             'to_code'            => $target->code,
@@ -218,6 +218,15 @@ class Project extends Model
             'direction'          => $direction,
             'cis_row_id_user'    => $direction === 'auto' ? null : auth()->user()?->cis_row_id,
         ]);
+
+        // Maßnahmen (z.B. "E-Mail senden") feuern nur beim Vorrücken – ein Rücksetzen ist
+        // kein "Schritt erreicht"-Ereignis; rückt das Projekt später erneut vor, feuert die
+        // Maßnahme dann ganz normal wieder.
+        if (in_array($direction, ['advance', 'auto'], true)) {
+            app(\App\Services\Workflow\WorkflowActionRunner::class)->run($this, $target, $transition);
+        }
+
+        return $transition;
     }
 
     /** Rückt automatisch vor, sobald der aktuelle Schritt "Auto-Vorrücken nach Frist" trägt und die Fälligkeit überschritten ist. */

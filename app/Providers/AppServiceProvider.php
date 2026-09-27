@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\Workflow\Actions\EmailAction;
+use App\Services\Workflow\Actions\WorkflowActionTypes;
 use CisFoundation\CisMenuManager\MenuManager;
 use CisFoundation\CisPermissionManager\CisPermissionManager;
 use Illuminate\Support\ServiceProvider;
@@ -14,6 +16,10 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->registerMainMenu();
         $this->registerPermissions();
+
+        // Core-Maßnahmenart "E-Mail senden". Künftige Modul-Maßnahmen registrieren sich
+        // analog im jeweiligen Modul-ServiceProvider (läuft dann nur bei aktivem Modul).
+        WorkflowActionTypes::register(new EmailAction());
     }
 
     protected function registerPermissions(): void

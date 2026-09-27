@@ -4,6 +4,11 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.10.0.0 — 2026-09-27
+- Workflow-Maßnahmen (Phase 2): im Workflow-Bildschirm lässt sich jedem Schritt per Drag&Drop die Maßnahme "E-Mail senden" hinzufügen – Empfänger frei aus Systembenutzern, Gruppen oder externen E-Mail-Adressen, Betreff und Text mit einfügbaren Projektvariablen (Projektname, Auftraggeber, neuer/vorheriger Status, Fälligkeitsdatum, Kostenschätzung, u.a.)
+- Eine Maßnahme feuert automatisch, sobald ein Projekt den zugehörigen Schritt per Vorrücken erreicht; ein fehlgeschlagener E-Mail-Versand blockiert dabei nie die eigentliche Statusänderung
+- Die Bestätigung beim Vorrücken zeigt jetzt an, welche Maßnahmen dabei ausgeführt werden
+
 ## 0.9.0.0 — 2026-09-27
 - Neuer Bereich „Workflow“ (im Menü direkt unter „Dashboard“): der Projektverlauf ist jetzt je Projekttyp (Produkt-/Fahrzeugausschreibung) frei konfigurierbar – Schritte hinzufügen, umbenennen, deaktivieren oder entfernen (z.B. „Bereit zur Ausschreibung“ überspringen), dabei sind nur logisch sinnvolle Reihenfolgen erlaubt
 - Wer einen Projektschritt freigeben darf, wird nicht mehr über die klassische Rechteverwaltung geregelt, sondern direkt im Workflow-Bildschirm je Schritt festgelegt (Benutzer, Gruppen oder Rollen) – bestehende Freigabe-Rechte wurden beim Update automatisch übernommen

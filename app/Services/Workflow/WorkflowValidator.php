@@ -3,6 +3,7 @@
 namespace App\Services\Workflow;
 
 use App\Models\WorkflowStatus;
+use App\Services\Workflow\Actions\WorkflowActionTypes;
 
 /**
  * Prüft eine KANDIDATEN-Liste von Schritten (vor dem Speichern) auf die Regeln
@@ -91,6 +92,13 @@ class WorkflowValidator
         }
         if ($status->auto_advance_on_due && ! WorkflowStepKinds::allowsAutoAdvance($status->kind)) {
             $warnings[] = 'Auto-Vorrücken ist nur beim Schritt "Ausschreibung" wirksam.';
+        }
+        foreach ($status->actions as $action) {
+            $type = WorkflowActionTypes::find($action->type);
+            if ($type && ! empty($type->validate($action->config ?? []))) {
+                $warnings[] = 'Eine Maßnahme ("' . $type->label() . '") ist noch nicht vollständig konfiguriert.';
+                break;
+            }
         }
 
         return $warnings;
