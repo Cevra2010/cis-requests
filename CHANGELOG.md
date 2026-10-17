@@ -4,6 +4,9 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.10.0.4 — 2026-10-17
+- Ausschreibung: die visuelle Vorschau hat jetzt oben und unten einen Seitenrand wie ein echtes Blatt (Logo-Kopf und Fußzeile kleben nicht mehr am Rand)
+
 ## 0.10.0.3 — 2026-10-17
 - Bugfix: im Projektkopf überlappten bei schmalen Fenstern die Status-Badges (z.B. „Fixiert“) die Angaben rechts daneben; der Kopf bricht jetzt sauber um
 

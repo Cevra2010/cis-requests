@@ -253,7 +253,7 @@
         @if($blocks->count())
 
         {{-- Papier --}}
-        <div class="max-w-2xl mx-auto bg-white shadow-lg px-10" id="document-blocks">
+        <div class="max-w-2xl mx-auto bg-white shadow-lg px-10 py-12" id="document-blocks">
 
             @if(\Nwidart\Modules\Facades\Module::find('Branding')?->isEnabled())
                 @include('branding::partials.document-header')
