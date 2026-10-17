@@ -4,6 +4,9 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.10.0.2 — 2026-10-17
+- Bugfix: die Schrittanzeige im „Projektverlauf“ war oben und seitlich abgeschnitten (Fixierungs-Symbol, Markierung des aktuellen Schritts, lange Schrittnamen wie „Ausschreibungsentwurf“)
+
 ## 0.10.0.1 — 2026-09-27
 - Bugfix: im Workflow-Bildschirm ließ sich die Maßnahme „E-Mail senden“ nicht per Drag&Drop auf einen Schritt ziehen (fehlerhafte Anführungszeichen verhinderten die Initialisierung)
 - Die Maßnahmen eines Schritts werden jetzt direkt auf dessen Karte in der Zeitleiste angezeigt und dorthin gezogen, statt im weiter entfernten Detail-Bereich

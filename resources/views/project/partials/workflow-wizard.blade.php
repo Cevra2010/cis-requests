@@ -11,7 +11,7 @@
     </div>
 
     {{-- Stepper --}}
-    <div class="flex items-start overflow-x-auto pb-1">
+    <div class="flex items-start overflow-x-auto pt-2 pb-1 px-2 -mx-2">
         @foreach($wizard->steps as $i => $step)
             @php
                 $isCurrent = $step->code === $project->status_code;
@@ -19,8 +19,8 @@
                 $isNext    = $wizard->next && $step->code === $wizard->next->code;
                 $isPrev    = $wizard->previous && $step->code === $wizard->previous->code;
             @endphp
-            <div class="flex items-center {{ ! $loop->last ? 'flex-1' : '' }} min-w-[64px]">
-                <div class="flex flex-col items-center shrink-0 w-20">
+            <div class="flex items-center {{ ! $loop->last ? 'flex-1' : '' }} min-w-[96px]">
+                <div class="flex flex-col items-center shrink-0 w-24">
                     <button type="button"
                             @if($isNext && $wizard->canAdvance) @click="pending = 'advance'; confirmOpen = true"
                             @elseif($isPrev && $wizard->canRevert) @click="pending = 'revert'; confirmOpen = true"
@@ -43,7 +43,7 @@
                             </span>
                         @endif
                     </button>
-                    <span class="mt-1.5 text-[10px] text-center leading-tight {{ $isCurrent ? 'text-gray-800 font-semibold' : 'text-gray-400' }}">
+                    <span class="mt-1.5 px-1 max-w-full text-[10px] text-center leading-tight [overflow-wrap:anywhere] {{ $isCurrent ? 'text-gray-800 font-semibold' : 'text-gray-400' }}">
                         {{ $step->label }}
                     </span>
                 </div>
