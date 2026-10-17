@@ -14,6 +14,9 @@ class TemplateManager extends Component
     /** @var array<string, string> Name der neuen Vorlage je Phase – getrennt, damit sich die Eingabefelder der Phasen nicht gegenseitig füllen. */
     public array $newTemplateNames = [];
 
+    /** @var array<string, string> Name der neuen Vorlage je Systemdatensatz. */
+    public array $newDatasetTemplateNames = [];
+
     public ?string $expandedTemplateId = null;
 
     public string $newColumnLabel = '';
@@ -40,7 +43,9 @@ class TemplateManager extends Component
             ->mapWithKeys(fn ($key) => [$key => ExportFilterRegistry::optionsFor($key)]);
 
         return view('export::livewire.template-manager', [
-            'templatesByPhase'  => $templates->groupBy('phase'),
+            'templatesByPhase'   => $templates->where('dataset', 'project_positions')->groupBy('phase'),
+            'templatesByDataset' => $templates->where('dataset', '!=', 'project_positions')->groupBy('dataset'),
+            'datasets'           => collect(ExportTemplate::DATASETS)->except('project_positions')->all(),
             'phases'            => ExportTemplate::PHASES,
             'usageOptions'      => ExportTemplate::USAGES,
             'filterFields'      => collect(ExportFilterRegistry::FILTERS)->map(fn ($f) => $f['label'])->all(),
@@ -49,7 +54,9 @@ class TemplateManager extends Component
             'newFilterOptions'  => $this->newFilterField !== '' ? ($filterOptions[$this->newFilterField] ?? []) : [],
             'sortFields'        => ExportFieldRegistry::SORTABLE_FIELDS,
             'fieldOptions'      => collect(ExportTemplate::PHASES)->keys()
-                ->mapWithKeys(fn ($phase) => [$phase => ExportFieldRegistry::optionsForPhase($phase)])->all(),
+                ->mapWithKeys(fn ($phase) => [$phase => ExportFieldRegistry::optionsForPhase($phase)])
+                ->merge(collect(ExportTemplate::DATASETS)->except('project_positions')->keys()
+                    ->mapWithKeys(fn ($d) => [$d => ExportFieldRegistry::optionsForDataset($d)]))->all(),
             'fieldOrigins'      => collect(ExportFieldRegistry::ORIGINS)
                 ->prepend(ExportFieldRegistry::FREE_FIELD_ORIGIN_LABEL, ExportFieldRegistry::FREE_FIELD_ORIGIN)->all(),
         ]);
@@ -77,6 +84,30 @@ class TemplateManager extends Component
         $this->expandedTemplateId = $template->cis_row_id;
     }
 
+    public function createDatasetTemplate(string $dataset): void
+    {
+        if (! array_key_exists($dataset, ExportTemplate::DATASETS) || $dataset === 'project_positions') {
+            return;
+        }
+
+        $this->validate(
+            ["newDatasetTemplateNames.{$dataset}" => 'required|string|max:255'],
+            [],
+            ["newDatasetTemplateNames.{$dataset}" => 'Name der Vorlage']
+        );
+
+        $template = ExportTemplate::create([
+            'name'               => trim($this->newDatasetTemplateNames[$dataset]),
+            'phase'              => 'pre_tender',
+            'dataset'            => $dataset,
+            'include_import_key' => true,
+            'usages'             => ['data_transfer'],
+        ]);
+
+        $this->newDatasetTemplateNames[$dataset] = '';
+        $this->expandedTemplateId                = $template->cis_row_id;
+    }
+
     public function renameTemplate(string $id, string $name): void
     {
         if (trim($name) === '') {
@@ -89,7 +120,7 @@ class TemplateManager extends Component
     public function setUsage(string $id, string $usage, bool $enabled): void
     {
         $template = ExportTemplate::find($id);
-        if (! $template || ! array_key_exists($usage, ExportTemplate::USAGES)) {
+        if (! $template || ! array_key_exists($usage, $template->availableUsages())) {
             return;
         }
 
@@ -139,7 +170,11 @@ class TemplateManager extends Component
         $isFreeField = $this->newColumnField === ExportFieldRegistry::FREE_FIELD_KEY;
         $template    = ExportTemplate::find($templateId);
 
-        if (! $isFreeField && (! $template || ! array_key_exists($this->newColumnField, ExportFieldRegistry::fieldsForPhase($template->phase)))) {
+        $allowedFields = ! $template ? [] : ($template->isProjectBased()
+            ? ExportFieldRegistry::fieldsForPhase($template->phase)
+            : collect(ExportFieldRegistry::fieldsOf($template->dataset))->map(fn ($f) => $f['label'])->all());
+
+        if (! $isFreeField && ! array_key_exists($this->newColumnField, $allowedFields)) {
             $this->addError('newColumnField', 'Ungültiges Feld.');
             return;
         }

@@ -4,6 +4,11 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.12.0.0 — 2026-10-17
+- Neu: Import / Export (Menü „Module“) – Systemdaten als Excel-/CSV-Tabelle exportieren und geänderte Tabellen wieder einlesen. Erste Datengrundlage: Produkte (Name, Set, Kategorie, feste Quelle, Preis inkl. Preisquelle). Ein Import prüft zuerst alle Zeilen (Vorschau mit Änderungen und Fehlern) und schreibt erst nach „Übernehmen“; Preisänderungen werden als neuer Preis mit Historie angelegt, neue Produkte werden nur auf Wunsch angelegt
+- Vorlagen unter „Export-Import“ haben jetzt eine Datengrundlage: Projekt-Positionen (wie bisher, mit Filtern/Sortierung, Anzeige im Dokumentenmanager) oder Systemdaten wie „Produkte“ (für das Import-/Export-Werkzeug). Die Feldauswahl zeigt je Datengrundlage die passenden Felder mit Herkunft (Produkte, Kategorien, Quellen, Preise)
+- Neue Berechtigung „Import-/Export-Werkzeug nutzen“ (Administratoren haben sie automatisch)
+
 ## 0.11.0.0 — 2026-10-17
 - Export-Import: Bugfix – beim Anlegen einer Vorlage spiegelten sich die Namensfelder der beiden Bereiche („Vor der Ausschreibung“ / „Nach der Ausschreibung“) gegenseitig
 - Der Import-Key (technische Spalte „_ImportKey“) wird jetzt je Vorlage unter „Bearbeiten“ → „Import“ festgelegt; die bisherige „Standard“-Markierung entfällt. Bestehende Vorlagen mit Händler-Preisfeld behalten ihren Import-Key; der Preis-Import im Angebotsvergleich bietet Vorlagen mit Händler-Preisfeld und Import-Key an

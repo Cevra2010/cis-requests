@@ -19,6 +19,10 @@ class ExportFieldRegistry
     /** Herkunft der Felder (Datenbereich), in Anzeigereihenfolge. */
     public const ORIGINS = [
         'project_material' => 'Projekte (Materialausschreibung)',
+        'products'         => 'Produkte',
+        'categories'       => 'Kategorien',
+        'sources'          => 'Quellen',
+        'prices'           => 'Preise',
     ];
 
     /** Herkunft des Freifelds (fester Text/leere Spalte) – an keinen Datenbereich gebunden. */
@@ -57,9 +61,23 @@ class ExportFieldRegistry
         'unit_price'   => 'Einzelpreis',
     ];
 
+    /** Felder je Datengrundlage (siehe ExportTemplate::DATASETS) – Schlüssel ist die Datengrundlage. */
+    public static function fieldsOf(string $dataset): array
+    {
+        return match ($dataset) {
+            'products' => Datasets\ProductDataset::FIELDS,
+            default    => self::FIELDS,
+        };
+    }
+
+    private static function definition(string $key): ?array
+    {
+        return self::FIELDS[$key] ?? Datasets\ProductDataset::FIELDS[$key] ?? null;
+    }
+
     public static function label(string $key): string
     {
-        return self::FIELDS[$key]['label'] ?? $key;
+        return self::definition($key)['label'] ?? $key;
     }
 
     /** Flaches key => label, beschränkt auf die für diese Phase sinnvollen Felder (z.B. für ein Auswahl-Dropdown). */
@@ -81,7 +99,29 @@ class ExportFieldRegistry
             return self::FREE_FIELD_ORIGIN_LABEL;
         }
 
-        return self::ORIGINS[self::FIELDS[$key]['origin'] ?? ''] ?? '';
+        return self::ORIGINS[self::definition($key)['origin'] ?? ''] ?? '';
+    }
+
+    /** Auswahlliste für Vorlagen auf einem Systemdatensatz (kein Phasen-Filter). Gleiche Struktur wie optionsForPhase(). */
+    public static function optionsForDataset(string $dataset): array
+    {
+        $options = [];
+        foreach (self::ORIGINS as $originKey => $originLabel) {
+            foreach (self::fieldsOf($dataset) as $key => $field) {
+                if ($field['origin'] === $originKey) {
+                    $options[] = ['key' => $key, 'label' => $field['label'], 'origin' => $originKey, 'originLabel' => $originLabel];
+                }
+            }
+        }
+
+        $options[] = [
+            'key'         => self::FREE_FIELD_KEY,
+            'label'       => 'Freifeld (fester Text oder leer)',
+            'origin'      => self::FREE_FIELD_ORIGIN,
+            'originLabel' => self::FREE_FIELD_ORIGIN_LABEL,
+        ];
+
+        return $options;
     }
 
     /**

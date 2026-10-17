@@ -13,7 +13,7 @@ class ExportTemplate extends Model
 
     protected $table = 'export_templates';
 
-    protected $fillable = ['name', 'phase', 'include_import_key', 'usages', 'sort_field', 'sort_direction'];
+    protected $fillable = ['name', 'phase', 'dataset', 'include_import_key', 'usages', 'sort_field', 'sort_direction'];
 
     protected $casts = [
         'include_import_key' => 'boolean',
@@ -33,7 +33,35 @@ class ExportTemplate extends Model
      */
     public const USAGES = [
         'project_documents' => 'Projekt → Dokumentenmanager',
+        'data_transfer'     => 'Import-/Export-Werkzeug',
     ];
+
+    /** Datengrundlagen: 'project_positions' = Positionen eines Projekts (TenderExporter), sonst ein Systemdatensatz (Services/Datasets). */
+    public const DATASETS = [
+        'project_positions' => 'Projekt-Positionen',
+        'products'          => 'Produkte',
+    ];
+
+    /** In welchen Bereichen eine Vorlage welcher Datengrundlage angeboten werden kann. */
+    public const USAGE_DATASETS = [
+        'project_documents' => ['project_positions'],
+        'data_transfer'     => ['products'],
+    ];
+
+    public function isProjectBased(): bool
+    {
+        return $this->dataset === 'project_positions';
+    }
+
+    /** @return array<string, string> Bereiche (key => Label), die für die Datengrundlage dieser Vorlage in Frage kommen. */
+    public function availableUsages(): array
+    {
+        return array_filter(
+            self::USAGES,
+            fn ($label, $key) => in_array($this->dataset, self::USAGE_DATASETS[$key] ?? [], true),
+            ARRAY_FILTER_USE_BOTH
+        );
+    }
 
     public function hasUsage(string $usage): bool
     {
