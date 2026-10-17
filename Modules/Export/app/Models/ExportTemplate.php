@@ -13,10 +13,11 @@ class ExportTemplate extends Model
 
     protected $table = 'export_templates';
 
-    protected $fillable = ['name', 'is_default', 'phase', 'sort_field', 'sort_direction'];
+    protected $fillable = ['name', 'phase', 'include_import_key', 'usages', 'sort_field', 'sort_direction'];
 
     protected $casts = [
-        'is_default' => 'boolean',
+        'include_import_key' => 'boolean',
+        'usages'             => 'array',
     ];
 
     /** Phase, für die eine Vorlage gedacht ist – schränkt den wählbaren Feld-Pool ein (siehe ExportFieldRegistry::fieldsForPhase()). */
@@ -24,6 +25,20 @@ class ExportTemplate extends Model
         'pre_tender'  => 'Vor der Ausschreibung',
         'post_tender' => 'Nach der Ausschreibung / Auswertung',
     ];
+
+    /**
+     * Bereiche, in denen eine Vorlage angeboten wird. Eine Vorlage erscheint nur dort,
+     * wo sie ausdrücklich freigegeben ist – weitere Bereiche (z.B. ein allgemeines
+     * Import-/Export-Werkzeug für Systemdaten, später REST-API) kommen hier hinzu.
+     */
+    public const USAGES = [
+        'project_documents' => 'Projekt → Dokumentenmanager',
+    ];
+
+    public function hasUsage(string $usage): bool
+    {
+        return in_array($usage, $this->usages ?? [], true);
+    }
 
     public function columns()
     {
@@ -35,6 +50,12 @@ class ExportTemplate extends Model
     {
         return $this->hasMany(ExportTemplateFilter::class, 'cis_row_id_template', 'cis_row_id')
             ->orderBy('sort_order');
+    }
+
+    /** Kann eine vom Händler ausgefüllte Datei dieser Vorlage wieder eingelesen werden (Händler-Preisfeld + Import-Schlüssel)? */
+    public function isPriceImportable(): bool
+    {
+        return $this->include_import_key && $this->hasVendorPriceColumn();
     }
 
     /** Enthält die Vorlage ein Feld, das der Händler ausfüllen soll (Einzel-/Gesamtpreis)? */

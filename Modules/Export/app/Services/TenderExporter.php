@@ -42,7 +42,7 @@ class TenderExporter
 
         $columns          = $template->columns;
         $headers          = $columns->pluck('label')->all();
-        $includeImportKey = $template->hasVendorPriceColumn();
+        $includeImportKey = (bool) $template->include_import_key;
         $importKeyIndex   = $includeImportKey ? count($headers) : null;
 
         if ($includeImportKey) {

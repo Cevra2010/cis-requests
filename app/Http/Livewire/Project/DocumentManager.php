@@ -165,7 +165,7 @@ class DocumentManager extends Component
 
         if (Module::find('Export')?->isEnabled()) {
             $templates = ExportTemplate::with('columns')->orderBy('name')->get()
-                ->filter(fn (ExportTemplate $t) => $t->columns->isNotEmpty());
+                ->filter(fn (ExportTemplate $t) => $t->columns->isNotEmpty() && $t->hasUsage('project_documents'));
 
             foreach ($templates as $template) {
                 // Vorlagen "vor der Ausschreibung" gehören zu "Ausschreibung", Vorlagen

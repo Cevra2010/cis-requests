@@ -260,7 +260,7 @@ class OfferComparison extends Component
         // Angebot importieren: nur Vorlagen mit Händler-Preisfeld sind geeignet.
         $importableTemplates = Module::find('Export')?->isEnabled()
             ? \Modules\Export\Models\ExportTemplate::with('columns')->orderBy('name')->get()
-                ->filter(fn ($t) => $t->hasVendorPriceColumn())->values()
+                ->filter(fn ($t) => $t->isPriceImportable())->values()
             : collect();
 
         $currentOfferImportDocument = $currentOffer
@@ -475,8 +475,8 @@ class OfferComparison extends Component
         }
 
         $template = \Modules\Export\Models\ExportTemplate::with('columns')->find($this->importTemplateId);
-        if (! $template || ! $template->hasVendorPriceColumn()) {
-            $this->addError('importTemplateId', 'Bitte eine Vorlage mit Händler-Preisfeld wählen.');
+        if (! $template || ! $template->isPriceImportable()) {
+            $this->addError('importTemplateId', 'Bitte eine Vorlage mit Händler-Preisfeld und Import-Schlüssel wählen.');
             return;
         }
 

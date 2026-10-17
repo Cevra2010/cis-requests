@@ -11,7 +11,8 @@ use Modules\Export\Services\ExportFilterRegistry;
 
 class TemplateManager extends Component
 {
-    public string $newTemplateName = '';
+    /** @var array<string, string> Name der neuen Vorlage je Phase – getrennt, damit sich die Eingabefelder der Phasen nicht gegenseitig füllen. */
+    public array $newTemplateNames = [];
 
     public ?string $expandedTemplateId = null;
 
@@ -29,7 +30,6 @@ class TemplateManager extends Component
     public function render()
     {
         $templates = ExportTemplate::with(['columns', 'filters'])
-            ->orderByDesc('is_default')
             ->orderBy('name')
             ->get();
 
@@ -42,29 +42,38 @@ class TemplateManager extends Component
         return view('export::livewire.template-manager', [
             'templatesByPhase'  => $templates->groupBy('phase'),
             'phases'            => ExportTemplate::PHASES,
+            'usageOptions'      => ExportTemplate::USAGES,
             'filterFields'      => collect(ExportFilterRegistry::FILTERS)->map(fn ($f) => $f['label'])->all(),
             'filterTypes'       => collect(ExportFilterRegistry::FILTERS)->map(fn ($f) => $f['type'])->all(),
             'filterOptions'     => $filterOptions,
             'newFilterOptions'  => $this->newFilterField !== '' ? ($filterOptions[$this->newFilterField] ?? []) : [],
             'sortFields'        => ExportFieldRegistry::SORTABLE_FIELDS,
+            'fieldOptions'      => collect(ExportTemplate::PHASES)->keys()
+                ->mapWithKeys(fn ($phase) => [$phase => ExportFieldRegistry::optionsForPhase($phase)])->all(),
+            'fieldOrigins'      => collect(ExportFieldRegistry::ORIGINS)
+                ->prepend(ExportFieldRegistry::FREE_FIELD_ORIGIN_LABEL, ExportFieldRegistry::FREE_FIELD_ORIGIN)->all(),
         ]);
     }
 
     public function createTemplate(string $phase): void
     {
-        $this->validate(['newTemplateName' => 'required|string|max:255']);
-
         if (! array_key_exists($phase, ExportTemplate::PHASES)) {
             $phase = 'pre_tender';
         }
 
+        $this->validate(
+            ["newTemplateNames.{$phase}" => 'required|string|max:255'],
+            [],
+            ["newTemplateNames.{$phase}" => 'Name der Vorlage']
+        );
+
         $template = ExportTemplate::create([
-            'name'       => $this->newTemplateName,
-            'is_default' => ExportTemplate::count() === 0,
-            'phase'      => $phase,
+            'name'  => trim($this->newTemplateNames[$phase]),
+            'phase'  => $phase,
+            'usages' => ['project_documents'],
         ]);
 
-        $this->newTemplateName    = '';
+        $this->newTemplateNames[$phase] = '';
         $this->expandedTemplateId = $template->cis_row_id;
     }
 
@@ -77,10 +86,25 @@ class TemplateManager extends Component
         ExportTemplate::where('cis_row_id', $id)->update(['name' => trim($name)]);
     }
 
-    public function setDefault(string $id): void
+    public function setUsage(string $id, string $usage, bool $enabled): void
     {
-        ExportTemplate::query()->update(['is_default' => false]);
-        ExportTemplate::where('cis_row_id', $id)->update(['is_default' => true]);
+        $template = ExportTemplate::find($id);
+        if (! $template || ! array_key_exists($usage, ExportTemplate::USAGES)) {
+            return;
+        }
+
+        $usages = collect($template->usages ?? [])->reject(fn ($u) => $u === $usage);
+        if ($enabled) {
+            $usages->push($usage);
+        }
+
+        $template->update(['usages' => $usages->unique()->values()->all()]);
+    }
+
+    /** Schreibt der Export den technischen Import-Schlüssel (Spalte "_ImportKey") als letzte Spalte mit in die Tabelle? */
+    public function setImportKey(string $id, bool $enabled): void
+    {
+        ExportTemplate::where('cis_row_id', $id)->update(['include_import_key' => $enabled]);
     }
 
     public function deleteTemplate(string $id): void
@@ -112,7 +136,7 @@ class TemplateManager extends Component
             'newColumnField' => 'required|string',
         ]);
 
-        $isFreeField = $this->newColumnField === 'static_text';
+        $isFreeField = $this->newColumnField === ExportFieldRegistry::FREE_FIELD_KEY;
         $template    = ExportTemplate::find($templateId);
 
         if (! $isFreeField && (! $template || ! array_key_exists($this->newColumnField, ExportFieldRegistry::fieldsForPhase($template->phase)))) {
