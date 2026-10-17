@@ -162,6 +162,15 @@ class WorkflowEditor extends Component
             }
         }
 
+        // Eigene Schritte haben keinen festen Rang: sie kommen direkt hinter den gewählten
+        // Schritt, sonst vor den (immer letzten) Schritt "Abgeschlossen" – danach per
+        // Drag&Drop frei verschiebbar (die Reihenfolge-Prüfung greift weiterhin).
+        if ($kind === 'custom') {
+            $afterSelected = $this->selectedStepId ? $steps->search(fn (WorkflowStatus $s) => $s->cis_row_id === $this->selectedStepId) : false;
+            $insertIndex   = $afterSelected !== false ? $afterSelected + 1 : $steps->count() - 1;
+            $insertIndex   = max(1, min($insertIndex, $steps->count() - 1));
+        }
+
         $candidate = $steps->map(fn (WorkflowStatus $s) => ['kind' => $s->kind])->values()->all();
         array_splice($candidate, $insertIndex, 0, [['kind' => $kind]]);
 

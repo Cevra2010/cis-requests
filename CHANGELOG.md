@@ -4,6 +4,9 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.12.0.2 — 2026-10-17
+- Bugfix: Workflow – „Eigener Schritt“ ließ sich nicht hinzufügen („Der letzte Schritt muss Abgeschlossen sein“). Eigene Schritte werden jetzt direkt hinter dem gewählten Schritt (sonst vor „Abgeschlossen“) eingefügt und lassen sich anschließend frei verschieben, z.B. als reiner Auslöser für eine E-Mail-Maßnahme
+
 ## 0.12.0.1 — 2026-10-17
 - Bugfix: Angebote vergleichen zeigte „Diesem Projekt sind noch keine Produkte zugeordnet“ und versteckte damit vorhandene Angebote, wenn ein Projekt nur Set-Produkte (bzw. nicht ausschreibungsrelevante Positionen neben Sets) enthielt – deren Mitgliedsprodukte werden jetzt korrekt verglichen
 
