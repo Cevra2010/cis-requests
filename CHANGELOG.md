@@ -5,7 +5,7 @@ beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehene
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
 ## 0.11.0.0 — 2026-10-17
-- Export-Import: Bugfix – beim Anlegen einer Vorlage füllte sich das Namensfeld des anderen Bereichs („Vor der Ausschreibung“ / „Nach der Ausschreibung“) mit
+- Export-Import: Bugfix – beim Anlegen einer Vorlage spiegelten sich die Namensfelder der beiden Bereiche („Vor der Ausschreibung“ / „Nach der Ausschreibung“) gegenseitig
 - Der Import-Key (technische Spalte „_ImportKey“) wird jetzt je Vorlage unter „Bearbeiten“ → „Import“ festgelegt; die bisherige „Standard“-Markierung entfällt. Bestehende Vorlagen mit Händler-Preisfeld behalten ihren Import-Key; der Preis-Import im Angebotsvergleich bietet Vorlagen mit Händler-Preisfeld und Import-Key an
 - Neu: je Vorlage lässt sich unter „Anzeigen in“ festlegen, wo sie angeboten wird (aktuell: Projekt → Dokumentenmanager). Vorlagen ohne Freigabe erscheinen nirgends; bestehende bleiben im Dokumentenmanager
 - Feldauswahl beim Hinzufügen einer Spalte ist jetzt ein Dropdown mit Suche und Filter nach Herkunft (z.B. „Projekte (Materialausschreibung)“, „Allgemein“); die Herkunft wird auch in der Spaltenliste angezeigt
