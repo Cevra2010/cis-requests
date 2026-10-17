@@ -68,9 +68,9 @@
 
 {{-- Project header --}}
 <div class="cis-card mb-5">
-    <div class="flex items-start justify-between gap-6">
+    <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 lg:gap-6">
         <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-3 mb-2">
+            <div class="flex items-center flex-wrap gap-x-3 gap-y-1.5 mb-2">
                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $project->statusBadgeClasses() }}">
                     {{ $project->statusLabel() }}
                 </span>

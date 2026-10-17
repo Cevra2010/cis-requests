@@ -4,6 +4,9 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.10.0.3 — 2026-10-17
+- Bugfix: im Projektkopf überlappten bei schmalen Fenstern die Status-Badges (z.B. „Fixiert“) die Angaben rechts daneben; der Kopf bricht jetzt sauber um
+
 ## 0.10.0.2 — 2026-10-17
 - Bugfix: die Schrittanzeige im „Projektverlauf“ war oben und seitlich abgeschnitten (Fixierungs-Symbol, Markierung des aktuellen Schritts, lange Schrittnamen wie „Ausschreibungsentwurf“)
 
