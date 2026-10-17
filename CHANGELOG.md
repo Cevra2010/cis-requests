@@ -4,6 +4,9 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.12.0.1 — 2026-10-17
+- Bugfix: Angebote vergleichen zeigte „Diesem Projekt sind noch keine Produkte zugeordnet“ und versteckte damit vorhandene Angebote, wenn ein Projekt nur Set-Produkte (bzw. nicht ausschreibungsrelevante Positionen neben Sets) enthielt – deren Mitgliedsprodukte werden jetzt korrekt verglichen
+
 ## 0.12.0.0 — 2026-10-17
 - Neu: Import / Export (Menü „Module“) – Systemdaten als Excel-/CSV-Tabelle exportieren und geänderte Tabellen wieder einlesen. Erste Datengrundlage: Produkte (Name, Set, Kategorie, feste Quelle, Preis inkl. Preisquelle). Ein Import prüft zuerst alle Zeilen (Vorschau mit Änderungen und Fehlern) und schreibt erst nach „Übernehmen“; Preisänderungen werden als neuer Preis mit Historie angelegt, neue Produkte werden nur auf Wunsch angelegt
 - Vorlagen unter „Export-Import“ haben jetzt eine Datengrundlage: Projekt-Positionen (wie bisher, mit Filtern/Sortierung, Anzeige im Dokumentenmanager) oder Systemdaten wie „Produkte“ (für das Import-/Export-Werkzeug). Die Feldauswahl zeigt je Datengrundlage die passenden Felder mit Herkunft (Produkte, Kategorien, Quellen, Preise)
