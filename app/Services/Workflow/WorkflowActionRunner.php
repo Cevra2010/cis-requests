@@ -19,12 +19,20 @@ class WorkflowActionRunner
 {
     public function run(Project $project, WorkflowStatus $target, ?ProjectStatusTransition $transition): void
     {
-        $actions = WorkflowAction::where('cis_row_id_workflow_status', $target->cis_row_id)
-            ->where('trigger', 'enter')
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->get();
+        $this->runActions(
+            WorkflowAction::where('cis_row_id_workflow_status', $target->cis_row_id)
+                ->where('trigger', 'enter')
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->get(),
+            $project,
+            $transition
+        );
+    }
 
+    /** Führt die übergebenen Maßnahmen der Reihe nach aus und protokolliert jede (Fehler einer Maßnahme stoppen die übrigen nicht). */
+    public function runActions(\Illuminate\Support\Collection $actions, Project $project, ?ProjectStatusTransition $transition): void
+    {
         foreach ($actions as $action) {
             $type = WorkflowActionTypes::find($action->type);
 

@@ -37,6 +37,11 @@ class EmailAction implements WorkflowActionType
         return 'envelope';
     }
 
+    public function editorView(): string
+    {
+        return 'livewire.workflow.actions.email-fields';
+    }
+
     public function defaultConfig(): array
     {
         return ['recipients' => [], 'subject' => '', 'body' => ''];

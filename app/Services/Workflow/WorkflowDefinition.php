@@ -103,17 +103,6 @@ class WorkflowDefinition
         return $index !== false && $milestoneIndex !== false && $index >= $milestoneIndex;
     }
 
-    /** Ziel des Auto-Vorrückens, falls der aktuelle Schritt das Flag trägt (Fristprüfung selbst bleibt bei Project::syncAutoStatus()). */
-    public function autoAdvanceTarget(?string $code): ?WorkflowStatus
-    {
-        $current = $this->step($code);
-        if (! $current || ! $current->auto_advance_on_due) {
-            return null;
-        }
-
-        return $this->next($code);
-    }
-
     protected function principalMatches(WorkflowApprover $approver, User $user): bool
     {
         return match ($approver->principal_type) {

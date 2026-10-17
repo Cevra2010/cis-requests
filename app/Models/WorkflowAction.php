@@ -15,7 +15,7 @@ class WorkflowAction extends Model
 {
     use CisUuid;
 
-    protected $fillable = ['cis_row_id_workflow_status', 'trigger', 'type', 'sort_order', 'is_active', 'config'];
+    protected $fillable = ['cis_row_id_workflow_status', 'cis_row_id_workflow_trigger', 'trigger', 'type', 'sort_order', 'is_active', 'config'];
 
     protected $casts = [
         'sort_order' => 'integer',

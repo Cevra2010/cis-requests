@@ -13,15 +13,10 @@ class ProjectTable extends Component
 {
     use HasFilterableTable;
 
-    /** Springt Projekte auf Schritten mit Auto-Vorrücken automatisch weiter, sobald die Fälligkeit überschritten ist. */
+    /** Fällige zeitgesteuerte Workflow-Ereignisse nachholen, falls der Scheduler (workflow:process-events) nicht läuft. */
     public function mount(): void
     {
-        $autoAdvanceCodes = WorkflowStatus::where('auto_advance_on_due', true)->pluck('code')->unique();
-
-        Project::whereIn('status_code', $autoAdvanceCodes)
-            ->where('due_date', '<', now())
-            ->get()
-            ->each->syncAutoStatus();
+        \App\Services\Workflow\Events\WorkflowEvents::processDue();
     }
 
     public function tableKey(): string

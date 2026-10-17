@@ -6,7 +6,9 @@ use App\Models\Project;
 use App\Models\WorkflowAction;
 use App\Models\WorkflowApprover;
 use App\Models\WorkflowStatus;
+use App\Models\WorkflowTrigger;
 use App\Services\Workflow\Actions\WorkflowActionTypes;
+use App\Services\Workflow\Events\WorkflowEventTypes;
 use App\Services\Workflow\WorkflowColors;
 use App\Services\Workflow\WorkflowDefaults;
 use App\Services\Workflow\WorkflowRegistry;
@@ -32,7 +34,6 @@ class WorkflowEditor extends Component
     public string $formDescription = '';
     public string $formColor = 'gray';
     public ?string $formDefaultTab = null;
-    public bool $formAutoAdvance = false;
 
     public function mount(): void
     {
@@ -77,7 +78,6 @@ class WorkflowEditor extends Component
         $this->formDescription = (string) $status->description;
         $this->formColor       = $status->color;
         $this->formDefaultTab  = $status->default_tab;
-        $this->formAutoAdvance = $status->auto_advance_on_due;
         $this->error           = null;
     }
 
@@ -100,7 +100,6 @@ class WorkflowEditor extends Component
             'description'         => $this->formDescription !== '' ? $this->formDescription : null,
             'color'               => $this->formColor,
             'default_tab'         => $this->formDefaultTab,
-            'auto_advance_on_due' => WorkflowStepKinds::allowsAutoAdvance($status->kind) ? $this->formAutoAdvance : false,
         ]);
 
         $this->error = null;
@@ -195,7 +194,6 @@ class WorkflowEditor extends Component
                 'sort_order'          => $insertIndex,
                 'is_active'           => true,
                 'approval_mode'       => 'restricted',
-                'auto_advance_on_due' => false,
                 'default_tab'         => WorkflowStepKinds::defaultTab($kind),
             ]);
 
@@ -244,6 +242,8 @@ class WorkflowEditor extends Component
 
         $this->error = null;
         WorkflowApprover::where('cis_row_id_workflow_status', $stepId)->delete();
+        WorkflowAction::where('cis_row_id_workflow_status', $stepId)->delete();
+        WorkflowTrigger::where('cis_row_id_workflow_status', $stepId)->delete();
         $status->delete();
 
         if ($this->selectedStepId === $stepId) {
@@ -297,7 +297,7 @@ class WorkflowEditor extends Component
      * Ablageziel des Drag&Drop auf der Karte, NICHT notwendigerweise dem gerade
      * ausgewählten Schritt) und öffnet direkt den Editor dafür.
      */
-    public function addActionAt(string $stepId, string $type, int $position): void
+    public function addActionAt(string $stepId, string $type, int $position, ?string $triggerId = null): void
     {
         $this->authorizeManage();
         $step       = WorkflowStatus::where('cis_row_id', $stepId)->where('project_type', $this->projectType)->first();
@@ -306,14 +306,27 @@ class WorkflowEditor extends Component
             return;
         }
 
-        $existing = WorkflowAction::where('cis_row_id_workflow_status', $step->cis_row_id)->orderBy('sort_order')->get();
+        // Ohne Trigger: Maßnahme beim Erreichen des Schritts; mit Trigger: Maßnahme dieses Triggers.
+        $trigger = $triggerId
+            ? WorkflowTrigger::where('cis_row_id', $triggerId)->where('cis_row_id_workflow_status', $step->cis_row_id)->first()
+            : null;
+        if ($triggerId && ! $trigger) {
+            return;
+        }
+
+        $scope = WorkflowAction::where('cis_row_id_workflow_status', $step->cis_row_id)
+            ->when($trigger,
+                fn ($q) => $q->where('cis_row_id_workflow_trigger', $trigger->cis_row_id),
+                fn ($q) => $q->where('trigger', 'enter'));
+        $existing = $scope->orderBy('sort_order')->get();
         foreach ($existing->slice($position)->values() as $i => $a) {
             $a->update(['sort_order' => $position + 1 + $i]);
         }
 
         $action = WorkflowAction::create([
-            'cis_row_id_workflow_status' => $step->cis_row_id,
-            'trigger'                    => 'enter',
+            'cis_row_id_workflow_status'  => $step->cis_row_id,
+            'cis_row_id_workflow_trigger' => $trigger?->cis_row_id,
+            'trigger'                    => $trigger ? 'event' : 'enter',
             'type'                       => $type,
             'sort_order'                 => $position,
             'is_active'                  => false,
@@ -321,6 +334,49 @@ class WorkflowEditor extends Component
         ]);
 
         $this->dispatch('edit-workflow-action', id: $action->cis_row_id);
+    }
+
+    /** Legt einen Trigger (Ereignis) an einem Schritt an; seine Maßnahmen werden danach hineingezogen. */
+    public function addTriggerAt(string $stepId, string $event): void
+    {
+        $this->authorizeManage();
+        $step = WorkflowStatus::where('cis_row_id', $stepId)->where('project_type', $this->projectType)->first();
+        if (! $step || ! WorkflowEventTypes::find($event)) {
+            return;
+        }
+
+        WorkflowTrigger::create([
+            'cis_row_id_workflow_status' => $step->cis_row_id,
+            'event'                      => $event,
+            'is_active'                  => true,
+            'sort_order'                 => (WorkflowTrigger::where('cis_row_id_workflow_status', $step->cis_row_id)->max('sort_order') ?? -1) + 1,
+        ]);
+    }
+
+    public function toggleTrigger(string $triggerId): void
+    {
+        $this->authorizeManage();
+        $trigger = $this->ownTrigger($triggerId);
+        $trigger?->update(['is_active' => ! $trigger->is_active]);
+    }
+
+    public function deleteTrigger(string $triggerId): void
+    {
+        $this->authorizeManage();
+        $trigger = $this->ownTrigger($triggerId);
+        if ($trigger) {
+            WorkflowAction::where('cis_row_id_workflow_trigger', $trigger->cis_row_id)->delete();
+            $trigger->delete();
+        }
+    }
+
+    /** Trigger nur, wenn er an einem Schritt des aktuell bearbeiteten Projekttyps hängt. */
+    private function ownTrigger(string $triggerId): ?WorkflowTrigger
+    {
+        $trigger = WorkflowTrigger::find($triggerId);
+        $step    = $trigger ? WorkflowStatus::where('cis_row_id', $trigger->cis_row_id_workflow_status)->where('project_type', $this->projectType)->first() : null;
+
+        return $step ? $trigger : null;
     }
 
     public function reorderActions(array $orderedIds): void
@@ -361,7 +417,7 @@ class WorkflowEditor extends Component
     {
         $steps = WorkflowStatus::where('project_type', $this->projectType)
             ->orderBy('sort_order')
-            ->with(['approvers', 'actions'])
+            ->with(['approvers', 'actions', 'triggers.actions'])
             ->get();
 
         $usedKinds      = $steps->pluck('kind')->reject(fn ($k) => $k === 'custom')->all();
@@ -378,6 +434,7 @@ class WorkflowEditor extends Component
             'selected'              => $selected,
             'selectedWarnings'      => $selectedWarnings,
             'actionTypes'           => WorkflowActionTypes::all(),
+            'eventTypes'            => WorkflowEventTypes::all(),
             'lockOverrideApprovers' => $lockOverrideApprovers,
             'projectTypes'          => Project::TYPES,
             'tabs'                  => WorkflowDefaults::TABS,

@@ -82,6 +82,9 @@ class SystemResetService
             // dauerhaft ohne gültigen Freigeber. Die Schritte selbst werden mitgelöscht,
             // Defaults werden beim nächsten Zugriff automatisch neu geseedet.
             DB::table('workflow_approvers')->delete();
+            DB::table('workflow_trigger_runs')->delete();
+            DB::table('workflow_triggers')->delete();
+            DB::table('workflow_actions')->delete();
             DB::table('workflow_statuses')->delete();
 
             DB::table('user_permissions')->delete();

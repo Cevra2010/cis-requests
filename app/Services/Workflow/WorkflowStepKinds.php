@@ -18,47 +18,42 @@ class WorkflowStepKinds
     public const MILESTONE_AWARDING      = 'awarding';
     public const MILESTONE_GOODS_RECEIPT = 'goods_receipt';
 
-    /** @var array<string, array{label:string, rank:int, required:bool, first?:bool, last?:bool, module:?string, milestones:string[], color:string, default_tab:?string, allows_auto_advance:bool}> */
+    /** @var array<string, array{label:string, rank:int, required:bool, first?:bool, last?:bool, module:?string, milestones:string[], color:string, default_tab:?string}> */
     protected static array $kinds = [
         'draft' => [
             'label' => 'Entwurf', 'rank' => 10, 'required' => true, 'first' => true,
             'module' => null, 'milestones' => [], 'color' => 'gray', 'default_tab' => 'beladung',
-            'allows_auto_advance' => false,
         ],
         'ready_for_tender' => [
             'label' => 'Bereit zur Ausschreibung', 'rank' => 20, 'required' => false,
             'module' => null, 'milestones' => [], 'color' => 'blue', 'default_tab' => 'ausschreibung',
-            'allows_auto_advance' => false,
         ],
         'tender' => [
             'label' => 'Ausschreibung', 'rank' => 30, 'required' => true,
             'module' => null, 'milestones' => [self::MILESTONE_LOCK, self::MILESTONE_OFFERS],
-            'color' => 'amber', 'default_tab' => 'angebote', 'allows_auto_advance' => true,
+            'color' => 'amber', 'default_tab' => 'angebote',
         ],
         'ready_for_evaluation' => [
             'label' => 'Bereit zur Auswertung', 'rank' => 40, 'required' => false,
             'module' => null, 'milestones' => [], 'color' => 'orange', 'default_tab' => 'angebote',
-            'allows_auto_advance' => false,
         ],
         'evaluated' => [
             'label' => 'Ausgewertet', 'rank' => 50, 'required' => true,
             'module' => null, 'milestones' => [self::MILESTONE_AWARDING],
-            'color' => 'cyan', 'default_tab' => 'bestellung', 'allows_auto_advance' => false,
+            'color' => 'cyan', 'default_tab' => 'bestellung',
         ],
         'ordered' => [
             'label' => 'Bestellt', 'rank' => 60, 'required' => true,
             'module' => null, 'milestones' => [self::MILESTONE_GOODS_RECEIPT],
-            'color' => 'indigo', 'default_tab' => 'wareneingang', 'allows_auto_advance' => false,
+            'color' => 'indigo', 'default_tab' => 'wareneingang',
         ],
         'orders_in_revision' => [
             'label' => 'Bestellungen in Revision', 'rank' => 70, 'required' => false,
             'module' => null, 'milestones' => [], 'color' => 'red', 'default_tab' => 'wareneingang',
-            'allows_auto_advance' => false,
         ],
         'completed' => [
             'label' => 'Abgeschlossen', 'rank' => 90, 'required' => true, 'last' => true,
             'module' => null, 'milestones' => [], 'color' => 'green', 'default_tab' => 'wareneingang',
-            'allows_auto_advance' => false,
         ],
     ];
 
@@ -107,11 +102,6 @@ class WorkflowStepKinds
     public static function hasMilestone(string $kind, string $milestone): bool
     {
         return in_array($milestone, self::milestones($kind), true);
-    }
-
-    public static function allowsAutoAdvance(string $kind): bool
-    {
-        return self::$kinds[$kind]['allows_auto_advance'] ?? false;
     }
 
     public static function defaultColor(string $kind): string

@@ -4,6 +4,14 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.13.0.0 — 2026-10-17
+- Neu: Projekte haben eine „Ausschreibungsdauer“ mit Beginn und Ende (Datum und Uhrzeit), pflegbar beim Anlegen/Bearbeiten, sichtbar im Projektkopf und als Variablen für E-Mails (Ausschreibungsbeginn/-ende). So lässt sich eine Ausschreibung vorbereiten, die sich selbst startet und beendet
+- Workflow: neben Maßnahmen gibt es jetzt Trigger. Ein Trigger wird per Drag&Drop an einen Schritt gehängt und löst eigene Maßnahmen aus, sobald das Ereignis eintritt, während ein Projekt auf diesem Schritt steht. Verfügbar: „Ausschreibungszeitraum hat begonnen“ und „Ausschreibungszeitraum ist geendet“. Weitere Ereignisse lassen sich künftig über einen zentralen Event-Manager ergänzen
+- Neue Maßnahme „Springen zu Schritt“ (nächster, vorheriger oder bestimmter Schritt) – der Wechsel erfolgt automatisch ohne Freigabe und erscheint im Verlauf als „automatisch“. Die Maßnahme „E-Mail senden“ funktioniert auch an Triggern
+- Die Checkbox „Automatisch vorrücken, sobald die Fälligkeit überschritten ist“ entfällt; bestehende Einstellungen wurden in einen Trigger „Ausschreibungszeitraum ist geendet → Springen zum nächsten Schritt“ umgewandelt, das bisherige Fälligkeitsdatum als Ausschreibungsende (23:59 Uhr) übernommen. Der Projektverlauf zeigt anstehende automatische Wechsel mit Uhrzeit
+- Einstellungen → Planer (Cron): Statusanzeige (läuft regelmäßig/verzögert/läuft nicht), letzte Ausführungen, einzurichtender Cron-Eintrag und „Jetzt ausführen“. Nur in der Entwicklungsumgebung gibt es zusätzlich eine Cron-Trigger-URL. Für zeitgenaue Trigger muss der Server jede Minute `php artisan schedule:run` ausführen; ohne Cron werden fällige Trigger beim Öffnen von Projektliste/Projekt nachgeholt
+- Neue Berechtigung „Planer (Cron) einsehen“ (Administratoren haben sie automatisch)
+
 ## 0.12.0.2 — 2026-10-17
 - Bugfix: Workflow – „Eigener Schritt“ ließ sich nicht hinzufügen („Der letzte Schritt muss Abgeschlossen sein“). Eigene Schritte werden jetzt direkt hinter dem gewählten Schritt (sonst vor „Abgeschlossen“) eingefügt und lassen sich anschließend frei verschieben, z.B. als reiner Auslöser für eine E-Mail-Maßnahme
 

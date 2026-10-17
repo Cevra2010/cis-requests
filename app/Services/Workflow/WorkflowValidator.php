@@ -90,13 +90,26 @@ class WorkflowValidator
         if (! $status->moduleEnabled()) {
             $warnings[] = 'Das zugehörige Modul ist deaktiviert – dieser Schritt hat aktuell keine Wirkung.';
         }
-        if ($status->auto_advance_on_due && ! WorkflowStepKinds::allowsAutoAdvance($status->kind)) {
-            $warnings[] = 'Auto-Vorrücken ist nur beim Schritt "Ausschreibung" wirksam.';
-        }
-        foreach ($status->actions as $action) {
+
+        $allActions = $status->actions->concat($status->triggers->flatMap(fn ($t) => $t->actions));
+        foreach ($allActions as $action) {
             $type = WorkflowActionTypes::find($action->type);
             if ($type && ! empty($type->validate($action->config ?? []))) {
                 $warnings[] = 'Eine Maßnahme ("' . $type->label() . '") ist noch nicht vollständig konfiguriert.';
+                break;
+            }
+        }
+        foreach ($allActions->where('type', 'goto_step') as $action) {
+            $target = (string) ($action->config['target'] ?? '');
+            if ($target !== '' && ! in_array($target, ['next', 'previous'], true)
+                && ! WorkflowStatus::where('project_type', $status->project_type)->where('code', $target)->exists()) {
+                $warnings[] = 'Eine Maßnahme „Springen zu Schritt“ verweist auf einen Schritt, den es nicht mehr gibt.';
+                break;
+            }
+        }
+        foreach ($status->triggers as $trigger) {
+            if (! \App\Services\Workflow\Events\WorkflowEventTypes::find($trigger->event)) {
+                $warnings[] = 'Ein Trigger verweist auf eine nicht mehr verfügbare Ereignisart.';
                 break;
             }
         }

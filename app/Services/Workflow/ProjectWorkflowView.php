@@ -26,7 +26,8 @@ class ProjectWorkflowView
         public bool $prevUnlocks,
         public array $advanceBlockedReasons,
         public array $revertBlockedReasons,
-        public ?WorkflowStatus $autoAdvanceTarget,
+        /** @var array<int, array{when: \Carbon\CarbonInterface, event: string, actions: string[]}> */
+        public array $scheduled,
         public Collection $history,
         public array $nextActions = [],
     ) {
@@ -95,10 +96,39 @@ class ProjectWorkflowView
             prevUnlocks: $prevUnlocks,
             advanceBlockedReasons: $advanceBlockedReasons,
             revertBlockedReasons: $revertBlockedReasons,
-            autoAdvanceTarget: $workflow->autoAdvanceTarget($project->status_code),
+            scheduled: self::scheduledTriggers($project, $current),
             history: $project->statusTransitions()->with('user')->limit(50)->get(),
             nextActions: $nextActions,
         );
+    }
+
+    /** Zeitgesteuerte Trigger des aktuellen Schritts, deren Zeitpunkt noch aussteht – für den Hinweis im Wizard. */
+    protected static function scheduledTriggers(Project $project, ?WorkflowStatus $current): array
+    {
+        if (! $current) {
+            return [];
+        }
+
+        $result = [];
+        foreach ($current->triggers()->where('is_active', true)->with('actions')->get() as $trigger) {
+            $type = \App\Services\Workflow\Events\WorkflowEventTypes::find($trigger->event);
+            $at   = $type?->scheduled() ? $type->occurredAt($project) : null;
+            if (! $at || ! $at->isFuture()) {
+                continue;
+            }
+
+            $result[] = [
+                'when'    => $at,
+                'event'   => $type->label(),
+                'actions' => $trigger->actions->where('is_active', true)
+                    ->map(fn ($a) => WorkflowActionTypes::find($a->type)?->summary($a->config ?? []))
+                    ->filter()->values()->all(),
+            ];
+        }
+
+        usort($result, fn ($a, $b) => $a['when'] <=> $b['when']);
+
+        return $result;
     }
 
     public function stepNumber(): int

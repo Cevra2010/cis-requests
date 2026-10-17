@@ -30,7 +30,7 @@ class WorkflowActionRun extends Model
     public function statusIcon(): string
     {
         return match ($this->status) {
-            'sent'    => 'fa-circle-check text-emerald-500',
+            'sent', 'done' => 'fa-circle-check text-emerald-500',
             'partial' => 'fa-triangle-exclamation text-amber-500',
             'failed'  => 'fa-circle-xmark text-red-500',
             default   => 'fa-circle-minus text-gray-300',

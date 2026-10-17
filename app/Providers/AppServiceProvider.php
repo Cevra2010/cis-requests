@@ -2,10 +2,17 @@
 
 namespace App\Providers;
 
+use App\Events\WorkflowEventOccurred;
+use App\Listeners\RunWorkflowTriggers;
 use App\Services\Workflow\Actions\EmailAction;
+use App\Services\Workflow\Actions\GotoStepAction;
+use App\Services\Workflow\Events\TenderEndedEvent;
+use App\Services\Workflow\Events\TenderStartedEvent;
+use App\Services\Workflow\Events\WorkflowEventTypes;
 use App\Services\Workflow\Actions\WorkflowActionTypes;
 use CisFoundation\CisMenuManager\MenuManager;
 use CisFoundation\CisPermissionManager\CisPermissionManager;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -20,6 +27,16 @@ class AppServiceProvider extends ServiceProvider
         // Core-Maßnahmenart "E-Mail senden". Künftige Modul-Maßnahmen registrieren sich
         // analog im jeweiligen Modul-ServiceProvider (läuft dann nur bei aktivem Modul).
         WorkflowActionTypes::register(new EmailAction());
+        WorkflowActionTypes::register(new GotoStepAction());
+
+        // Workflow-Ereignisse (Trigger): Core-Arten hier, weitere in den Modul-ServiceProvidern.
+        WorkflowEventTypes::register(new TenderStartedEvent());
+        WorkflowEventTypes::register(new TenderEndedEvent());
+        Event::listen(WorkflowEventOccurred::class, RunWorkflowTriggers::class);
+
+        // Cron-Statusanzeige: jede vom Scheduler ausgeführte Aufgabe protokollieren.
+        Event::listen(\Illuminate\Console\Events\ScheduledTaskFinished::class, \App\Listeners\RecordCronRun::class);
+        Event::listen(\Illuminate\Console\Events\ScheduledTaskFailed::class, \App\Listeners\RecordCronRun::class);
     }
 
     protected function registerPermissions(): void
@@ -37,6 +54,11 @@ class AppServiceProvider extends ServiceProvider
         );
 
         CisPermissionManager::registerGroup('system', 'System');
+        CisPermissionManager::register(
+            'system.scheduler',
+            'Planer (Cron) einsehen',
+            description: 'Erlaubt die Statusanzeige des Cron-Planers, die Cron-Trigger-URL und das manuelle Ausführen des Schedulers in den Einstellungen.'
+        );
         CisPermissionManager::register(
             'system.reset',
             'System zurücksetzen',

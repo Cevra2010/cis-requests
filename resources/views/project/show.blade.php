@@ -114,6 +114,14 @@
                 <dd class="text-gray-700 font-medium">{{ $project->assigneeLabel() }}</dd>
             </div>
             @endif
+            @if($project->tender_starts_at || $project->tender_ends_at)
+            <div>
+                <dt class="text-xs text-gray-400">Ausschreibungsdauer</dt>
+                <dd class="text-gray-700 font-medium">
+                    {{ $project->tender_starts_at?->format('d.m.Y H:i') ?? '…' }} – {{ $project->tender_ends_at?->format('d.m.Y H:i') ?? '…' }}
+                </dd>
+            </div>
+            @endif
             @if($project->due_date)
             <div>
                 <dt class="text-xs text-gray-400">Fällig</dt>

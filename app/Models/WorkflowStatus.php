@@ -21,13 +21,12 @@ class WorkflowStatus extends Model
 
     protected $fillable = [
         'project_type', 'code', 'kind', 'label', 'description', 'color',
-        'sort_order', 'is_active', 'approval_mode', 'auto_advance_on_due', 'default_tab',
+        'sort_order', 'is_active', 'approval_mode', 'default_tab',
     ];
 
     protected $casts = [
-        'sort_order'          => 'integer',
-        'is_active'           => 'boolean',
-        'auto_advance_on_due' => 'boolean',
+        'sort_order' => 'integer',
+        'is_active'  => 'boolean',
     ];
 
     protected static function booted(): void
@@ -46,6 +45,12 @@ class WorkflowStatus extends Model
     {
         return $this->hasMany(WorkflowAction::class, 'cis_row_id_workflow_status', 'cis_row_id')
             ->where('trigger', 'enter')
+            ->orderBy('sort_order');
+    }
+
+    public function triggers()
+    {
+        return $this->hasMany(WorkflowTrigger::class, 'cis_row_id_workflow_status', 'cis_row_id')
             ->orderBy('sort_order');
     }
 

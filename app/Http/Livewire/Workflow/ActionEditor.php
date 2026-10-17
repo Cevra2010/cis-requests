@@ -20,6 +20,10 @@ class ActionEditor extends Component
     public bool $show = false;
     public ?string $actionId = null;
     public string $actionLabel = '';
+    public string $actionTypeKey = '';
+
+    /** Konfiguration für Maßnahmenarten ohne eigene Felder-Properties (alle außer "email"). */
+    public array $config = [];
 
     /** @var array<int, array{type:string, value:string, label:string}> */
     public array $recipients = [];
@@ -46,6 +50,8 @@ class ActionEditor extends Component
         $type              = WorkflowActionTypes::find($action->type);
         $this->actionId    = $id;
         $this->actionLabel = $type?->label() ?? $action->type;
+        $this->actionTypeKey = $action->type;
+        $this->config      = $action->config ?? [];
 
         $config = $action->config ?? [];
         $this->recipients = collect($config['recipients'] ?? [])
@@ -101,11 +107,13 @@ class ActionEditor extends Component
             return;
         }
 
-        $config = [
-            'recipients' => collect($this->recipients)->map(fn (array $r) => ['type' => $r['type'], 'value' => $r['value']])->all(),
-            'subject'    => $this->subject,
-            'body'       => $this->body,
-        ];
+        $config = $action->type === 'email'
+            ? [
+                'recipients' => collect($this->recipients)->map(fn (array $r) => ['type' => $r['type'], 'value' => $r['value']])->all(),
+                'subject'    => $this->subject,
+                'body'       => $this->body,
+            ]
+            : $this->config;
 
         $errors = $type->validate($config);
         if (! empty($errors)) {
@@ -131,6 +139,17 @@ class ActionEditor extends Component
 
     public function render()
     {
-        return view('livewire.workflow.action-editor', ['variables' => ProjectVariables::catalog()]);
+        $action = $this->actionId ? WorkflowAction::with('status')->find($this->actionId) : null;
+        $type   = $action ? WorkflowActionTypes::find($action->type) : null;
+
+        return view('livewire.workflow.action-editor', [
+            'variables'  => ProjectVariables::catalog(),
+            'editorView' => $type?->editorView(),
+            'actionIcon' => $type?->icon() ?? 'bolt',
+            'stepOptions' => $action?->status
+                ? \App\Models\WorkflowStatus::where('project_type', $action->status->project_type)->orderBy('sort_order')->get(['code', 'label', 'is_active', 'cis_row_id'])
+                : collect(),
+            'ownStepId'  => $action?->cis_row_id_workflow_status,
+        ]);
     }
 }

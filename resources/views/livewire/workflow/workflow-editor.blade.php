@@ -51,14 +51,30 @@
                 </div>
 
                 <div class="mt-5 pt-4 border-t border-gray-100">
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">Trigger</h3>
+                    <p class="text-[11px] text-gray-400 mb-2">Auf eine Schritt-Karte ziehen – löst Maßnahmen aus, sobald das Ereignis eintritt.</p>
+                    <div class="js-trigger-palette space-y-1.5" x-data="workflowTriggerPalette()" x-init="init()">
+                        @forelse($eventTypes as $event)
+                            <div data-event-type="{{ $event->key() }}" title="{{ $event->description() }}"
+                                 class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm border border-dashed border-indigo-200 bg-white cursor-grab hover:bg-indigo-50 text-gray-700">
+                                <i class="fa fa-{{ $event->icon() }} text-indigo-400 text-xs shrink-0"></i>
+                                <span class="min-w-0 leading-tight break-words">{{ $event->label() }}</span>
+                            </div>
+                        @empty
+                            <p class="text-xs text-gray-400 italic">Keine Trigger verfügbar.</p>
+                        @endforelse
+                    </div>
+                </div>
+
+                <div class="mt-5 pt-4 border-t border-gray-100">
                     <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">Maßnahmen</h3>
-                    <p class="text-[11px] text-gray-400 mb-2">Direkt auf eine Schritt-Karte in der Mitte ziehen.</p>
+                    <p class="text-[11px] text-gray-400 mb-2">Auf eine Schritt-Karte oder einen Trigger ziehen.</p>
                     <div class="js-action-palette space-y-1.5" x-data="workflowActionPalette()" x-init="init()">
                         @forelse($actionTypes as $type)
                             <div data-action-type="{{ $type->key() }}"
                                  class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm border border-dashed border-gray-200 bg-white cursor-grab hover:bg-gray-50 text-gray-700">
-                                <i class="fa fa-{{ $type->icon() }} text-gray-400 text-xs"></i>
-                                <span>{{ $type->label() }}</span>
+                                <i class="fa fa-{{ $type->icon() }} text-gray-400 text-xs shrink-0"></i>
+                                <span class="min-w-0 leading-tight break-words">{{ $type->label() }}</span>
                             </div>
                         @empty
                             <p class="text-xs text-gray-400 italic">Keine Maßnahmenarten verfügbar.</p>
@@ -126,32 +142,52 @@
                             </button>
                         </div>
 
-                        <div class="js-action-dropzone mt-2 pt-2 border-t border-gray-100 space-y-1 min-h-[10px]"
-                             data-step-id="{{ $step->cis_row_id }}" wire:key="actions-{{ $step->cis_row_id }}">
-                            @forelse($step->actions as $action)
-                                @php $actionType = \App\Services\Workflow\Actions\WorkflowActionTypes::find($action->type); @endphp
-                                <div wire:key="action-{{ $action->cis_row_id }}" data-id="{{ $action->cis_row_id }}"
-                                     class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-50 border border-gray-100 {{ ! $action->is_active ? 'opacity-50' : '' }}">
-                                    <span class="js-action-drag-handle w-3 h-3 flex items-center justify-center text-gray-300 hover:text-gray-500 cursor-grab shrink-0">
-                                        <i class="fa fa-grip-vertical text-[9px]"></i>
+                        <div class="mt-2 pt-2 border-t border-gray-100">
+                            <p class="text-[10px] uppercase tracking-wide text-gray-300 mb-1">Beim Erreichen</p>
+                            <div class="js-action-dropzone space-y-1 min-h-[10px]"
+                                 data-step-id="{{ $step->cis_row_id }}" wire:key="actions-{{ $step->cis_row_id }}">
+                                @forelse($step->actions as $action)
+                                    @include('livewire.workflow.partials.action-row', ['action' => $action])
+                                @empty
+                                    <p class="text-[10px] text-gray-300 italic">Maßnahme hierher ziehen</p>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        @foreach($step->triggers as $trigger)
+                            @php $event = $eventTypes[$trigger->event] ?? null; @endphp
+                            <div wire:key="trigger-{{ $trigger->cis_row_id }}"
+                                 class="mt-2 rounded-lg border border-indigo-100 bg-indigo-50/40 p-2 {{ ! $trigger->is_active ? 'opacity-50' : '' }}">
+                                <div class="flex items-center gap-1.5 mb-1.5">
+                                    <i class="fa fa-{{ $event?->icon() ?? 'bolt' }} text-indigo-400 text-[10px] shrink-0"></i>
+                                    <span class="flex-1 min-w-0 text-[11px] font-medium text-indigo-700 truncate">
+                                        {{ $event?->label() ?? 'Unbekanntes Ereignis' }}
                                     </span>
-                                    <i class="fa fa-{{ $actionType?->icon() ?? 'bolt' }} text-gray-400 text-[10px] shrink-0"></i>
-                                    <button type="button" wire:click.stop="editAction('{{ $action->cis_row_id }}')"
-                                            class="flex-1 min-w-0 text-left text-[11px] text-gray-600 truncate hover:underline">
-                                        {{ $actionType?->summary($action->config ?? []) ?? $action->type }}
+                                    <button type="button" wire:click.stop="toggleTrigger('{{ $trigger->cis_row_id }}')"
+                                            title="{{ $trigger->is_active ? 'Deaktivieren' : 'Aktivieren' }}"
+                                            class="text-[10px] text-gray-400 hover:bg-white rounded px-1 shrink-0">
+                                        <i class="fa {{ $trigger->is_active ? 'fa-toggle-on text-primary-500' : 'fa-toggle-off' }}"></i>
                                     </button>
-                                    <button type="button" wire:click.stop="toggleActionActive('{{ $action->cis_row_id }}')"
-                                            title="{{ $action->is_active ? 'Deaktivieren' : 'Aktivieren' }}"
-                                            class="text-[10px] text-gray-400 hover:bg-gray-100 rounded px-1 shrink-0">
-                                        <i class="fa {{ $action->is_active ? 'fa-toggle-on text-primary-500' : 'fa-toggle-off' }}"></i>
-                                    </button>
-                                    <button type="button" wire:click.stop="deleteAction('{{ $action->cis_row_id }}')" class="text-gray-300 hover:text-red-500 shrink-0">
+                                    <button type="button" wire:click.stop="deleteTrigger('{{ $trigger->cis_row_id }}')"
+                                            wire:confirm="Trigger samt Maßnahmen entfernen?" class="text-gray-300 hover:text-red-500 shrink-0">
                                         <i class="fa fa-trash text-[9px]"></i>
                                     </button>
                                 </div>
-                            @empty
-                                <p class="text-[10px] text-gray-300 italic">Maßnahme hierher ziehen</p>
-                            @endforelse
+                                <div class="js-action-dropzone space-y-1 min-h-[10px]"
+                                     data-step-id="{{ $step->cis_row_id }}" data-trigger-id="{{ $trigger->cis_row_id }}">
+                                    @forelse($trigger->actions as $action)
+                                        @include('livewire.workflow.partials.action-row', ['action' => $action])
+                                    @empty
+                                        <p class="text-[10px] text-gray-400 italic">Maßnahme hierher ziehen</p>
+                                    @endforelse
+                                </div>
+                            </div>
+                        @endforeach
+
+                        <div class="js-trigger-dropzone mt-2 min-h-[8px]" data-step-id="{{ $step->cis_row_id }}" wire:key="trigger-drop-{{ $step->cis_row_id }}">
+                            @if($step->triggers->isEmpty())
+                                <p class="text-[10px] text-gray-300 italic">Trigger hierher ziehen</p>
+                            @endif
                         </div>
                     </div>
                     @endforeach
@@ -203,12 +239,6 @@
                                 @endforeach
                             </select>
                         </div>
-                        @if(\App\Services\Workflow\WorkflowStepKinds::allowsAutoAdvance($selected->kind))
-                        <label class="flex items-center gap-2 text-sm text-gray-700">
-                            <input type="checkbox" wire:model="formAutoAdvance" class="rounded border-gray-300 text-primary-600">
-                            Automatisch vorrücken, sobald die Fälligkeit überschritten ist
-                        </label>
-                        @endif
 
                         <button type="button" wire:click="saveStep" class="btn btn-primary btn-sm w-full">Speichern</button>
                     </div>
@@ -306,16 +336,16 @@
 
                 this.$el.querySelectorAll('.js-action-dropzone:not([data-sortable-ready])').forEach((el) => {
                     el.dataset.sortableReady = '1';
-                    const stepId = el.dataset.stepId;
                     Sortable.create(el, {
-                        group: { name: 'workflow-actions', pull: true, put: true },
+                        // Maßnahmen lassen sich nur aus der Palette einfügen und innerhalb ihrer Liste sortieren.
+                        group: { name: 'workflow-actions', pull: false, put: (to, from) => from.el.classList.contains('js-action-palette') },
                         handle: '.js-action-drag-handle',
                         animation: 150,
                         onAdd: (evt) => {
                             const type = evt.item.dataset.actionType;
                             const position = evt.newIndex;
                             evt.item.remove();
-                            $wire.addActionAt(stepId, type, position);
+                            $wire.addActionAt(el.dataset.stepId, type, position, el.dataset.triggerId || null);
                         },
                         onEnd: (evt) => {
                             if (evt.from !== evt.to) return;
@@ -323,6 +353,31 @@
                             $wire.reorderActions(ids);
                         },
                     });
+                });
+
+                this.$el.querySelectorAll('.js-trigger-dropzone:not([data-sortable-ready])').forEach((el) => {
+                    el.dataset.sortableReady = '1';
+                    Sortable.create(el, {
+                        group: { name: 'workflow-triggers', pull: false, put: (to, from) => from.el.classList.contains('js-trigger-palette') },
+                        sort: false,
+                        animation: 150,
+                        onAdd: (evt) => {
+                            const event = evt.item.dataset.eventType;
+                            evt.item.remove();
+                            $wire.addTriggerAt(el.dataset.stepId, event);
+                        },
+                    });
+                });
+            },
+        }));
+
+        Alpine.data('workflowTriggerPalette', () => ({
+            init() {
+                if (typeof Sortable === 'undefined') return;
+                Sortable.create(this.$el, {
+                    group: { name: 'workflow-triggers', pull: 'clone', put: false },
+                    sort: false,
+                    animation: 150,
                 });
             },
         }));

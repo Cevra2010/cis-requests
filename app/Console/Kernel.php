@@ -15,7 +15,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
+        // Zeitgesteuerte Workflow-Trigger (Ausschreibungsbeginn/-ende) – braucht den üblichen Cron-Eintrag für schedule:run.
+        $schedule->command('workflow:process-events')->name('Workflow-Ereignisse prüfen')->everyMinute()->withoutOverlapping();
     }
 
     /**

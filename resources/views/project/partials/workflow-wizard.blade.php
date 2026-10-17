@@ -70,11 +70,11 @@
                     @endif
                 </p>
             @endif
-            @if($wizard->autoAdvanceTarget)
+            @foreach($wizard->scheduled as $item)
                 <p class="mt-1.5 text-xs text-gray-400">
-                    <i class="fa fa-clock mr-1"></i>Wechselt automatisch zu „{{ $wizard->autoAdvanceTarget->label }}“, sobald die Fälligkeit überschritten ist{{ $project->due_date ? ' (' . $project->due_date->format('d.m.Y') . ')' : '' }}.
+                    <i class="fa fa-clock mr-1"></i>{{ $item['when']->format('d.m.Y H:i') }} Uhr – {{ $item['event'] }}@if(count($item['actions'])): {{ implode(', ', $item['actions']) }}@endif
                 </p>
-            @endif
+            @endforeach
         </div>
 
         <div class="flex flex-col items-end gap-1.5 shrink-0">

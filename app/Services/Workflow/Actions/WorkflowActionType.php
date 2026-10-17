@@ -19,6 +19,9 @@ interface WorkflowActionType
 
     public function icon(): string;
 
+    /** Blade-View mit den typspezifischen Feldern im Maßnahmen-Editor (siehe ActionEditor). */
+    public function editorView(): string;
+
     /** @return array<string, mixed> */
     public function defaultConfig(): array;
 

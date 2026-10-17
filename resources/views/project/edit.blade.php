@@ -97,6 +97,26 @@
                 </div>
             </div>
 
+            {{-- Ausschreibungszeitraum --}}
+            <div>
+                <p class="cis-label">Ausschreibungsdauer</p>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs text-gray-500" for="tender_starts_at">Beginn</label>
+                        <input type="datetime-local" id="tender_starts_at" name="tender_starts_at" class="cis-input w-full"
+                               value="{{ old('tender_starts_at', $project->tender_starts_at?->format('Y-m-d\TH:i')) }}">
+                        @error('tender_starts_at')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500" for="tender_ends_at">Ende</label>
+                        <input type="datetime-local" id="tender_ends_at" name="tender_ends_at" class="cis-input w-full"
+                               value="{{ old('tender_ends_at', $project->tender_ends_at?->format('Y-m-d\TH:i')) }}">
+                        @error('tender_ends_at')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                </div>
+                <p class="mt-1 text-xs text-gray-400">Beginn und Ende (mit Uhrzeit) lösen im Workflow Trigger aus – z.B. die Ausschreibung automatisch starten und beenden.</p>
+            </div>
+
             {{-- Mindestbestellwert --}}
             <div>
                 <label class="cis-label" for="min_order_value">Mindestbestellwert je Anbieter</label>

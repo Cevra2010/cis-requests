@@ -49,6 +49,9 @@ Route::post('/Auth/Logout',[AuthController::class,'logout'])->name("auth.logout"
 /** Einrichtungs-Assistent (nur erreichbar solange kein Benutzerkonto existiert) */
 Route::get('/Setup',[\App\Http\Controllers\Setup\SetupController::class,'index'])->name("setup.index");
 
+// Cron-Trigger-URL (Entwicklung): ohne Login, aber per Einstellung freizuschalten und durch Token geschützt.
+Route::get('/Cron/{token}', [\App\Http\Controllers\Setting\CronController::class, 'run'])->middleware('throttle:20,1')->name('cron.run');
+
 Route::middleware(['auth'])->group(function() {
     Route::get('/Dashbaord',[DashboardController::class,'index'])->name("dashboard");
     Route::get('/Dashbaord/Pat',[DashboardController::class,'index'])->name("pattern");

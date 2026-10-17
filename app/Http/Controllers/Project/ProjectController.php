@@ -52,6 +52,12 @@ class ProjectController extends Controller
             'client'        => 'nullable|string|max:255',
             'tender_year'   => 'nullable|digits:4|integer|min:2000|max:2100',
             'due_date'      => 'nullable|date',
+            'tender_starts_at' => 'nullable|date',
+            'tender_ends_at'   => ['nullable', 'date', $request->filled('tender_starts_at') ? 'after:tender_starts_at' : 'date'],
+        ], [
+            'tender_starts_at.date' => 'Der Ausschreibungsbeginn ist kein gültiges Datum.',
+            'tender_ends_at.date'   => 'Das Ausschreibungsende ist kein gültiges Datum.',
+            'tender_ends_at.after'  => 'Das Ausschreibungsende muss nach dem Ausschreibungsbeginn liegen.',
         ]);
 
         if (empty($data['assignee_type']) || empty($data['assignee_id'])) {
@@ -94,7 +100,8 @@ class ProjectController extends Controller
     public function show(string $project)
     {
         $p = Project::where('cis_row_id', $project)->firstOrFail();
-        $p->syncAutoStatus();
+        \App\Services\Workflow\Events\WorkflowEvents::processProject($p);
+        $p->refresh();
         return view('project.show', ['project' => $p]);
     }
 
@@ -121,7 +128,13 @@ class ProjectController extends Controller
             'client'        => 'nullable|string|max:255',
             'tender_year'   => 'nullable|digits:4|integer|min:2000|max:2100',
             'due_date'      => 'nullable|date',
+            'tender_starts_at' => 'nullable|date',
+            'tender_ends_at'   => ['nullable', 'date', $request->filled('tender_starts_at') ? 'after:tender_starts_at' : 'date'],
             'min_order_value' => 'nullable|numeric|min:0',
+        ], [
+            'tender_starts_at.date' => 'Der Ausschreibungsbeginn ist kein gültiges Datum.',
+            'tender_ends_at.date'   => 'Das Ausschreibungsende ist kein gültiges Datum.',
+            'tender_ends_at.after'  => 'Das Ausschreibungsende muss nach dem Ausschreibungsbeginn liegen.',
         ]);
 
         if (empty($data['assignee_type']) || empty($data['assignee_id'])) {
@@ -144,6 +157,9 @@ class ProjectController extends Controller
         $copy->status_code       = Project::initialStatusCode($original->type);
         $copy->tender_locked_at  = null;
         $copy->tender_locked_by  = null;
+        // Der Ausschreibungszeitraum gehört zur Original-Ausschreibung – sonst würden Trigger der Kopie sofort feuern.
+        $copy->tender_starts_at  = null;
+        $copy->tender_ends_at    = null;
         $copy->save();
 
         session()->flash('success', 'Projekt wurde als "' . $copy->name . '" dupliziert.');

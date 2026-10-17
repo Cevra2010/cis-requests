@@ -25,11 +25,15 @@ class Project extends Model
         'client',
         'tender_year',
         'due_date',
+        'tender_starts_at',
+        'tender_ends_at',
         'min_order_value',
     ];
 
     protected $casts = [
         'due_date' => 'date',
+        'tender_starts_at' => 'datetime',
+        'tender_ends_at' => 'datetime',
         'min_order_value' => 'decimal:2',
         'tender_locked_at' => 'datetime',
     ];
@@ -229,13 +233,17 @@ class Project extends Model
         return $transition;
     }
 
-    /** Rückt automatisch vor, sobald der aktuelle Schritt "Auto-Vorrücken nach Frist" trägt und die Fälligkeit überschritten ist. */
-    public function syncAutoStatus(): void
+    /** Automatischer Sprung auf einen Schritt (Workflow-Maßnahme "Springen zu Schritt"): kein Freigeber, im Verlauf als "automatisch". */
+    public function jumpToStep(WorkflowStatus $target): ProjectStatusTransition
     {
-        $target = $this->workflow()->autoAdvanceTarget($this->status_code);
-        if ($target && $this->due_date && $this->due_date->isPast()) {
-            $this->transitionTo($target, 'auto');
-        }
+        return $this->transitionTo($target, 'auto');
+    }
+
+    /** Läuft der Ausschreibungszeitraum gerade (Beginn erreicht, Ende noch nicht)? */
+    public function tenderPeriodActive(): bool
+    {
+        return $this->tender_starts_at && $this->tender_starts_at->isPast()
+            && (! $this->tender_ends_at || $this->tender_ends_at->isFuture());
     }
 
     public function isVehicle(): bool

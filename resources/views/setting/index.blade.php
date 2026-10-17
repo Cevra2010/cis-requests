@@ -21,6 +21,15 @@
             <i class="fa fa-building mr-1.5"></i>
             Firma &amp; Anschrift
         </button>
+        @can('system.scheduler')
+        <button type="button"
+                @click="tab = 'planer'"
+                :class="tab === 'planer' ? 'border-b-2 border-primary-600 text-primary-600 bg-white' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'"
+                class="px-4 py-2.5 text-sm font-medium transition-colors rounded-t-lg -mb-px">
+            <i class="fa fa-clock mr-1.5"></i>
+            Planer (Cron)
+        </button>
+        @endcan
         @can('system.reset')
         <button type="button"
                 @click="tab = 'lizenz'"
@@ -48,6 +57,13 @@
     <div x-show="tab === 'firma'" x-cloak>
         @livewire('setting.company-settings')
     </div>
+
+    @can('system.scheduler')
+    {{-- Tab: Planer --}}
+    <div x-show="tab === 'planer'" x-cloak>
+        @livewire('setting.scheduler-status')
+    </div>
+    @endcan
 
     @can('system.reset')
     {{-- Tab: Lizenz --}}
