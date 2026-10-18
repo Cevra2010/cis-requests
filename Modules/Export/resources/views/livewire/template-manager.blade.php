@@ -1,4 +1,4 @@
-<div class="max-w-3xl">
+<div class="max-w-3xl" x-data="{ sub: new URLSearchParams(window.location.search).get('vorlagen') || 'pre_tender' }">
     <div class="mb-4">
         <h2 class="text-base font-semibold text-gray-800">Export-Import: Vorlagen</h2>
         <p class="text-sm text-gray-500 mt-0.5">
@@ -13,9 +13,26 @@
         </p>
     </div>
 
+    {{-- Unter-Tabs: Vorlagen nach Verwendungszweck --}}
+    <div class="flex items-center gap-1 border border-gray-200 rounded-lg p-1 bg-gray-50 mb-5 w-fit max-w-full flex-wrap">
+        @foreach($phases as $phaseKey => $phaseLabel)
+        <button type="button" @click="sub = '{{ $phaseKey }}'"
+                :class="sub === '{{ $phaseKey }}' ? 'bg-white shadow-sm text-primary-700' : 'text-gray-500 hover:text-gray-700'"
+                class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors">
+            {{ $phaseLabel }}
+            <span class="ml-1 text-[11px] text-gray-400">{{ $templatesByPhase->get($phaseKey, collect())->count() }}</span>
+        </button>
+        @endforeach
+        <button type="button" @click="sub = 'datasets'"
+                :class="sub === 'datasets' ? 'bg-white shadow-sm text-primary-700' : 'text-gray-500 hover:text-gray-700'"
+                class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors">
+            Systemdaten
+            <span class="ml-1 text-[11px] text-gray-400">{{ $templatesByDataset->flatten(1)->count() }}</span>
+        </button>
+    </div>
+
     @foreach($phases as $phaseKey => $phaseLabel)
-    <div class="mb-8">
-        <h3 class="text-sm font-semibold text-gray-700 mb-2">{{ $phaseLabel }}</h3>
+    <div class="mb-8" x-show="sub === '{{ $phaseKey }}'" x-cloak>
 
         {{-- ── Neue Vorlage ── --}}
         <div class="cis-card mb-3">
@@ -42,6 +59,11 @@
     @endforeach
 
     {{-- ── Systemdaten (Import-/Export-Werkzeug) ── --}}
+    <div x-show="sub === 'datasets'" x-cloak>
+    <p class="text-sm text-gray-500 mb-4">
+        Vorlagen für Systemdaten (Benutzer, Rollen, Gruppen, Projekte, Produkte, Lager) – sie erscheinen im Tab „Import / Export“,
+        nicht in den Projekten.
+    </p>
     @foreach($datasets as $datasetKey => $datasetLabel)
     <div class="mb-8">
         <h3 class="text-sm font-semibold text-gray-700 mb-0.5">Systemdaten: {{ $datasetLabel }}</h3>
@@ -68,4 +90,5 @@
         @endforelse
     </div>
     @endforeach
+    </div>
 </div>

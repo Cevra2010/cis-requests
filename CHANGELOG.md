@@ -4,6 +4,9 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.14.1.0 — 2026-10-18
+- Export-Import → Vorlagen: die Vorlagen sind jetzt in eigene Tabs gegliedert – „Vor der Ausschreibung“, „Nach der Ausschreibung / Auswertung“ und „Systemdaten“ (mit Anzahl je Tab)
+
 ## 0.14.0.0 — 2026-10-18
 - Import / Export steht jetzt als Tab „Import / Export“ im Menüpunkt „Export-Import“ (neben „Vorlagen“) statt als eigener Menüeintrag
 - Neue Datenkategorien für Import/Export mit umfangreichen Feldern und je einer Standardvorlage „… – alle Felder“: Benutzer (inkl. Rollen/Gruppen), Rollen (inkl. Mitgliedern und Berechtigungen), Gruppen, Projekte (inkl. Ausschreibungszeitraum, Verantwortliche, Kostenschätzung), Lagerorte und Lagerbestand (nur Export); Produkte wurden um weitere Felder ergänzt (Unterprodukte, Beschreibungstext, Preisverlauf u.a.). Jede Zeile wird über den Import-Key zugeordnet, ein Import zeigt zuerst alle Änderungen und Fehler und schreibt erst nach „Übernehmen“. Neue Benutzer lassen sich nicht importieren, der Projektstatus nur exportieren
