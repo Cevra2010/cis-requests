@@ -4,6 +4,9 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.15.2.0 — 2026-10-18
+- Workflow-Manager neu gestaltet: der Projektverlauf wird als Ablaufdiagramm von links nach rechts dargestellt – Start, Schritt-Karten mit Nummer und Farbe, durch Linien und Pfeile verbunden, bis zum Ende. Bausteine (Schritte, Trigger, Maßnahmen) stehen als Leiste über dem Diagramm; die Details des gewählten Schritts (Grunddaten, Freigabe, Tabs verbergen) darunter. Jede Karte zeigt zusätzlich, welche Maßnahmen beim Weiterschalten auf den nächsten Schritt ausgeführt werden
+
 ## 0.15.1.0 — 2026-10-18
 - Workflow-Maßnahme „E-Mail senden“: Empfänger können jetzt auch Rollen sein (alle Mitglieder der Rolle erhalten die E-Mail), zusätzlich zu Benutzern, Gruppen und externen Adressen. Mehrere Empfänger je Maßnahme sind möglich, doppelte Adressen werden zusammengefasst
 
