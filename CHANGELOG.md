@@ -4,6 +4,9 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.14.2.0 — 2026-10-18
+- Fixierte Projekte sind ausnahmslos gesperrt: Produkte, Ausschreibungstext und Fahrzeug-Konfiguration lassen sich nach der Fixierung von niemandem mehr ändern, auch nicht von Administratoren. Bearbeiten ist erst wieder möglich, wenn die Fixierung durch Zurücksetzen des Status aufgehoben wird (das dürfen weiterhin nur die im Workflow unter „Fixierung aufheben“ hinterlegten Personen)
+
 ## 0.14.1.0 — 2026-10-18
 - Export-Import → Vorlagen: die Vorlagen sind jetzt in eigene Tabs gegliedert – „Vor der Ausschreibung“, „Nach der Ausschreibung / Auswertung“ und „Systemdaten“ (mit Anzahl je Tab)
 

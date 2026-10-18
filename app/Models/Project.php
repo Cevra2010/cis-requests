@@ -442,13 +442,15 @@ class Project extends Model
         return $this->tender_locked_by ? User::find($this->tender_locked_by) : null;
     }
 
-    /** Darf $user Produkte/Ausschreibungstext dieses Projekts aktuell bearbeiten? */
+    /**
+     * Darf Produkte/Ausschreibungstext dieses Projekts aktuell bearbeiten, wer $user auch ist? Ein fixiertes Projekt ist für
+     * ALLE gesperrt, auch für Administratoren; bearbeiten geht erst wieder, wenn die Fixierung durch Zurücksetzen des
+     * Status aufgehoben wurde (das dürfen nur die im Workflow hinterlegten Fixierungs-Aufheber, siehe canRevertStatus()).
+     * $user bleibt als Parameter erhalten, weil sich alle Aufrufer darauf stützen.
+     */
     public function isEditableBy(?User $user): bool
     {
-        if (! $this->isLocked()) {
-            return true;
-        }
-        return $this->canOverrideLock($user);
+        return ! $this->isLocked();
     }
 
     // ── Preis-Fixierung ──────────────────────────────────────────────────────

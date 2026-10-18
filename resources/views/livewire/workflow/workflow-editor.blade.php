@@ -291,10 +291,10 @@
 
     {{-- Fixierungs-Override --}}
     <div class="cis-card mt-5">
-        <h3 class="text-sm font-semibold text-gray-800 mb-1">Fixierte Ausschreibungen bearbeiten</h3>
+        <h3 class="text-sm font-semibold text-gray-800 mb-1">Fixierung aufheben</h3>
         <p class="text-xs text-gray-500 mb-3">
-            Wer Produkte/Ausschreibungstext auch nach der Fixierung noch bearbeiten oder eine Fixierung durch
-            Zurücksetzen aufheben darf (Projekttyp „{{ $projectTypes[$projectType] }}“).
+            Wer eine Fixierung durch Zurücksetzen des Status aufheben darf (Projekttyp „{{ $projectTypes[$projectType] }}“).
+            Solange ein Projekt fixiert ist, sind Produkte und Ausschreibungstext für alle gesperrt – auch für diese Personen.
         </p>
         <div class="flex flex-wrap gap-1.5 mb-2">
             @forelse($lockOverrideApprovers as $approver)

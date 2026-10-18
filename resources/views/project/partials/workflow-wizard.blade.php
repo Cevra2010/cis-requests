@@ -133,7 +133,7 @@
                     </div>
                     <p class="text-sm text-gray-500">
                         @if($wizard->nextCrossesLock)
-                            Produkte und Ausschreibungstext können danach nur noch mit erweiterten Rechten geändert werden.
+                            Produkte und Ausschreibungstext sind danach für alle gesperrt, bis die Fixierung durch Zurücksetzen des Status wieder aufgehoben wird.
                         @else
                             Status wird auf „{{ $wizard->next?->label }}“ gesetzt.
                         @endif

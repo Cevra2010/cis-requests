@@ -6,9 +6,9 @@ use App\Models\Project;
 
 /**
  * Für Livewire-Komponenten, die Produkte oder Ausschreibungstext eines Projekts
- * bearbeiten. Nach dem Fixieren einer Ausschreibung sind diese Inhalte nur noch
- * bearbeitbar, wenn der Benutzer im Workflow-Bildschirm als Fixierungs-Override
- * hinterlegt ist (siehe Project::canOverrideLock()). Mutierende Methoden müssen
+ * bearbeiten. Nach dem Fixieren einer Ausschreibung sind diese Inhalte für alle
+ * gesperrt (siehe Project::isEditableBy()); erst das Aufheben der Fixierung durch
+ * Zurücksetzen des Status macht sie wieder bearbeitbar. Mutierende Methoden müssen
  * mit assertEditable() beginnen.
  */
 trait RespectsProjectLock
