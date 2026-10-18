@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Traits\CisUuid;
 use App\Services\Workflow\WorkflowColors;
 use App\Services\Workflow\WorkflowRegistry;
+use App\Services\Workflow\WorkflowTabs;
 use App\Services\Workflow\WorkflowStepKinds;
 use Illuminate\Database\Eloquent\Model;
 
@@ -21,12 +22,13 @@ class WorkflowStatus extends Model
 
     protected $fillable = [
         'project_type', 'code', 'kind', 'label', 'description', 'color',
-        'sort_order', 'is_active', 'approval_mode', 'default_tab',
+        'sort_order', 'is_active', 'approval_mode', 'default_tab', 'hidden_tabs',
     ];
 
     protected $casts = [
-        'sort_order' => 'integer',
-        'is_active'  => 'boolean',
+        'sort_order'  => 'integer',
+        'is_active'   => 'boolean',
+        'hidden_tabs' => 'array',
     ];
 
     protected static function booted(): void
@@ -52,6 +54,12 @@ class WorkflowStatus extends Model
     {
         return $this->hasMany(WorkflowTrigger::class, 'cis_row_id_workflow_status', 'cis_row_id')
             ->orderBy('sort_order');
+    }
+
+    /** @return string[] Tabs, die auf diesem Schritt verborgen werden. */
+    public function hiddenTabs(): array
+    {
+        return array_values(array_intersect(WorkflowTabs::keys(), $this->hidden_tabs ?? []));
     }
 
     public function isCustom(): bool

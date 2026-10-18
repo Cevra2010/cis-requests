@@ -4,6 +4,9 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.15.0.0 — 2026-10-18
+- Workflow: neue Option „Tabs verbergen“ je Schritt – hier legst du fest, welche Tabs der Projektansicht (Produkte, Ausschreibung, Angebote, Bestellung, Wareneingang, Lager) auf diesem Schritt zu sehen sind. Tabs, die logisch noch nicht sichtbar sein können (Meilenstein noch nicht erreicht, Modul inaktiv, Fahrzeugausschreibung ohne Ausschreibungs-Tab), sind ausgegraut und nennen den Grund. Mindestens ein Tab bleibt immer sichtbar; verborgene Tabs lassen sich nicht als Standard-Tab wählen
+
 ## 0.14.2.0 — 2026-10-18
 - Fixierte Projekte sind ausnahmslos gesperrt: Produkte, Ausschreibungstext und Fahrzeug-Konfiguration lassen sich nach der Fixierung von niemandem mehr ändern, auch nicht von Administratoren. Bearbeiten ist erst wieder möglich, wenn die Fixierung durch Zurücksetzen des Status aufgehoben wird (das dürfen weiterhin nur die im Workflow unter „Fixierung aufheben“ hinterlegten Personen)
 

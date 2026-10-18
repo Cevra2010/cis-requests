@@ -235,12 +235,37 @@
                             <select wire:model="formDefaultTab" class="cis-input w-full">
                                 <option value="">– keiner –</option>
                                 @foreach($tabs as $tabKey => $tabLabel)
-                                    <option value="{{ $tabKey }}">{{ $tabLabel }}</option>
+                                    <option value="{{ $tabKey }}" @disabled(! ($tabAvailability[$tabKey]['available'] ?? false) || in_array($tabKey, $selected->hiddenTabs(), true))>{{ $tabLabel }}</option>
                                 @endforeach
                             </select>
                         </div>
 
                         <button type="button" wire:click="saveStep" class="btn btn-primary btn-sm w-full">Speichern</button>
+                    </div>
+
+                    <div class="mt-5 pt-4 border-t border-gray-100">
+                        <p class="cis-label mb-1">Tabs verbergen</p>
+                        <p class="text-[11px] text-gray-400 mb-2">Angehakte Tabs sind auf diesem Schritt in der Projektansicht verborgen. Ausgegraute Tabs können hier logisch noch nicht sichtbar sein.</p>
+                        <div class="space-y-1">
+                            @foreach($tabs as $tabKey => $tabLabel)
+                                @php
+                                    $info      = $tabAvailability[$tabKey] ?? ['available' => false, 'reason' => null];
+                                    $isHidden  = $info['available'] && in_array($tabKey, $selected->hiddenTabs(), true);
+                                @endphp
+                                <label wire:key="hide-{{ $selected->cis_row_id }}-{{ $tabKey }}-{{ $tabRevision }}"
+                                       title="{{ $info['available'] ? '' : $info['reason'] }}"
+                                       class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm
+                                              {{ $info['available'] ? 'cursor-pointer hover:bg-gray-50 text-gray-700' : 'cursor-not-allowed text-gray-300 bg-gray-50/50' }}">
+                                    <input type="checkbox" @checked($isHidden) @disabled(! $info['available'])
+                                           wire:click="toggleHiddenTab('{{ $selected->cis_row_id }}', '{{ $tabKey }}')"
+                                           class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 disabled:opacity-40">
+                                    <span class="flex-1 {{ $isHidden ? 'line-through text-gray-400' : '' }}">{{ \App\Services\Workflow\WorkflowTabs::label($tabKey, $projectType) }}</span>
+                                    @unless($info['available'])
+                                        <span class="text-[10px] italic text-gray-400 text-right max-w-[11rem] leading-tight">{{ $info['reason'] }}</span>
+                                    @endunless
+                                </label>
+                            @endforeach
+                        </div>
                     </div>
 
                     @unless($selected->isRequired() && $selected->kind === 'draft')

@@ -91,9 +91,15 @@ class WorkflowDefinition
         return $index !== false && $lockIndex !== false && $index >= $lockIndex;
     }
 
+    /** Der Schritt, der diesen Meilenstein trägt (sofern sein Modul aktiv ist). */
+    public function milestoneStep(string $milestone): ?WorkflowStatus
+    {
+        return $this->steps->first(fn (WorkflowStatus $s) => $s->hasMilestone($milestone) && $s->moduleEnabled());
+    }
+
     public function hasReached(?string $code, string $milestone): bool
     {
-        $milestoneStep = $this->steps->first(fn (WorkflowStatus $s) => $s->hasMilestone($milestone) && $s->moduleEnabled());
+        $milestoneStep = $this->milestoneStep($milestone);
         if (! $milestoneStep) {
             return false;
         }

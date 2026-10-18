@@ -13,6 +13,7 @@ use App\Services\Workflow\WorkflowColors;
 use App\Services\Workflow\WorkflowDefaults;
 use App\Services\Workflow\WorkflowRegistry;
 use App\Services\Workflow\WorkflowStepKinds;
+use App\Services\Workflow\WorkflowTabs;
 use App\Services\Workflow\WorkflowValidator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -29,6 +30,9 @@ class WorkflowEditor extends Component
     public string $projectType = 'product';
     public ?string $selectedStepId = null;
     public ?string $error = null;
+
+    /** Zählt Tab-Umschaltungen hoch, damit die Checkboxen neu gerendert werden – auch wenn der Server ein Umschalten ablehnt (sonst bliebe der Haken im Browser stehen). */
+    public int $tabRevision = 0;
 
     public string $formLabel = '';
     public string $formDescription = '';
@@ -123,6 +127,40 @@ class WorkflowEditor extends Component
         }
         WorkflowStatus::where('cis_row_id', $stepId)->where('project_type', $this->projectType)
             ->update(['approval_mode' => $mode]);
+    }
+
+    /**
+     * Blendet einen Tab auf einem Schritt aus bzw. wieder ein. Nur logisch verfügbare Tabs lassen sich schalten,
+     * und mindestens ein Tab muss sichtbar bleiben (sonst hätte die Projektseite nichts mehr zu zeigen).
+     */
+    public function toggleHiddenTab(string $stepId, string $tab): void
+    {
+        $this->authorizeManage();
+        $this->tabRevision++;
+        $step = WorkflowStatus::where('cis_row_id', $stepId)->where('project_type', $this->projectType)->first();
+        if (! $step || ! in_array($tab, WorkflowTabs::keys(), true)) {
+            return;
+        }
+
+        $availability = WorkflowTabs::availability(WorkflowRegistry::for($this->projectType), $step->code, $this->projectType);
+        if (! ($availability[$tab]['available'] ?? false)) {
+            return;
+        }
+
+        $hidden = $step->hiddenTabs();
+        if (in_array($tab, $hidden, true)) {
+            $hidden = array_values(array_diff($hidden, [$tab]));
+        } else {
+            $remaining = collect($availability)->filter(fn ($a, $key) => $a['available'] && $key !== $tab && ! in_array($key, $hidden, true));
+            if ($remaining->isEmpty()) {
+                $this->error = 'Mindestens ein Tab muss auf diesem Schritt sichtbar bleiben.';
+                return;
+            }
+            $hidden[] = $tab;
+        }
+
+        $this->error = null;
+        $step->update(['hidden_tabs' => $hidden ?: null]);
     }
 
     /**
@@ -440,6 +478,7 @@ class WorkflowEditor extends Component
             'lockOverrideApprovers' => $lockOverrideApprovers,
             'projectTypes'          => Project::TYPES,
             'tabs'                  => WorkflowDefaults::TABS,
+            'tabAvailability'       => $selected ? WorkflowTabs::availability(WorkflowRegistry::for($this->projectType), $selected->code, $this->projectType) : [],
             'colors'                => WorkflowColors::PALETTE,
         ]);
     }

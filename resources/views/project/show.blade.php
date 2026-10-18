@@ -15,34 +15,27 @@
 @endsection
 
 @php
-    $wareneingangEnabled = \Nwidart\Modules\Facades\Module::find('Wareneingang')?->isEnabled() ?? false;
-    $lagerEnabled        = \Nwidart\Modules\Facades\Module::find('Lager')?->isEnabled() ?? false;
-
     // Bündelt Reihenfolge/Sperr-/Freigabe-Logik für die Wizard-Partial (siehe unten).
     $wizard = \App\Services\Workflow\ProjectWorkflowView::for($project, auth()->user());
 
-    // ── Tab-Sichtbarkeit: einmal erreichte Meilensteine bleiben sichtbar (zurückschauen
-    //    ist immer möglich), noch nicht erreichte bleiben ausgeblendet.
-    $tabVisibility = [
-        'beladung'      => true,
-        'ausschreibung' => ! $project->isVehicle(),
-        'angebote'      => $project->hasReachedMilestone(\App\Services\Workflow\WorkflowStepKinds::MILESTONE_OFFERS),
-        'bestellung'    => $project->hasReachedMilestone(\App\Services\Workflow\WorkflowStepKinds::MILESTONE_AWARDING),
-        'wareneingang'  => $wareneingangEnabled && $project->hasReachedMilestone(\App\Services\Workflow\WorkflowStepKinds::MILESTONE_GOODS_RECEIPT),
-        'lager'         => $lagerEnabled,
-    ];
+    // ── Tab-Sichtbarkeit: logisch erreichte Tabs minus die im Workflow je Schritt verborgenen (siehe WorkflowTabs).
+    $tabVisibility = \App\Services\Workflow\WorkflowTabs::visible($project);
 
-    // ── Tab, der beim Öffnen des Projekts automatisch aktiv ist (aus dem aktuellen Workflow-Schritt).
+    // ── Tab, der beim Öffnen des Projekts automatisch aktiv ist (aus dem aktuellen Workflow-Schritt);
+    //    ist er nicht sichtbar, kommt der erste sichtbare.
     $suggestedTab = $project->currentStep()?->default_tab ?? 'beladung';
     if (empty($tabVisibility[$suggestedTab])) {
-        foreach (['wareneingang', 'bestellung', 'angebote', 'ausschreibung', 'beladung'] as $fallback) {
-            if ($tabVisibility[$fallback]) {
+        foreach (['wareneingang', 'bestellung', 'angebote', 'ausschreibung', 'beladung', 'lager'] as $fallback) {
+            if (! empty($tabVisibility[$fallback])) {
                 $suggestedTab = $fallback;
                 break;
             }
         }
     }
     $initialTab = request('tab', $suggestedTab);
+    if (empty($tabVisibility[$initialTab])) {
+        $initialTab = $suggestedTab;
+    }
 @endphp
 
 @section('content')
@@ -152,6 +145,7 @@
             Lager
         </button>
         @endif
+        @if($tabVisibility['beladung'])
         <button type="button"
                 @click="tab = 'beladung'"
                 :class="tab === 'beladung' ? 'border-b-2 border-primary-600 text-primary-600 bg-white' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'"
@@ -164,6 +158,7 @@
                 Produkte
             @endif
         </button>
+        @endif
         @if($tabVisibility['ausschreibung'])
         <button type="button"
                 @click="tab = 'ausschreibung'"
@@ -203,6 +198,7 @@
     </div>
 
     {{-- Tab: Produkte / Fahrzeug-Konfiguration --}}
+    @if($tabVisibility['beladung'])
     <div x-show="tab === 'beladung'" x-cloak>
         @if($project->isVehicle())
             @livewire('project.vehicle-configuration-editor', ['projectId' => $project->cis_row_id])
@@ -213,6 +209,7 @@
             @livewire('project.project-product-manager', ['projectId' => $project->cis_row_id])
         @endif
     </div>
+    @endif
 
     @if($tabVisibility['ausschreibung'])
     {{-- Tab: Ausschreibung --}}
