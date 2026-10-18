@@ -24,15 +24,15 @@ class RunWorkflowTriggers
             ->get();
 
         foreach ($triggers as $trigger) {
-            if (! WorkflowTriggerRun::claim($event->project, $trigger, $event->occurredAt)) {
+            $actions = $trigger->actions()->where('is_active', true)->get();
+
+            // Ohne aktive Maßnahme gibt es nichts auszuführen – das Ereignis dann nicht als erledigt vermerken,
+            // damit ein später aktivierte Maßnahme noch greift, solange das Projekt auf dem Schritt steht.
+            if ($actions->isEmpty() || ! WorkflowTriggerRun::claim($event->project, $trigger, $event->occurredAt)) {
                 continue;
             }
 
-            app(WorkflowActionRunner::class)->runActions(
-                $trigger->actions()->where('is_active', true)->get(),
-                $event->project,
-                null
-            );
+            app(WorkflowActionRunner::class)->runActions($actions, $event->project, null);
         }
     }
 }

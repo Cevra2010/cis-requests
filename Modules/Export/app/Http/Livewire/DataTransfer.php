@@ -5,7 +5,7 @@ namespace Modules\Export\Http\Livewire;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Modules\Export\Models\ExportTemplate;
-use Modules\Export\Services\Datasets\ProductDataset;
+use Modules\Export\Services\Datasets\Datasets;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\Csv;
 
@@ -71,7 +71,13 @@ class DataTransfer extends Component
     {
         $this->plan          = null;
         $this->resultMessage = null;
-        $this->plan          = $this->buildPlan();
+        $this->plan          = $this->displayPlan($this->buildPlan());
+    }
+
+    /** Der Plan enthält Closures (_ops) – die gehören nicht in den Livewire-Zustand, geprüft wird beim Übernehmen erneut. */
+    private function displayPlan(?array $plan): ?array
+    {
+        return $plan === null ? null : array_map(fn (array $e) => \Illuminate\Support\Arr::except($e, ['_ops']), $plan);
     }
 
     public function apply(): void
@@ -83,7 +89,8 @@ class DataTransfer extends Component
             return;
         }
 
-        $result = app(ProductDataset::class)->apply($plan);
+        $template = ExportTemplate::find($this->importTemplateId);
+        $result   = Datasets::find((string) $template?->dataset)?->apply($plan) ?? ['created' => 0, 'updated' => 0];
 
         $errors = collect($plan)->where('action', 'error')->count();
         $this->resultMessage = "{$result['updated']} aktualisiert, {$result['created']} neu angelegt"
@@ -124,20 +131,34 @@ class DataTransfer extends Component
         $rows = $spreadsheet->getActiveSheet()->toArray(null, true, true, false);
         array_shift($rows); // Kopfzeile
 
-        return match ($template->dataset) {
-            ProductDataset::KEY => app(ProductDataset::class)->plan($template, $rows, $this->allowCreate),
-            default             => null,
-        };
+        $dataset = Datasets::find($template->dataset);
+        if (! $dataset || ! $dataset->available() || ! $dataset->supportsImport()) {
+            $this->addError('importFile', 'Für diese Daten ist kein Import möglich.');
+            return null;
+        }
+
+        return $dataset->plan($template, $rows, $this->allowCreate);
+    }
+
+    /** Gruppen in der Reihenfolge der Datensatz-Registry statt nach Zufall der Vorlagennamen. */
+    private function inDatasetOrder(\Illuminate\Support\Collection $grouped): \Illuminate\Support\Collection
+    {
+        return collect(array_keys(ExportTemplate::datasets()))
+            ->mapWithKeys(fn ($key) => [$key => $grouped->get($key)])
+            ->filter();
     }
 
     public function render()
     {
+        $available = Datasets::available();
         $templates = ExportTemplate::with('columns')->orderBy('name')->get()
-            ->filter(fn (ExportTemplate $t) => $t->hasUsage('data_transfer') && $t->columns->isNotEmpty());
+            ->filter(fn (ExportTemplate $t) => $t->hasUsage('data_transfer') && $t->columns->isNotEmpty() && isset($available[$t->dataset]));
 
         return view('export::livewire.data-transfer', [
-            'templatesByDataset' => $templates->groupBy('dataset'),
-            'datasets'           => ExportTemplate::DATASETS,
+            'templatesByDataset' => $this->inDatasetOrder($templates->groupBy('dataset')),
+            'datasets'           => ExportTemplate::datasets(),
+            'importable'         => collect($available)->map(fn ($d) => $d->supportsImport())->all(),
+            'creatable'          => collect($available)->map(fn ($d) => $d->canCreate())->all(),
             'importTemplate'     => $this->importTemplateId ? $templates->firstWhere('cis_row_id', $this->importTemplateId) : null,
         ]);
     }

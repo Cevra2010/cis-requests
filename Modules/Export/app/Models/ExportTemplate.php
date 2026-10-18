@@ -5,6 +5,7 @@ namespace Modules\Export\Models;
 use App\Models\Traits\CisUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Export\Services\Datasets\Datasets;
 use Modules\Export\Services\ExportFieldRegistry;
 
 class ExportTemplate extends Model
@@ -36,31 +37,31 @@ class ExportTemplate extends Model
         'data_transfer'     => 'Import-/Export-Werkzeug',
     ];
 
-    /** Datengrundlagen: 'project_positions' = Positionen eines Projekts (TenderExporter), sonst ein Systemdatensatz (Services/Datasets). */
-    public const DATASETS = [
-        'project_positions' => 'Projekt-Positionen',
-        'products'          => 'Produkte',
-    ];
+    public const PROJECT_DATASET = 'project_positions';
 
-    /** In welchen Bereichen eine Vorlage welcher Datengrundlage angeboten werden kann. */
-    public const USAGE_DATASETS = [
-        'project_documents' => ['project_positions'],
-        'data_transfer'     => ['products'],
-    ];
+    /**
+     * Datengrundlagen (Schlüssel => Name): Projekt-Positionen (TenderExporter) sowie alle aktuell verfügbaren
+     * Systemdatensätze (siehe Services/Datasets – z.B. Benutzer, Rollen, Projekte).
+     *
+     * @return array<string, string>
+     */
+    public static function datasets(): array
+    {
+        return [self::PROJECT_DATASET => 'Projekt-Positionen']
+            + collect(Datasets::available())->map(fn ($d) => $d->label())->all();
+    }
 
     public function isProjectBased(): bool
     {
-        return $this->dataset === 'project_positions';
+        return $this->dataset === self::PROJECT_DATASET;
     }
 
-    /** @return array<string, string> Bereiche (key => Label), die für die Datengrundlage dieser Vorlage in Frage kommen. */
+    /** @return array<string, string> Bereiche (key => Label), in denen eine Vorlage dieser Datengrundlage angeboten werden kann. */
     public function availableUsages(): array
     {
-        return array_filter(
-            self::USAGES,
-            fn ($label, $key) => in_array($this->dataset, self::USAGE_DATASETS[$key] ?? [], true),
-            ARRAY_FILTER_USE_BOTH
-        );
+        $usages = $this->isProjectBased() ? ['project_documents'] : ['data_transfer'];
+
+        return array_intersect_key(self::USAGES, array_flip($usages));
     }
 
     public function hasUsage(string $usage): bool

@@ -32,8 +32,8 @@ class Project extends Model
 
     protected $casts = [
         'due_date' => 'date',
-        'tender_starts_at' => 'datetime',
-        'tender_ends_at' => 'datetime',
+        'tender_starts_at' => \App\Casts\LocalDateTime::class,
+        'tender_ends_at' => \App\Casts\LocalDateTime::class,
         'min_order_value' => 'decimal:2',
         'tender_locked_at' => 'datetime',
     ];

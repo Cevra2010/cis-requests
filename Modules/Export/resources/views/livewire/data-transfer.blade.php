@@ -3,7 +3,7 @@
         <h2 class="text-base font-semibold text-gray-800">Import / Export</h2>
         <p class="text-sm text-gray-500 mt-0.5">
             Systemdaten als Excel-/CSV-Tabelle exportieren und geänderte Tabellen wieder einlesen. Welche Tabellen hier
-            erscheinen, wird unter „Export-Import“ → Vorlage → „Anzeigen in“ festgelegt. Ein Import prüft zuerst alle Zeilen
+            erscheinen, wird im Tab „Vorlagen“ je Vorlage unter „Anzeigen in“ festgelegt. Ein Import prüft zuerst alle Zeilen
             und schreibt erst nach „Übernehmen“.
         </p>
     </div>
@@ -33,12 +33,12 @@
                 <div class="flex items-center gap-2 shrink-0">
                     <a href="{{ route('export.transfer.download', [$template->cis_row_id, 'xlsx']) }}" class="btn btn-ghost btn-sm"><i class="fa fa-file-excel mr-1.5"></i>Excel</a>
                     <a href="{{ route('export.transfer.download', [$template->cis_row_id, 'csv']) }}" class="btn btn-ghost btn-sm"><i class="fa fa-file-csv mr-1.5"></i>CSV</a>
-                    @if($template->include_import_key)
+                    @if($template->include_import_key && ($importable[$template->dataset] ?? false))
                         <button type="button" wire:click="openImport('{{ $template->cis_row_id }}')" class="btn btn-primary btn-sm">
                             <i class="fa fa-upload mr-1.5"></i>Importieren
                         </button>
                     @else
-                        <span class="text-xs text-gray-400" title="In der Vorlage ist kein Import-Key aktiviert">kein Import</span>
+                        <span class="text-xs text-gray-400" title="{{ ($importable[$template->dataset] ?? false) ? 'In der Vorlage ist kein Import-Key aktiviert' : 'Diese Daten sind nur exportierbar' }}">kein Import</span>
                     @endif
                 </div>
             </div>
@@ -53,10 +53,13 @@
                 <input type="file" wire:model="importFile" accept=".xlsx,.xls,.csv" class="block w-full text-sm text-gray-600">
                 @error('importFile')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
 
+                @if($creatable[$template->dataset] ?? false)
                 <label class="flex items-center gap-2 text-sm text-gray-700">
                     <input type="checkbox" wire:model.live="allowCreate" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
                     Zeilen ohne Import-Key als neue Datensätze anlegen
                 </label>
+                @endif
+                <p class="text-xs text-gray-400">Mehrere Werte in einer Zelle (z.B. Rollen, Mitglieder, Berechtigungen) werden mit Semikolon getrennt. Eine leere Zelle lässt den Wert unverändert, außer bei Feldern zum Leeren (z.B. Telefon).</p>
 
                 <button type="button" wire:click="check" wire:loading.attr="disabled" wire:target="check,importFile" class="btn btn-ghost btn-sm" @disabled(! $importFile)>
                     <i class="fa fa-magnifying-glass mr-1.5"></i>Prüfen
@@ -105,7 +108,7 @@
     <div class="cis-card text-center py-10 text-gray-400">
         <i class="fa fa-table text-2xl mb-2 block"></i>
         <p class="text-sm">Noch keine Tabellen für das Import-/Export-Werkzeug freigegeben.</p>
-        <p class="text-xs mt-1">Unter „Export-Import“ eine Vorlage für Systemdaten anlegen und bei „Anzeigen in“ freigeben.</p>
+        <p class="text-xs mt-1">Im Tab „Vorlagen“ eine Vorlage für Systemdaten anlegen und bei „Anzeigen in“ freigeben.</p>
     </div>
     @endforelse
 </div>

@@ -18,7 +18,7 @@ class WorkflowTriggerRun extends Model
     /** Reserviert den Lauf; false, wenn er (parallel oder früher) bereits reserviert wurde. */
     public static function claim(Project $project, WorkflowTrigger $trigger, \DateTimeInterface $occurredAt): bool
     {
-        $at = \Carbon\Carbon::instance($occurredAt)->format('Y-m-d H:i:s');
+        $at = \Carbon\Carbon::instance($occurredAt)->utc()->format('Y-m-d H:i:s');
 
         if (static::where('cis_row_id_project', $project->cis_row_id)
             ->where('cis_row_id_workflow_trigger', $trigger->cis_row_id)

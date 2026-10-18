@@ -73,6 +73,11 @@ return [
     'timezone' => 'UTC',
 
     /*
+    | Zeitzone, in der Benutzer zeitgesteuerte Zeitpunkte eingeben/sehen (siehe App\Casts\LocalDateTime).
+    */
+    'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'Europe/Berlin'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------

@@ -27,9 +27,27 @@ class ExportFileBuilder
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle(mb_substr($sheetTitle, 0, 31) ?: 'Export');
 
+        // Zellen, die mit "=" oder "@" beginnen, würden Excel/CSV-Programme als Formel auswerten (Formel-Injektion über
+        // Namen u.ä.): im XLSX als Text ablegen, in der CSV mit einem Hochkomma entschärfen.
+        $guard = fn ($value) => (is_string($value) && $value !== '' && in_array($value[0], ['=', '@'], true)) ? "'" . $value : $value;
+        if ($format === 'csv') {
+            $headers = array_map($guard, $headers);
+            $rows    = array_map(fn (array $row) => array_map($guard, $row), $rows);
+        }
+
         $sheet->fromArray($headers, null, 'A1');
         if (! empty($rows)) {
             $sheet->fromArray($rows, null, 'A2');
+        }
+
+        if ($format === 'xlsx') {
+            foreach (array_merge([$headers], $rows) as $r => $row) {
+                foreach (array_values($row) as $c => $value) {
+                    if (is_string($value) && $value !== '' && in_array($value[0], ['=', '@'], true)) {
+                        $sheet->setCellValueExplicit([$c + 1, $r + 1], $value, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    }
+                }
+            }
         }
 
         $columnCount = max(count($headers), 1);

@@ -6,6 +6,7 @@ use Livewire\Component;
 use Modules\Export\Models\ExportTemplate;
 use Modules\Export\Models\ExportTemplateColumn;
 use Modules\Export\Models\ExportTemplateFilter;
+use Modules\Export\Services\Datasets\DefaultTemplates;
 use Modules\Export\Services\ExportFieldRegistry;
 use Modules\Export\Services\ExportFilterRegistry;
 
@@ -30,6 +31,11 @@ class TemplateManager extends Component
     /** @var array<int, string> */
     public array $newFilterValues = [];
 
+    public function mount(): void
+    {
+        DefaultTemplates::ensure();
+    }
+
     public function render()
     {
         $templates = ExportTemplate::with(['columns', 'filters'])
@@ -45,7 +51,7 @@ class TemplateManager extends Component
         return view('export::livewire.template-manager', [
             'templatesByPhase'   => $templates->where('dataset', 'project_positions')->groupBy('phase'),
             'templatesByDataset' => $templates->where('dataset', '!=', 'project_positions')->groupBy('dataset'),
-            'datasets'           => collect(ExportTemplate::DATASETS)->except('project_positions')->all(),
+            'datasets'           => collect(ExportTemplate::datasets())->except(ExportTemplate::PROJECT_DATASET)->all(),
             'phases'            => ExportTemplate::PHASES,
             'usageOptions'      => ExportTemplate::USAGES,
             'filterFields'      => collect(ExportFilterRegistry::FILTERS)->map(fn ($f) => $f['label'])->all(),
@@ -55,7 +61,7 @@ class TemplateManager extends Component
             'sortFields'        => ExportFieldRegistry::SORTABLE_FIELDS,
             'fieldOptions'      => collect(ExportTemplate::PHASES)->keys()
                 ->mapWithKeys(fn ($phase) => [$phase => ExportFieldRegistry::optionsForPhase($phase)])
-                ->merge(collect(ExportTemplate::DATASETS)->except('project_positions')->keys()
+                ->merge(collect(ExportTemplate::datasets())->except(ExportTemplate::PROJECT_DATASET)->keys()
                     ->mapWithKeys(fn ($d) => [$d => ExportFieldRegistry::optionsForDataset($d)]))->all(),
             'fieldOrigins'      => collect(ExportFieldRegistry::ORIGINS)
                 ->prepend(ExportFieldRegistry::FREE_FIELD_ORIGIN_LABEL, ExportFieldRegistry::FREE_FIELD_ORIGIN)->all(),
@@ -86,7 +92,7 @@ class TemplateManager extends Component
 
     public function createDatasetTemplate(string $dataset): void
     {
-        if (! array_key_exists($dataset, ExportTemplate::DATASETS) || $dataset === 'project_positions') {
+        if (! array_key_exists($dataset, ExportTemplate::datasets()) || $dataset === ExportTemplate::PROJECT_DATASET) {
             return;
         }
 
@@ -100,7 +106,7 @@ class TemplateManager extends Component
             'name'               => trim($this->newDatasetTemplateNames[$dataset]),
             'phase'              => 'pre_tender',
             'dataset'            => $dataset,
-            'include_import_key' => true,
+            'include_import_key' => \Modules\Export\Services\Datasets\Datasets::find($dataset)?->supportsImport() ?? false,
             'usages'             => ['data_transfer'],
         ]);
 

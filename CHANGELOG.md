@@ -4,6 +4,15 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.14.0.0 — 2026-10-18
+- Import / Export steht jetzt als Tab „Import / Export“ im Menüpunkt „Export-Import“ (neben „Vorlagen“) statt als eigener Menüeintrag
+- Neue Datenkategorien für Import/Export mit umfangreichen Feldern und je einer Standardvorlage „… – alle Felder“: Benutzer (inkl. Rollen/Gruppen), Rollen (inkl. Mitgliedern und Berechtigungen), Gruppen, Projekte (inkl. Ausschreibungszeitraum, Verantwortliche, Kostenschätzung), Lagerorte und Lagerbestand (nur Export); Produkte wurden um weitere Felder ergänzt (Unterprodukte, Beschreibungstext, Preisverlauf u.a.). Jede Zeile wird über den Import-Key zugeordnet, ein Import zeigt zuerst alle Änderungen und Fehler und schreibt erst nach „Übernehmen“. Neue Benutzer lassen sich nicht importieren, der Projektstatus nur exportieren
+- Die Feldauswahl gruppiert nach Herkunft (Benutzer, Rollen, Gruppen, Projekte, Lager, Produkte, Kategorien, Quellen, Preise)
+- Bugfix Trigger: Ausschreibungsbeginn/-ende wurden als UTC statt als Ortszeit gewertet – ein Beginn „20:22“ galt erst um 22:22 Uhr. Eingabe und Anzeige erfolgen jetzt in Ortszeit (Europa/Berlin, einstellbar über APP_DISPLAY_TIMEZONE)
+- Trigger: Maßnahmen wie „Springen zu Schritt“, die ohne weitere Angaben gültig sind, sind nach dem Ablegen sofort aktiv (bisher erst nach Speichern im Editor); ein Trigger ohne aktive Maßnahme gilt nicht mehr als „erledigt“
+- Entwicklung: E-Mails lassen sich lokal mit Mailpit/Mailhog prüfen (SMTP 127.0.0.1:1025, Oberfläche http://localhost:8025)
+- Sicherheit: Zellen, die mit „=“ oder „@“ beginnen, werden im Excel-/CSV-Export als Text gesichert (keine Formel-Injektion über Namen)
+
 ## 0.13.0.0 — 2026-10-17
 - Neu: Projekte haben eine „Ausschreibungsdauer“ mit Beginn und Ende (Datum und Uhrzeit), pflegbar beim Anlegen/Bearbeiten, sichtbar im Projektkopf und als Variablen für E-Mails (Ausschreibungsbeginn/-ende). So lässt sich eine Ausschreibung vorbereiten, die sich selbst startet und beendet
 - Workflow: neben Maßnahmen gibt es jetzt Trigger. Ein Trigger wird per Drag&Drop an einen Schritt gehängt und löst eigene Maßnahmen aus, sobald das Ereignis eintritt, während ein Projekt auf diesem Schritt steht. Verfügbar: „Ausschreibungszeitraum hat begonnen“ und „Ausschreibungszeitraum ist geendet“. Weitere Ereignisse lassen sich künftig über einen zentralen Event-Manager ergänzen

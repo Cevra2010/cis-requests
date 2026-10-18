@@ -329,7 +329,9 @@ class WorkflowEditor extends Component
             'trigger'                    => $trigger ? 'event' : 'enter',
             'type'                       => $type,
             'sort_order'                 => $position,
-            'is_active'                  => false,
+            // Maßnahmen, die ohne weitere Angaben gültig sind (z.B. "Springen zu: nächster Schritt"), sind sofort aktiv;
+            // alle anderen (z.B. E-Mail ohne Empfänger) werden erst durch Speichern im Editor aktiv.
+            'is_active'                  => empty($actionType->validate($actionType->defaultConfig())),
             'config'                     => $actionType->defaultConfig(),
         ]);
 

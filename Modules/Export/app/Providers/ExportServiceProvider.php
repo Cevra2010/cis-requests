@@ -51,13 +51,6 @@ class ExportServiceProvider extends ModuleServiceProvider
                 ->setRoute('export.templates')
                 ->setParent('modules')
                 ->setPriority(20);
-
-            $menu->registerEntry('export-transfer')
-                ->setText('Import / Export')
-                ->setRoute('export.transfer')
-                ->setParent('modules')
-                ->setPriority(21)
-                ->setVisible(fn () => auth()->user()?->hasPermission('export.transfer') ?? false);
         }, module: 'Export');
     }
 }

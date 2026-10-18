@@ -31,7 +31,8 @@ return new class extends Migration
 
         DB::table('projects')->whereNotNull('due_date')->get(['cis_row_id', 'due_date'])->each(function ($p) {
             DB::table('projects')->where('cis_row_id', $p->cis_row_id)->update([
-                'tender_ends_at' => Carbon::parse($p->due_date)->setTime(23, 59, 0)->format('Y-m-d H:i:s'),
+                // 23:59 Uhr Ortszeit des Fälligkeitstags, intern als UTC gespeichert (siehe App\Casts\LocalDateTime).
+                'tender_ends_at' => Carbon::parse($p->due_date, config('app.display_timezone'))->setTime(23, 59, 0)->utc()->format('Y-m-d H:i:s'),
             ]);
         });
 

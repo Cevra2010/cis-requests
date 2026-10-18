@@ -5,7 +5,7 @@ namespace Modules\Export\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Support\DocumentNaming;
 use Modules\Export\Models\ExportTemplate;
-use Modules\Export\Services\Datasets\ProductDataset;
+use Modules\Export\Services\Datasets\Datasets;
 use Modules\Export\Services\ExportFileBuilder;
 
 class DataTransferController extends Controller
@@ -19,10 +19,10 @@ class DataTransferController extends Controller
         abort_unless($template->hasUsage('data_transfer'), 404);
         abort_if($template->columns->isEmpty(), 422, 'Diese Vorlage hat noch keine Spalten.');
 
-        $data = match ($template->dataset) {
-            ProductDataset::KEY => app(ProductDataset::class)->build($template),
-            default             => abort(404),
-        };
+        $dataset = Datasets::find($template->dataset);
+        abort_unless($dataset && $dataset->available(), 404);
+
+        $data = $dataset->build($template);
 
         $content  = $builder->build($data['headers'], $data['rows'], $format, $template->name, $data['import_key_index']);
         $filename = DocumentNaming::downloadFilename($template->name, $format);

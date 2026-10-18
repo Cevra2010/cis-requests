@@ -2,6 +2,8 @@
 
 namespace Modules\Export\Services;
 
+use Modules\Export\Models\ExportTemplate;
+
 /**
  * Zentrale Liste der Datenfelder, die beim Erstellen einer Export-Vorlage
  * als Spalte ausgewählt werden können. Jedes Feld gibt an, in welchen
@@ -19,6 +21,11 @@ class ExportFieldRegistry
     /** Herkunft der Felder (Datenbereich), in Anzeigereihenfolge. */
     public const ORIGINS = [
         'project_material' => 'Projekte (Materialausschreibung)',
+        'projects'         => 'Projekte',
+        'users'            => 'Benutzer',
+        'roles'            => 'Rollen',
+        'groups'           => 'Gruppen',
+        'lager'            => 'Lager',
         'products'         => 'Produkte',
         'categories'       => 'Kategorien',
         'sources'          => 'Quellen',
@@ -61,36 +68,31 @@ class ExportFieldRegistry
         'unit_price'   => 'Einzelpreis',
     ];
 
-    /** Felder je Datengrundlage (siehe ExportTemplate::DATASETS) – Schlüssel ist die Datengrundlage. */
+    /** Felder je Datengrundlage (siehe ExportTemplate::datasets()): Projekt-Positionen oder ein Systemdatensatz. */
     public static function fieldsOf(string $dataset): array
     {
-        return match ($dataset) {
-            'products' => Datasets\ProductDataset::FIELDS,
-            default    => self::FIELDS,
-        };
+        return $dataset === ExportTemplate::PROJECT_DATASET
+            ? self::FIELDS
+            : (Datasets\Datasets::find($dataset)?->fields() ?? []);
     }
 
     private static function definition(string $key): ?array
     {
-        return self::FIELDS[$key] ?? Datasets\ProductDataset::FIELDS[$key] ?? null;
+        if (isset(self::FIELDS[$key])) {
+            return self::FIELDS[$key];
+        }
+        foreach (Datasets\Datasets::all() as $dataset) {
+            if (isset($dataset->fields()[$key])) {
+                return $dataset->fields()[$key];
+            }
+        }
+
+        return null;
     }
 
     public static function label(string $key): string
     {
         return self::definition($key)['label'] ?? $key;
-    }
-
-    /** Flaches key => label, beschränkt auf die für diese Phase sinnvollen Felder (z.B. für ein Auswahl-Dropdown). */
-    public static function fieldsForPhase(string $phase): array
-    {
-        $result = [];
-        foreach (self::FIELDS as $key => $field) {
-            if (in_array($phase, $field['phases'], true)) {
-                $result[$key] = $field['label'];
-            }
-        }
-
-        return $result;
     }
 
     public static function originLabel(string $key): string
