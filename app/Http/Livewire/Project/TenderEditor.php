@@ -14,7 +14,15 @@ use Nwidart\Modules\Facades\Module;
 
 class TenderEditor extends Component
 {
-    use RespectsProjectLock;
+    use RespectsProjectLock {
+        assertEditable as protected assertEditableScope;
+    }
+
+    /** Der Ausschreibungstext hängt am Bereich "Ausschreibung fixiert" (nicht an der Produkt-Fixierung). */
+    protected function assertEditable(string $projectId, string $scope = 'tender'): bool
+    {
+        return $this->assertEditableScope($projectId, $scope);
+    }
 
     public string $projectId;
 
@@ -45,7 +53,7 @@ class TenderEditor extends Component
         $validation = $this->computeValidation($blocks);
 
         $project = Project::where('cis_row_id', $this->projectId)->first();
-        $canEdit = $project?->isEditableBy(auth()->user()) ?? true;
+        $canEdit = $project?->isEditable('tender') ?? true;
 
         $estimate = $project?->costEstimate() ?? ['total' => 0.0, 'positions_count' => 0, 'missing_count' => 0, 'fixed' => false];
 

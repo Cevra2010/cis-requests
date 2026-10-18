@@ -1,4 +1,12 @@
 <div>
+    @if($offersFixed)
+    <div class="mb-4 px-4 py-2.5 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-700 flex items-center gap-2">
+        <i class="fa fa-lock"></i>
+        Die Angebote sind fixiert. Preise und Angebote können nicht mehr geändert werden.
+    </div>
+    @endif
+
+    <fieldset @disabled($offersFixed) class="contents">
     <div class="flex items-center justify-between mb-4">
         <div>
             <h2 class="text-base font-semibold text-gray-800">Angebote vergleichen</h2>
@@ -421,4 +429,5 @@
         </div>
     </div>
     @endif
+    </fieldset>
 </div>

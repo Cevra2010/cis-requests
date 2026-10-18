@@ -180,7 +180,8 @@ class Project extends Model
         if (! $this->workflow()->canApprove($this->currentStep(), $user)) {
             return false;
         }
-        $willUnlock = $this->isLocked() && ! $this->workflow()->isLocked($previous->code);
+        // Öffnet das Zurücksetzen irgendeine Fixierung (Produkte, Ausschreibung, Angebote, Bestellung) wieder, braucht es das Aufheben-Recht.
+        $willUnlock = ! empty($this->workflow()->fixationChange($this->status_code, $previous->code)['opened']);
 
         return ! $willUnlock || $this->canOverrideLock($user);
     }
@@ -429,12 +430,30 @@ class Project extends Model
     }
 
     // ── Ausschreibungs-Fixierung ─────────────────────────────────────────────
-    // Die Fixierung hängt am Status (siehe WorkflowStepKinds::MILESTONE_LOCK) –
+    // Die Fixierung hängt am Status (siehe FixationAction: ab dem Schritt mit der Fixierungs-Maßnahme) –
     // tender_locked_at/_by werden automatisch beim Statuswechsel gepflegt (siehe booted()).
 
     public function isLocked(): bool
     {
         return self::codeIsLocked($this->status_code, $this->type ?: 'product');
+    }
+
+    /** Ist der Bereich (products|tender|offers|awarding) auf dem aktuellen Schritt fixiert? Siehe FixationAction. */
+    public function isFixed(string $scope): bool
+    {
+        return $this->workflow()->isFixed($this->status_code, $scope);
+    }
+
+    /** @return string[] aktuell fixierte Bereiche in logischer Reihenfolge */
+    public function fixedScopes(): array
+    {
+        return $this->workflow()->fixedScopesAt($this->status_code);
+    }
+
+    /** Darf der Bereich gerade bearbeitet werden? Fixiert heißt für ALLE gesperrt. */
+    public function isEditable(string $scope): bool
+    {
+        return ! $this->isFixed($scope);
     }
 
     public function lockedByUser(): ?User
@@ -450,7 +469,7 @@ class Project extends Model
      */
     public function isEditableBy(?User $user): bool
     {
-        return ! $this->isLocked();
+        return $this->isEditable('products');
     }
 
     // ── Preis-Fixierung ──────────────────────────────────────────────────────

@@ -19,6 +19,9 @@ interface WorkflowActionType
 
     public function icon(): string;
 
+    /** Hat die Maßnahme Einstellungen, die im Maßnahmen-Editor bearbeitet werden (sonst ist sie eine reine Markierung)? */
+    public function editable(): bool;
+
     /** Blade-View mit den typspezifischen Feldern im Maßnahmen-Editor (siehe ActionEditor). */
     public function editorView(): string;
 

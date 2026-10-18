@@ -38,6 +38,11 @@ class EmailAction implements WorkflowActionType
         return 'envelope';
     }
 
+    public function editable(): bool
+    {
+        return true;
+    }
+
     public function editorView(): string
     {
         return 'livewire.workflow.actions.email-fields';

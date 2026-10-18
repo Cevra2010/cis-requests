@@ -64,6 +64,21 @@ class WorkflowDefaults
                 'default_tab'   => $step['default_tab'],
             ]);
 
+            // Wie bisher: ab "Ausschreibung" sind Produkte und Ausschreibungstext fixiert (siehe FixationAction).
+            if ($step['kind'] === 'tender' && Schema::hasTable('workflow_actions')) {
+                // Fahrzeugausschreibungen haben keinen Ausschreibungstext – dort entfällt "Ausschreibung fixiert".
+                foreach (($projectType === 'vehicle' ? ['products'] : ['products', 'tender']) as $order => $scope) {
+                    WorkflowAction::create([
+                        'cis_row_id_workflow_status' => $status->cis_row_id,
+                        'trigger'                    => 'enter',
+                        'type'                       => 'fix_' . $scope,
+                        'sort_order'                 => $order,
+                        'is_active'                  => true,
+                        'config'                     => [],
+                    ]);
+                }
+            }
+
             if ($legacyFlag && $step['jump_on_tender_end']) {
                 \Illuminate\Support\Facades\DB::table('workflow_statuses')->where('cis_row_id', $status->cis_row_id)->update(['auto_advance_on_due' => true]);
             }
@@ -110,7 +125,7 @@ class WorkflowDefaults
             return $status;
         });
 
-        return new WorkflowDefinition($steps, collect());
+        return new WorkflowDefinition($steps, collect(), ['products' => 'tender', 'tender' => 'tender']);
     }
 
     /**

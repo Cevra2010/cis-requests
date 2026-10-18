@@ -75,11 +75,12 @@
                         <i class="fa fa-truck-fast"></i> Fahrzeugausschreibung
                     </span>
                 @endif
-                @if($project->isLocked())
-                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">
-                        <i class="fa fa-lock"></i> Fixiert
+                @foreach($project->fixedScopes() as $fixedScope)
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700"
+                          title="{{ \App\Services\Workflow\Actions\FixationAction::SCOPES[$fixedScope]['detail'] }}">
+                        <i class="fa fa-lock"></i> {{ \App\Services\Workflow\Actions\FixationAction::SCOPES[$fixedScope]['label'] }}
                     </span>
-                @endif
+                @endforeach
             </div>
             <h1 class="text-xl font-semibold text-gray-900">{{ $project->name }}</h1>
             @if($project->description)

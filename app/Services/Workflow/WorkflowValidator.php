@@ -73,6 +73,67 @@ class WorkflowValidator
         return array_values(array_unique($errors));
     }
 
+    /**
+     * Prüft die Fixierungs-Maßnahmen (siehe FixationAction) gegen eine Schrittfolge: jede Fixierung höchstens einmal, in der
+     * logischen Reihenfolge Produkte → Ausschreibung → Angebote → Bestellung und nur dort, wo der Bereich überhaupt existiert.
+     *
+     * @param array<int, array{kind:string, label:string, scopes:string[]}> $orderedSteps
+     * @return string[]
+     */
+    public static function fixationErrors(array $orderedSteps, string $projectType): array
+    {
+        $labels    = array_map(fn ($s) => $s['label'], Actions\FixationAction::SCOPES);
+        $errors    = [];
+        $positions = [];
+
+        foreach ($orderedSteps as $i => $step) {
+            foreach ($step['scopes'] as $scope) {
+                if (isset($positions[$scope])) {
+                    $errors[] = '„' . $labels[$scope] . '“ gibt es schon beim Schritt „' . $orderedSteps[$positions[$scope]]['label'] . '“ – jede Fixierung darf nur einmal im Workflow vorkommen.';
+                    continue;
+                }
+                $positions[$scope] = $i;
+            }
+        }
+
+        $firstWith = function (string $milestone) use ($orderedSteps) {
+            foreach ($orderedSteps as $i => $step) {
+                if (WorkflowStepKinds::hasMilestone($step['kind'], $milestone)) {
+                    return $i;
+                }
+            }
+
+            return null;
+        };
+
+        if (isset($positions['tender']) && $projectType === 'vehicle') {
+            $errors[] = 'Fahrzeugausschreibungen haben keinen Ausschreibungstext – „' . $labels['tender'] . '“ ist dort nicht möglich.';
+        }
+        foreach (['offers' => WorkflowStepKinds::MILESTONE_OFFERS, 'awarding' => WorkflowStepKinds::MILESTONE_AWARDING] as $scope => $milestone) {
+            if (! isset($positions[$scope])) {
+                continue;
+            }
+            $from = $firstWith($milestone);
+            if ($from === null || $positions[$scope] < $from) {
+                $errors[] = '„' . $labels[$scope] . '“ ist erst ab dem Schritt „' . ($from !== null ? $orderedSteps[$from]['label'] : '?') . '“ möglich – vorher gibt es dazu noch nichts zu fixieren.';
+            }
+        }
+
+        $highest = null;
+        foreach (array_keys(Actions\FixationAction::SCOPES) as $scope) {
+            if (! isset($positions[$scope])) {
+                continue;
+            }
+            if ($highest !== null && $positions[$scope] < $positions[$highest]) {
+                $errors[] = '„' . $labels[$scope] . '“ darf nicht vor „' . $labels[$highest] . '“ stehen.';
+                continue;
+            }
+            $highest = $scope;
+        }
+
+        return array_values(array_unique($errors));
+    }
+
     /** @return string[] */
     public static function warnings(WorkflowStatus $status): array
     {

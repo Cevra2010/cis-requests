@@ -1,4 +1,12 @@
 <div>
+    @if($awardingFixed)
+    <div class="mb-4 px-4 py-2.5 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-700 flex items-center gap-2">
+        <i class="fa fa-lock"></i>
+        Die Bestellung ist fixiert. Die Zuordnung kann nicht mehr geändert werden.
+    </div>
+    @endif
+
+    <fieldset @disabled($awardingFixed) class="contents">
     <div class="flex items-center justify-between mb-4">
         <div>
             <h2 class="text-base font-semibold text-gray-800">Zuordnung & Bestelllisten</h2>
@@ -316,4 +324,5 @@
         @endforeach
     </div>
     @endif
+    </fieldset>
 </div>

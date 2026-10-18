@@ -37,7 +37,7 @@
                         @else
                             {{ $i + 1 }}
                         @endif
-                        @if($step->hasMilestone(\App\Services\Workflow\WorkflowStepKinds::MILESTONE_LOCK))
+                        @if(! empty($wizard->stepFixations[$step->code] ?? []))
                             <span class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-indigo-500 text-white text-[7px] flex items-center justify-center">
                                 <i class="fa fa-lock"></i>
                             </span>
@@ -97,7 +97,7 @@
                     <button type="button"
                             @if($wizard->canAdvance) @click="pending = 'advance'; confirmOpen = true" @else disabled @endif
                             class="btn btn-primary btn-sm {{ ! $wizard->canAdvance ? 'opacity-40 cursor-not-allowed' : '' }}">
-                        @if($wizard->nextCrossesLock)<i class="fa fa-lock mr-1.5"></i>Ausschreibung starten & fixieren
+                        @if(! empty($wizard->nextFixes))<i class="fa fa-lock mr-1.5"></i>Weiter: {{ $wizard->next->label }}
                         @else Weiter: {{ $wizard->next->label }}<i class="fa fa-arrow-right ml-1.5"></i>
                         @endif
                     </button>
@@ -123,17 +123,19 @@
             <template x-if="pending === 'advance'">
                 <div>
                     <div class="flex items-center gap-2 mb-2">
-                        @if($wizard->nextCrossesLock)
+                        @if(! empty($wizard->nextFixes))
                             <i class="fa fa-lock text-indigo-500"></i>
-                            <h3 class="text-base font-semibold text-gray-900">Ausschreibung fixieren?</h3>
+                            <h3 class="text-base font-semibold text-gray-900">Fixieren und weiter?</h3>
                         @else
                             <i class="fa fa-arrow-right text-primary-500"></i>
                             <h3 class="text-base font-semibold text-gray-900">Status ändern?</h3>
                         @endif
                     </div>
                     <p class="text-sm text-gray-500">
-                        @if($wizard->nextCrossesLock)
-                            Produkte und Ausschreibungstext sind danach für alle gesperrt, bis die Fixierung durch Zurücksetzen des Status wieder aufgehoben wird.
+                        @if(! empty($wizard->nextFixes))
+                            Mit „{{ $wizard->next?->label }}“ werden fixiert:
+                            <strong>{{ collect($wizard->nextFixes)->map(fn ($s) => \App\Services\Workflow\Actions\FixationAction::what($s))->join(', ') }}</strong>.
+                            Sie sind danach für alle gesperrt, bis die Fixierung durch Zurücksetzen des Status wieder aufgehoben wird.
                         @else
                             Status wird auf „{{ $wizard->next?->label }}“ gesetzt.
                         @endif
@@ -160,7 +162,10 @@
                     </div>
                     <p class="text-sm text-gray-500">
                         Status wird zurück auf „{{ $wizard->previous?->label }}“ gesetzt.
-                        @if($wizard->prevUnlocks) Die Fixierung wird dadurch aufgehoben. @endif
+                        @if(! empty($wizard->prevOpens))
+                            Dadurch werden wieder bearbeitbar:
+                            <strong>{{ collect($wizard->prevOpens)->map(fn ($s) => \App\Services\Workflow\Actions\FixationAction::what($s))->join(', ') }}</strong>.
+                        @endif
                     </p>
                 </div>
             </template>

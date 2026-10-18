@@ -182,12 +182,12 @@ class ProjectController extends Controller
         abort_unless($next, 404);
         abort_unless($p->canAdvanceStatus(auth()->user()), 403);
 
-        $willLock = ! $p->isLocked() && Project::codeIsLocked($next->code, $p->type ?: 'product');
+        $fixed = $p->workflow()->fixationChange($p->status_code, $next->code)['fixed'];
 
         $p->advanceStatus();
 
-        $message = $willLock
-            ? 'Ausschreibung wurde fixiert. Produkte und Ausschreibungstext sind jetzt gesperrt.'
+        $message = $fixed
+            ? 'Fixiert und gesperrt: ' . collect($fixed)->map(fn ($s) => \App\Services\Workflow\Actions\FixationAction::what($s))->join(', ') . '. Status: "' . $next->label . '".'
             : 'Status wurde auf "' . $next->label . '" gesetzt.';
 
         session()->flash('success', $message);
@@ -201,12 +201,12 @@ class ProjectController extends Controller
         abort_unless($prev, 404);
         abort_unless($p->canRevertStatus(auth()->user()), 403);
 
-        $willUnlock = $p->isLocked() && ! Project::codeIsLocked($prev->code, $p->type ?: 'product');
+        $opened = $p->workflow()->fixationChange($p->status_code, $prev->code)['opened'];
 
         $p->revertStatus();
 
-        $message = $willUnlock
-            ? 'Fixierung wurde aufgehoben. Produkte und Ausschreibungstext sind wieder bearbeitbar.'
+        $message = $opened
+            ? 'Fixierung aufgehoben, wieder bearbeitbar: ' . collect($opened)->map(fn ($s) => \App\Services\Workflow\Actions\FixationAction::what($s))->join(', ') . '. Status: "' . $prev->label . '".'
             : 'Status wurde auf "' . $prev->label . '" zurückgesetzt.';
 
         session()->flash('success', $message);

@@ -22,8 +22,12 @@ class ProjectWorkflowView
         public ?WorkflowStatus $previous,
         public bool $canAdvance,
         public bool $canRevert,
-        public bool $nextCrossesLock,
-        public bool $prevUnlocks,
+        /** @var string[] Bereiche, die das Weiterschalten neu fixiert (siehe FixationAction::SCOPES) */
+        public array $nextFixes,
+        /** @var string[] Bereiche, die das Zurücksetzen wieder öffnet */
+        public array $prevOpens,
+        /** @var array<string, string[]> Schritt-Code => Bereiche, die dieser Schritt per Maßnahme fixiert (für die Schloss-Markierung im Stepper) */
+        public array $stepFixations,
         public array $advanceBlockedReasons,
         public array $revertBlockedReasons,
         /** @var array<int, array{when: \Carbon\CarbonInterface, event: string, actions: string[]}> */
@@ -41,17 +45,12 @@ class ProjectWorkflowView
         $previous = $project->previousStep();
 
         $canAdvance      = $next !== null && $workflow->canApprove($next, $user);
-        $nextCrossesLock = $next !== null
-            && ! $workflow->isLocked($project->status_code)
-            && $workflow->isLocked($next->code);
-
-        $prevUnlocks = $previous !== null
-            && $workflow->isLocked($project->status_code)
-            && ! $workflow->isLocked($previous->code);
+        $nextFixes = $next !== null ? $workflow->fixationChange($project->status_code, $next->code)['fixed'] : [];
+        $prevOpens = $previous !== null ? $workflow->fixationChange($project->status_code, $previous->code)['opened'] : [];
 
         $canRevert = $previous !== null
             && $workflow->canApprove($current, $user)
-            && (! $prevUnlocks || $workflow->canOverrideLock($user));
+            && (empty($prevOpens) || $workflow->canOverrideLock($user));
 
         $advanceBlockedReasons = [];
         if ($next && ! $canAdvance) {
@@ -63,7 +62,7 @@ class ProjectWorkflowView
             if (! $workflow->canApprove($current, $user)) {
                 $revertBlockedReasons[] = 'Freigabe erforderlich durch: ' . implode(', ', $workflow->approverLabels($current)) . '.';
             }
-            if ($prevUnlocks && ! $workflow->canOverrideLock($user)) {
+            if (! empty($prevOpens) && ! $workflow->canOverrideLock($user)) {
                 $revertBlockedReasons[] = 'Aufheben der Fixierung erfordert: ' . implode(', ', $workflow->lockOverrideLabels()) . '.';
             }
         }
@@ -92,8 +91,9 @@ class ProjectWorkflowView
             previous: $previous,
             canAdvance: $canAdvance,
             canRevert: $canRevert,
-            nextCrossesLock: $nextCrossesLock,
-            prevUnlocks: $prevUnlocks,
+            nextFixes: $nextFixes,
+            prevOpens: $prevOpens,
+            stepFixations: $workflow->steps()->mapWithKeys(fn (WorkflowStatus $s) => [$s->code => $workflow->fixationsCarriedBy($s->code)])->all(),
             advanceBlockedReasons: $advanceBlockedReasons,
             revertBlockedReasons: $revertBlockedReasons,
             scheduled: self::scheduledTriggers($project, $current),

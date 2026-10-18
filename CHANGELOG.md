@@ -4,6 +4,12 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.16.0.0 — 2026-10-18
+- Workflow: Fixierungen sind jetzt Maßnahmen. Neue Maßnahmen „Produkte fixiert“, „Ausschreibung fixiert“, „Angebote fixiert“ und „Bestellung fixiert“ werden im Workflow-Manager auf eine Schritt-Karte („Beim Erreichen“) gezogen: ab diesem Schritt ist der jeweilige Bereich für alle gesperrt – auch für Administratoren. Bestehende Workflows verhalten sich unverändert (der Schritt „Ausschreibung“ trägt „Produkte fixiert“ und „Ausschreibung fixiert“)
+- Neu: Angebote (Angebotsvergleich, Preise, Import) und Bestellung (Zuordnung) lassen sich fixieren; ein fixierter Bereich ist in der Projektansicht schreibgeschützt. Der Projektkopf zeigt, welche Bereiche fixiert sind
+- Beim Zurücksetzen des Status öffnen sich Fixierungen, die der verlassene Schritt eingeführt hat, von selbst wieder (das Aufheben erfordert weiterhin das Recht „Fixierung aufheben“); der Bestätigungsdialog nennt, was fixiert bzw. wieder geöffnet wird. Nur logische Fixierungen sind möglich: jede höchstens einmal, in der Reihenfolge Produkte → Ausschreibung → Angebote → Bestellung, „Angebote fixiert“/„Bestellung fixiert“ erst ab dem Schritt, der sie freischaltet, „Ausschreibung fixiert“ nicht bei Fahrzeugausschreibungen
+- Im Workflow-Manager zeigt jede Karte, was ab ihr fixiert ist, und – im Schritt davor – welche Maßnahmen beim Weiterschalten ausgeführt werden
+
 ## 0.15.2.0 — 2026-10-18
 - Workflow-Manager neu gestaltet: der Projektverlauf wird als Ablaufdiagramm von links nach rechts dargestellt – Start, Schritt-Karten mit Nummer und Farbe, durch Linien und Pfeile verbunden, bis zum Ende. Bausteine (Schritte, Trigger, Maßnahmen) stehen als Leiste über dem Diagramm; die Details des gewählten Schritts (Grunddaten, Freigabe, Tabs verbergen) darunter. Jede Karte zeigt zusätzlich, welche Maßnahmen beim Weiterschalten auf den nächsten Schritt ausgeführt werden
 

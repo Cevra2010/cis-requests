@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Events\WorkflowEventOccurred;
 use App\Listeners\RunWorkflowTriggers;
 use App\Services\Workflow\Actions\EmailAction;
+use App\Services\Workflow\Actions\FixationAction;
 use App\Services\Workflow\Actions\GotoStepAction;
 use App\Services\Workflow\Events\TenderEndedEvent;
 use App\Services\Workflow\Events\TenderStartedEvent;
@@ -28,6 +29,9 @@ class AppServiceProvider extends ServiceProvider
         // analog im jeweiligen Modul-ServiceProvider (läuft dann nur bei aktivem Modul).
         WorkflowActionTypes::register(new EmailAction());
         WorkflowActionTypes::register(new GotoStepAction());
+        foreach (array_keys(FixationAction::SCOPES) as $scope) {
+            WorkflowActionTypes::register(new FixationAction($scope));
+        }
 
         // Workflow-Ereignisse (Trigger): Core-Arten hier, weitere in den Modul-ServiceProvidern.
         WorkflowEventTypes::register(new TenderStartedEvent());

@@ -7,6 +7,7 @@ use App\Models\WorkflowAction;
 use App\Models\WorkflowApprover;
 use App\Models\WorkflowStatus;
 use App\Models\WorkflowTrigger;
+use App\Services\Workflow\Actions\FixationAction;
 use App\Services\Workflow\Actions\WorkflowActionTypes;
 use App\Services\Workflow\Events\WorkflowEventTypes;
 use App\Services\Workflow\WorkflowColors;
@@ -248,6 +249,9 @@ class WorkflowEditor extends Component
         $candidate = collect($orderedIds)->map(fn ($id) => ['kind' => $steps[$id]->kind ?? 'custom'])->all();
 
         $errors = WorkflowValidator::errors($candidate);
+        if (empty($errors)) {
+            $errors = WorkflowValidator::fixationErrors($this->fixationSteps($orderedIds), $this->projectType);
+        }
         if (! empty($errors)) {
             $this->error = $errors[0];
             return;
@@ -344,6 +348,21 @@ class WorkflowEditor extends Component
             return;
         }
 
+        // Fixierungen gelten ab dem Erreichen eines Schritts – an einem Trigger hätten sie keinen Sinn – und müssen logisch passen.
+        $scope = FixationAction::scopeOf($type);
+        if ($scope !== null) {
+            if ($triggerId) {
+                $this->error = 'Fixierungen gelten ab dem Erreichen eines Schritts und lassen sich nicht an einen Trigger hängen.';
+                return;
+            }
+            $errors = WorkflowValidator::fixationErrors($this->fixationSteps(null, $step->cis_row_id, $scope), $this->projectType);
+            if (! empty($errors)) {
+                $this->error = $errors[0];
+                return;
+            }
+        }
+        $this->error = null;
+
         // Ohne Trigger: Maßnahme beim Erreichen des Schritts; mit Trigger: Maßnahme dieses Triggers.
         $trigger = $triggerId
             ? WorkflowTrigger::where('cis_row_id', $triggerId)->where('cis_row_id_workflow_status', $step->cis_row_id)->first()
@@ -373,7 +392,36 @@ class WorkflowEditor extends Component
             'config'                     => $actionType->defaultConfig(),
         ]);
 
-        $this->dispatch('edit-workflow-action', id: $action->cis_row_id);
+        if ($actionType->editable()) {
+            $this->dispatch('edit-workflow-action', id: $action->cis_row_id);
+        }
+    }
+
+    /**
+     * Schrittfolge mit den (aktiven) Fixierungs-Maßnahmen je Schritt für WorkflowValidator::fixationErrors() – optional in einer
+     * anderen Reihenfolge oder mit einer zusätzlich angenommenen Fixierung, um eine Änderung vor dem Speichern zu prüfen.
+     *
+     * @return array<int, array{kind:string, label:string, scopes:string[]}>
+     */
+    private function fixationSteps(?array $orderIds = null, ?string $addToStep = null, ?string $addScope = null): array
+    {
+        $steps = WorkflowStatus::where('project_type', $this->projectType)->orderBy('sort_order')->with('actions')->get()->keyBy('cis_row_id');
+        $order = $orderIds ?? $steps->keys()->all();
+
+        $result = [];
+        foreach ($order as $id) {
+            $step = $steps[$id] ?? null;
+            if (! $step) {
+                continue;
+            }
+            $scopes = $step->actions->where('is_active', true)->map(fn ($a) => FixationAction::scopeOf($a->type))->filter()->values()->all();
+            if ($id === $addToStep && $addScope !== null) {
+                $scopes[] = $addScope;
+            }
+            $result[] = ['kind' => $step->kind, 'label' => $step->label, 'scopes' => $scopes];
+        }
+
+        return $result;
     }
 
     /** Legt einen Trigger (Ereignis) an einem Schritt an; seine Maßnahmen werden danach hineingezogen. */
@@ -429,16 +477,33 @@ class WorkflowEditor extends Component
 
     public function editAction(string $actionId): void
     {
-        $this->dispatch('edit-workflow-action', id: $actionId);
+        $action = WorkflowAction::find($actionId);
+        if ($action && (WorkflowActionTypes::find($action->type)?->editable() ?? false)) {
+            $this->dispatch('edit-workflow-action', id: $actionId);
+        }
     }
 
     public function toggleActionActive(string $actionId): void
     {
         $this->authorizeManage();
         $action = WorkflowAction::find($actionId);
-        if ($action) {
-            $action->update(['is_active' => ! $action->is_active]);
+        if (! $action) {
+            return;
         }
+
+        // Das Aktivieren einer Fixierung muss wie das Anlegen logisch passen.
+        $scope = FixationAction::scopeOf($action->type);
+        if ($scope !== null && ! $action->is_active) {
+            $step   = WorkflowStatus::find($action->cis_row_id_workflow_status);
+            $errors = WorkflowValidator::fixationErrors($this->fixationSteps(null, $step?->cis_row_id, $scope), $this->projectType);
+            if (! empty($errors)) {
+                $this->error = $errors[0];
+                return;
+            }
+        }
+        $this->error = null;
+
+        $action->update(['is_active' => ! $action->is_active]);
     }
 
     public function deleteAction(string $actionId): void
@@ -475,6 +540,8 @@ class WorkflowEditor extends Component
             'selectedWarnings'      => $selectedWarnings,
             'actionTypes'           => WorkflowActionTypes::all(),
             'eventTypes'            => WorkflowEventTypes::all(),
+            'fixedByStep'           => $steps->mapWithKeys(fn ($s) => [$s->code => WorkflowRegistry::for($this->projectType)->fixedScopesAt($s->code)])->all(),
+            'fixationScopes'        => FixationAction::SCOPES,
             'lockOverrideApprovers' => $lockOverrideApprovers,
             'projectTypes'          => Project::TYPES,
             'tabs'                  => WorkflowDefaults::TABS,

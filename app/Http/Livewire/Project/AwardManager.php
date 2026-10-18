@@ -9,10 +9,12 @@ use App\Models\PositionAward;
 use App\Models\Project;
 use App\Services\AwardCalculator;
 use Livewire\Attributes\On;
+use App\Http\Livewire\Concerns\RespectsProjectLock;
 use Livewire\Component;
 
 class AwardManager extends Component
 {
+    use RespectsProjectLock;
     public string $projectId;
 
     public function mount(string $projectId): void
@@ -72,20 +74,30 @@ class AwardManager extends Component
             ];
         })->filter(fn ($s) => $s['count'] > 0);
 
+        $awardingFixed = $project->isFixed('awarding');
+
         return view('livewire.project.award-manager', compact(
             'project', 'positions', 'internalPositions', 'stockSourcedPositions', 'offers', 'conflicts', 'summaries',
-            'childPositions', 'childAwards', 'childOfferItems'
+            'childPositions', 'childAwards', 'childOfferItems', 'awardingFixed'
         ));
     }
 
     public function computeSuggestions(): void
     {
+        if (! $this->assertEditable($this->projectId, 'awarding')) {
+            return;
+        }
+
         $project = Project::where('cis_row_id', $this->projectId)->firstOrFail();
         AwardCalculator::recomputeAll($project);
     }
 
     public function assignManual(string $positionId, string $offerId): void
     {
+        if (! $this->assertEditable($this->projectId, 'awarding')) {
+            return;
+        }
+
         $project = Project::where('cis_row_id', $this->projectId)->firstOrFail();
 
         PositionAward::updateOrCreate(
@@ -100,6 +112,10 @@ class AwardManager extends Component
 
     public function resetToSuggestion(string $positionId): void
     {
+        if (! $this->assertEditable($this->projectId, 'awarding')) {
+            return;
+        }
+
         $award = PositionAward::where('cis_row_id_project_product', $positionId)->first();
         $position = \App\Models\ProjectProduct::find($positionId);
 
@@ -113,6 +129,10 @@ class AwardManager extends Component
 
     public function assignManualChild(string $productId, string $offerId): void
     {
+        if (! $this->assertEditable($this->projectId, 'awarding')) {
+            return;
+        }
+
         $project = Project::where('cis_row_id', $this->projectId)->firstOrFail();
 
         ChildPositionAward::updateOrCreate(
@@ -129,6 +149,10 @@ class AwardManager extends Component
 
     public function resetChildToSuggestion(string $productId): void
     {
+        if (! $this->assertEditable($this->projectId, 'awarding')) {
+            return;
+        }
+
         $project = Project::where('cis_row_id', $this->projectId)->firstOrFail();
 
         $award = ChildPositionAward::where('cis_row_id_project', $project->cis_row_id)
@@ -144,6 +168,10 @@ class AwardManager extends Component
 
     public function excludeOffer(string $offerId): void
     {
+        if (! $this->assertEditable($this->projectId, 'awarding')) {
+            return;
+        }
+
         $offer = Offer::findOrFail($offerId);
         $offer->update(['active' => false]);
         AwardCalculator::reassignAfterDeactivation($offer);
@@ -151,16 +179,28 @@ class AwardManager extends Component
 
     public function reactivateOffer(string $offerId): void
     {
+        if (! $this->assertEditable($this->projectId, 'awarding')) {
+            return;
+        }
+
         Offer::where('cis_row_id', $offerId)->update(['active' => true]);
     }
 
     public function ignoreMinValue(string $offerId): void
     {
+        if (! $this->assertEditable($this->projectId, 'awarding')) {
+            return;
+        }
+
         Offer::where('cis_row_id', $offerId)->update(['min_value_ignored' => true]);
     }
 
     public function respectMinValue(string $offerId): void
     {
+        if (! $this->assertEditable($this->projectId, 'awarding')) {
+            return;
+        }
+
         Offer::where('cis_row_id', $offerId)->update(['min_value_ignored' => false]);
     }
 }

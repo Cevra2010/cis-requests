@@ -62,7 +62,7 @@
             <div>
                 <h3 class="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1.5">Maßnahmen <span class="normal-case font-normal">– auf eine Karte oder einen Trigger ziehen</span></h3>
                 <div class="js-action-palette flex flex-wrap gap-1.5" x-data="workflowActionPalette()" x-init="init()">
-                    @forelse($actionTypes as $type)
+                    @forelse(collect($actionTypes)->reject(fn ($t) => $t instanceof \App\Services\Workflow\Actions\FixationAction) as $type)
                         <div data-action-type="{{ $type->key() }}"
                              class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs border border-dashed border-gray-300 bg-white cursor-grab hover:bg-gray-50 text-gray-700">
                             <i class="fa fa-{{ $type->icon() }} text-gray-400 text-[10px] shrink-0"></i>{{ $type->label() }}
@@ -70,6 +70,18 @@
                     @empty
                         <p class="text-xs text-gray-400 italic">Keine Maßnahmenarten verfügbar.</p>
                     @endforelse
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1.5">Fixierungen <span class="normal-case font-normal">– nur auf eine Karte („Beim Erreichen“): gilt ab diesem Schritt</span></h3>
+                <div class="js-action-palette flex flex-wrap gap-1.5" x-data="workflowActionPalette()" x-init="init()">
+                    @foreach(collect($actionTypes)->filter(fn ($t) => $t instanceof \App\Services\Workflow\Actions\FixationAction) as $type)
+                        <div data-action-type="{{ $type->key() }}" title="{{ $fixationScopes[$type->scope()]['detail'] }}"
+                             class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs border border-dashed border-indigo-300 bg-indigo-50/50 cursor-grab hover:bg-indigo-50 text-indigo-700">
+                            <i class="fa fa-lock text-[10px] shrink-0"></i>{{ $type->label() }}
+                        </div>
+                    @endforeach
                 </div>
             </div>
         </div>
@@ -122,9 +134,6 @@
                                         <p class="text-sm font-semibold text-gray-800 truncate">{{ $step->label }}</p>
                                         <div class="flex items-center gap-1 flex-wrap mt-0.5">
                                             @if($step->isRequired())<span class="text-[9px] uppercase tracking-wide text-gray-400">Pflicht</span>@endif
-                                            @if($step->hasMilestone(\App\Services\Workflow\WorkflowStepKinds::MILESTONE_LOCK))
-                                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600"><i class="fa fa-lock mr-0.5"></i>Fixierung</span>
-                                            @endif
                                             @if($step->hasMilestone(\App\Services\Workflow\WorkflowStepKinds::MILESTONE_OFFERS))
                                                 <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">Angebote</span>
                                             @endif
@@ -155,6 +164,13 @@
                                         </button>
                                     </div>
                                 </div>
+
+                                @if(! empty($fixedByStep[$step->code] ?? []))
+                                    <p class="mt-2.5 text-[11px] text-indigo-600 bg-indigo-50 rounded-lg px-2 py-1 flex items-start gap-1.5">
+                                        <i class="fa fa-lock text-[10px] mt-0.5"></i>
+                                        <span>Fixiert: {{ collect($fixedByStep[$step->code])->map(fn ($s) => \App\Services\Workflow\Actions\FixationAction::what($s))->join(', ') }}</span>
+                                    </p>
+                                @endif
 
                                 <div class="mt-3 pt-2.5 border-t border-gray-100">
                                     <p class="text-[10px] uppercase tracking-wide text-gray-400 mb-1"><i class="fa fa-bolt mr-1"></i>Beim Erreichen</p>

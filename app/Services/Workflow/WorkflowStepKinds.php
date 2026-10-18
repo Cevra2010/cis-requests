@@ -13,7 +13,6 @@ use Nwidart\Modules\Facades\Module;
  */
 class WorkflowStepKinds
 {
-    public const MILESTONE_LOCK          = 'lock';
     public const MILESTONE_OFFERS        = 'offers';
     public const MILESTONE_AWARDING      = 'awarding';
     public const MILESTONE_GOODS_RECEIPT = 'goods_receipt';
@@ -30,7 +29,7 @@ class WorkflowStepKinds
         ],
         'tender' => [
             'label' => 'Ausschreibung', 'rank' => 30, 'required' => true,
-            'module' => null, 'milestones' => [self::MILESTONE_LOCK, self::MILESTONE_OFFERS],
+            'module' => null, 'milestones' => [self::MILESTONE_OFFERS],
             'color' => 'amber', 'default_tab' => 'angebote',
         ],
         'ready_for_evaluation' => [

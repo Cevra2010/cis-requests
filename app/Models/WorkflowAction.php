@@ -23,6 +23,13 @@ class WorkflowAction extends Model
         'config'     => 'array',
     ];
 
+    protected static function booted(): void
+    {
+        // Fixierungs-Maßnahmen bestimmen die Sperren aller Projekte – der Workflow-Cache muss dann neu aufgebaut werden.
+        static::saved(fn () => \App\Services\Workflow\WorkflowRegistry::flush());
+        static::deleted(fn () => \App\Services\Workflow\WorkflowRegistry::flush());
+    }
+
     public function status()
     {
         return $this->belongsTo(WorkflowStatus::class, 'cis_row_id_workflow_status', 'cis_row_id');

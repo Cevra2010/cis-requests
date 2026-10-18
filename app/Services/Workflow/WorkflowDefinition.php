@@ -18,10 +18,12 @@ class WorkflowDefinition
     /**
      * @param Collection<int, WorkflowStatus> $steps Strukturelle Reihenfolge, inkl. inaktiver Schritte.
      * @param Collection<int, WorkflowApprover> $lockOverrideApprovers
+     * @param array<string, string> $fixations Fixierungsbereich (siehe FixationAction::SCOPES) => Code des Schritts, ab dem er fixiert ist
      */
     public function __construct(
         protected Collection $steps,
         protected Collection $lockOverrideApprovers,
+        protected array $fixations = [],
     ) {
     }
 
@@ -79,16 +81,47 @@ class WorkflowDefinition
         return $this->steps->search(fn (WorkflowStatus $s) => $s->code === $code);
     }
 
-    public function isLocked(?string $code): bool
+    /**
+     * Ist der Bereich (products|tender|offers|awarding) auf diesem Schritt fixiert? Fixiert ist, wer auf oder hinter dem
+     * Schritt steht, der die Fixierungs-Maßnahme trägt – deshalb öffnet sich eine Fixierung beim Zurücksetzen von selbst wieder.
+     */
+    public function isFixed(?string $code, string $scope): bool
     {
-        $lockStep = $this->steps->first(fn (WorkflowStatus $s) => $s->hasMilestone(WorkflowStepKinds::MILESTONE_LOCK));
-        if (! $lockStep) {
+        $carrier = $this->fixations[$scope] ?? null;
+        if ($carrier === null) {
             return false;
         }
-        $lockIndex = $this->structuralIndex($lockStep->code);
-        $index     = $this->structuralIndex($code);
+        $carrierIndex = $this->structuralIndex($carrier);
+        $index        = $this->structuralIndex($code);
 
-        return $index !== false && $lockIndex !== false && $index >= $lockIndex;
+        return $index !== false && $carrierIndex !== false && $index >= $carrierIndex;
+    }
+
+    /** Produkte (inkl. Preisfixierung) fixiert? Die Standard-Frage "ist das Projekt gesperrt". */
+    public function isLocked(?string $code): bool
+    {
+        return $this->isFixed($code, 'products');
+    }
+
+    /** @return string[] alle auf diesem Schritt fixierten Bereiche in logischer Reihenfolge */
+    public function fixedScopesAt(?string $code): array
+    {
+        return array_values(array_filter(array_keys(Actions\FixationAction::SCOPES), fn (string $scope) => $this->isFixed($code, $scope)));
+    }
+
+    /** Bereiche, die genau diese Schrittfolge neu fixiert bzw. wieder öffnet. @return array{fixed: string[], opened: string[]} */
+    public function fixationChange(?string $fromCode, ?string $toCode): array
+    {
+        $from = $this->fixedScopesAt($fromCode);
+        $to   = $this->fixedScopesAt($toCode);
+
+        return ['fixed' => array_values(array_diff($to, $from)), 'opened' => array_values(array_diff($from, $to))];
+    }
+
+    /** Bereiche, die dieser Schritt selbst (per Maßnahme) fixiert. @return string[] */
+    public function fixationsCarriedBy(?string $code): array
+    {
+        return array_values(array_keys(array_filter($this->fixations, fn ($carrier) => $carrier === $code)));
     }
 
     /** Der Schritt, der diesen Meilenstein trägt (sofern sein Modul aktiv ist). */

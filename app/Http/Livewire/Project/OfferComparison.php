@@ -11,6 +11,7 @@ use App\Models\ProductSource;
 use App\Models\ProjectDocument;
 use App\Models\Project;
 use Livewire\Attributes\On;
+use App\Http\Livewire\Concerns\RespectsProjectLock;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Nwidart\Modules\Facades\Module;
@@ -18,6 +19,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class OfferComparison extends Component
 {
+    use RespectsProjectLock;
     use WithFileUploads;
 
     public string $projectId;
@@ -271,11 +273,13 @@ class OfferComparison extends Component
                 ->first()
             : null;
 
+        $offersFixed = $project->isFixed('offers');
+
         return view('livewire.project.offer-comparison', compact(
             'project', 'positions', 'offers', 'matrix', 'cheapestPerPosition', 'availableSources',
             'deviations', 'currentOffer', 'currentOfferIndex',
             'childPositions', 'childMatrix', 'cheapestPerChildPosition', 'reviewProgress',
-            'importableTemplates', 'currentOfferImportDocument'
+            'importableTemplates', 'currentOfferImportDocument', 'offersFixed'
         ));
     }
 
@@ -283,6 +287,10 @@ class OfferComparison extends Component
 
     public function openCreateModal(): void
     {
+        if (! $this->assertEditable($this->projectId, 'offers')) {
+            return;
+        }
+
         $this->showCreateModal = true;
         $this->newSourceId     = '';
         $this->newReference    = '';
@@ -291,6 +299,10 @@ class OfferComparison extends Component
 
     public function createOffer(): void
     {
+        if (! $this->assertEditable($this->projectId, 'offers')) {
+            return;
+        }
+
         $this->validate([
             'newSourceId' => 'required|string|exists:product_sources,cis_row_id',
         ]);
@@ -326,6 +338,10 @@ class OfferComparison extends Component
 
     public function saveItemPrice(string $offerId, string $positionId, $value): void
     {
+        if (! $this->assertEditable($this->projectId, 'offers')) {
+            return;
+        }
+
         $value = trim((string) $value);
         $price = $value === '' ? null : (float) str_replace(',', '.', $value);
 
@@ -352,6 +368,10 @@ class OfferComparison extends Component
 
     public function toggleNotOffered(string $offerId, string $positionId): void
     {
+        if (! $this->assertEditable($this->projectId, 'offers')) {
+            return;
+        }
+
         $item = OfferItem::where('cis_row_id_offer', $offerId)
             ->where('cis_row_id_project_product', $positionId)
             ->first();
@@ -372,6 +392,10 @@ class OfferComparison extends Component
      */
     public function toggleChecked(string $offerId, string $positionId): void
     {
+        if (! $this->assertEditable($this->projectId, 'offers')) {
+            return;
+        }
+
         $item = OfferItem::where('cis_row_id_offer', $offerId)
             ->where('cis_row_id_project_product', $positionId)
             ->first();
@@ -381,6 +405,10 @@ class OfferComparison extends Component
 
     public function saveChildItemPrice(string $offerId, string $productId, $value): void
     {
+        if (! $this->assertEditable($this->projectId, 'offers')) {
+            return;
+        }
+
         $value = trim((string) $value);
         $price = $value === '' ? null : (float) str_replace(',', '.', $value);
 
@@ -406,6 +434,10 @@ class OfferComparison extends Component
 
     public function toggleChildNotOffered(string $offerId, string $productId): void
     {
+        if (! $this->assertEditable($this->projectId, 'offers')) {
+            return;
+        }
+
         $item = OfferChildItem::where('cis_row_id_offer', $offerId)
             ->where('cis_row_id_product', $productId)
             ->first();
@@ -420,6 +452,10 @@ class OfferComparison extends Component
 
     public function toggleChildChecked(string $offerId, string $productId): void
     {
+        if (! $this->assertEditable($this->projectId, 'offers')) {
+            return;
+        }
+
         $item = OfferChildItem::where('cis_row_id_offer', $offerId)
             ->where('cis_row_id_product', $productId)
             ->first();
@@ -429,6 +465,10 @@ class OfferComparison extends Component
 
     public function toggleActive(string $offerId): void
     {
+        if (! $this->assertEditable($this->projectId, 'offers')) {
+            return;
+        }
+
         $offer = Offer::findOrFail($offerId);
         $offer->update(['active' => ! $offer->active]);
 
@@ -439,11 +479,19 @@ class OfferComparison extends Component
 
     public function ignoreMinValue(string $offerId): void
     {
+        if (! $this->assertEditable($this->projectId, 'offers')) {
+            return;
+        }
+
         Offer::where('cis_row_id', $offerId)->update(['min_value_ignored' => true]);
     }
 
     public function respectMinValue(string $offerId): void
     {
+        if (! $this->assertEditable($this->projectId, 'offers')) {
+            return;
+        }
+
         Offer::where('cis_row_id', $offerId)->update(['min_value_ignored' => false]);
     }
 
@@ -460,6 +508,10 @@ class OfferComparison extends Component
      */
     public function importOfferFile(): void
     {
+        if (! $this->assertEditable($this->projectId, 'offers')) {
+            return;
+        }
+
         $this->validate([
             'importFile'       => 'required|file|mimes:xlsx,xls,csv|max:10240',
             'importTemplateId' => 'required|string',

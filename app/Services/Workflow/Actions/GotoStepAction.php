@@ -33,6 +33,11 @@ class GotoStepAction implements WorkflowActionType
         return 'share';
     }
 
+    public function editable(): bool
+    {
+        return true;
+    }
+
     public function editorView(): string
     {
         return 'livewire.workflow.actions.goto-step-fields';
