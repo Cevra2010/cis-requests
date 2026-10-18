@@ -6,6 +6,7 @@ use App\Mail\WorkflowNotificationMail;
 use App\Models\Group;
 use App\Models\Project;
 use App\Models\ProjectStatusTransition;
+use App\Models\Role;
 use App\Models\User;
 use App\Models\WorkflowAction;
 use App\Services\Workflow\ProjectVariables;
@@ -14,9 +15,9 @@ use Illuminate\Support\Str;
 
 /**
  * Maßnahme "E-Mail senden". config-Form:
- *   { "recipients": [{"type":"user"|"group"|"email", "value": string}, ...],
+ *   { "recipients": [{"type":"user"|"group"|"role"|"email", "value": string}, ...],
  *     "subject": string, "body": string }
- * Empfänger werden zu einzelnen E-Mail-Adressen aufgelöst (Gruppen -> Mitglieder),
+ * Empfänger werden zu einzelnen E-Mail-Adressen aufgelöst (Gruppen/Rollen -> Mitglieder),
  * dedupliziert, und jede Adresse einzeln versendet – ein fehlgeschlagener
  * Empfänger blockiert die übrigen nicht (siehe execute()).
  */
@@ -129,6 +130,12 @@ class EmailAction implements WorkflowActionType
                 }
             } elseif ($type === 'group') {
                 foreach (Group::find($value)?->users ?? [] as $u) {
+                    if ($u->email) {
+                        $emails[] = $u->email;
+                    }
+                }
+            } elseif ($type === 'role') {
+                foreach (Role::find($value)?->users ?? [] as $u) {
                     if ($u->email) {
                         $emails[] = $u->email;
                     }

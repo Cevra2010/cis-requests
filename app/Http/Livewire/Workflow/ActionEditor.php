@@ -3,6 +3,7 @@
 namespace App\Http\Livewire\Workflow;
 
 use App\Models\Group;
+use App\Models\Role;
 use App\Models\User;
 use App\Models\WorkflowAction;
 use App\Services\Workflow\Actions\WorkflowActionTypes;
@@ -71,7 +72,7 @@ class ActionEditor extends Component
     #[On('principal-picked')]
     public function addRecipient(string $context, string $type, string $id): void
     {
-        if ($context !== 'action-recipients' || ! in_array($type, ['user', 'group', 'email'], true)) {
+        if ($context !== 'action-recipients' || ! in_array($type, ['user', 'group', 'role', 'email'], true)) {
             return;
         }
 
@@ -132,6 +133,7 @@ class ActionEditor extends Component
         return match ($type) {
             'user'  => User::find($value)?->name() ?? 'Gelöschter Benutzer',
             'group' => 'Gruppe „' . (Group::find($value)?->name ?? 'gelöscht') . '“',
+            'role'  => 'Rolle „' . (Role::find($value)?->name ?? 'gelöscht') . '“',
             'email' => $value,
             default => '?',
         };

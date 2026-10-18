@@ -4,6 +4,9 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.15.1.0 — 2026-10-18
+- Workflow-Maßnahme „E-Mail senden“: Empfänger können jetzt auch Rollen sein (alle Mitglieder der Rolle erhalten die E-Mail), zusätzlich zu Benutzern, Gruppen und externen Adressen. Mehrere Empfänger je Maßnahme sind möglich, doppelte Adressen werden zusammengefasst
+
 ## 0.15.0.0 — 2026-10-18
 - Workflow: neue Option „Tabs verbergen“ je Schritt – hier legst du fest, welche Tabs der Projektansicht (Produkte, Ausschreibung, Angebote, Bestellung, Wareneingang, Lager) auf diesem Schritt zu sehen sind. Tabs, die logisch noch nicht sichtbar sein können (Meilenstein noch nicht erreicht, Modul inaktiv, Fahrzeugausschreibung ohne Ausschreibungs-Tab), sind ausgegraut und nennen den Grund. Mindestens ein Tab bleibt immer sichtbar; verborgene Tabs lassen sich nicht als Standard-Tab wählen
 
