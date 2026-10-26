@@ -61,7 +61,7 @@
                     <td>
                         @if($project->isLocked())
                             <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700"
-                                  title="Fixiert am {{ $project->tender_locked_at?->timezone(config('app.display_timezone'))->format('d.m.Y H:i') }}">
+                                  title="Fixiert am {{ $project->tender_locked_at?->display()->format('d.m.Y H:i') }}">
                                 <i class="fa fa-lock"></i> Fixiert
                             </span>
                         @else

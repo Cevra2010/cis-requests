@@ -28,7 +28,7 @@
                     @endif
                 </td>
                 <td class="text-sm text-gray-500">
-                    {{ $project->deleted_at->format('d.m.Y H:i') }}
+                    {{ $project->deleted_at->display()->format('d.m.Y H:i') }}
                 </td>
                 <td class="text-right">
                     <form method="POST"

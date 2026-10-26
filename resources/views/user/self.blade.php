@@ -110,7 +110,7 @@
             <div class="mt-5 flex items-center gap-3">
                 <button type="submit" class="btn btn-primary">Profil speichern</button>
                 <p class="text-xs text-gray-400">
-                    Mitglied seit {{ $user->created_at->format('d.m.Y') }}
+                    Mitglied seit {{ $user->created_at->display()->format('d.m.Y') }}
                 </p>
             </div>
         </form>
@@ -155,11 +155,11 @@
         <dl class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
             <div>
                 <dt class="text-xs text-gray-400 uppercase tracking-wide">Konto erstellt</dt>
-                <dd class="font-medium text-gray-700 mt-0.5">{{ $user->created_at->format('d.m.Y') }}</dd>
+                <dd class="font-medium text-gray-700 mt-0.5">{{ $user->created_at->display()->format('d.m.Y') }}</dd>
             </div>
             <div>
                 <dt class="text-xs text-gray-400 uppercase tracking-wide">Letzte Änderung</dt>
-                <dd class="font-medium text-gray-700 mt-0.5">{{ $user->updated_at->format('d.m.Y H:i') }}</dd>
+                <dd class="font-medium text-gray-700 mt-0.5">{{ $user->updated_at->display()->format('d.m.Y H:i') }}</dd>
             </div>
             <div>
                 <dt class="text-xs text-gray-400 uppercase tracking-wide">Gruppen</dt>

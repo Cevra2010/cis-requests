@@ -10,7 +10,7 @@
 
 </div>
 <hr class="mb-4">
-<p class="text-xs text-slate-600 mb-4">Erstellt: {{ $user->created_at->format("d.m.Y H:i ")}} | letzte Änderung: {{ $user->updated_at->format("d.m.Y H:i") }}
+<p class="text-xs text-slate-600 mb-4">Erstellt: {{ $user->created_at->display()->format("d.m.Y H:i ")}} | letzte Änderung: {{ $user->updated_at->display()->format("d.m.Y H:i") }}
 @include("layout.error_success")
 <form action="{{ route("dashboard.self.update") }}" method="POST">
     @csrf

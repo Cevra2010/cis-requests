@@ -21,6 +21,15 @@
             <i class="fa fa-building mr-1.5"></i>
             Firma &amp; Anschrift
         </button>
+        @can('system.mail')
+        <button type="button"
+                @click="tab = 'mail'"
+                :class="tab === 'mail' ? 'border-b-2 border-primary-600 text-primary-600 bg-white' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'"
+                class="px-4 py-2.5 text-sm font-medium transition-colors rounded-t-lg -mb-px">
+            <i class="fa fa-envelope mr-1.5"></i>
+            E-Mail
+        </button>
+        @endcan
         @can('system.scheduler')
         <button type="button"
                 @click="tab = 'planer'"
@@ -57,6 +66,13 @@
     <div x-show="tab === 'firma'" x-cloak>
         @livewire('setting.company-settings')
     </div>
+
+    @can('system.mail')
+    {{-- Tab: E-Mail --}}
+    <div x-show="tab === 'mail'" x-cloak>
+        @livewire('setting.mail-settings')
+    </div>
+    @endcan
 
     @can('system.scheduler')
     {{-- Tab: Planer --}}

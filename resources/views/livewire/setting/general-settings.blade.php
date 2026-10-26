@@ -1,4 +1,4 @@
-<div class="max-w-md">
+<div class="max-w-xl">
     <div class="cis-card">
         <h2 class="text-base font-semibold text-gray-800 mb-1">Beschaffung</h2>
         <p class="text-sm text-gray-500 mb-6">
@@ -17,6 +17,26 @@
                 <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">€</span>
             </div>
             @error('defaultMinOrderValue')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+        </div>
+
+        <div class="mt-6 pt-6 border-t border-gray-100">
+            <h2 class="text-base font-semibold text-gray-800 mb-1">Zeitzone</h2>
+            <p class="text-sm text-gray-500 mb-4">
+                Gilt für die gesamte Anwendung: Eingabe und Anzeige aller Zeitpunkte (z.B. Ausschreibungsbeginn/-ende, Verlauf, Exporte).
+                Gespeicherte Zeitpunkte bleiben dabei unverändert – es ändert sich nur, wie sie dargestellt werden.
+            </p>
+            <label class="cis-label" for="displayTimezone">Zeitzone</label>
+            <select id="displayTimezone" wire:model.live="displayTimezone" class="cis-input w-full">
+                @foreach($timezoneGroups as $region => $zones)
+                    <optgroup label="{{ $region }}">
+                        @foreach($zones as $zone)
+                            <option value="{{ $zone }}">{{ $zone }}</option>
+                        @endforeach
+                    </optgroup>
+                @endforeach
+            </select>
+            <p class="mt-1 text-xs text-gray-400">Aktuelle Uhrzeit in dieser Zeitzone: <strong>{{ $localNow }}</strong></p>
+            @error('displayTimezone')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
         </div>
 
         <div class="pt-6 mt-6 border-t border-gray-100">

@@ -112,7 +112,7 @@
                     </p>
                     @if($document->exists)
                     <p class="text-[11px] text-gray-400">
-                        {{ $document->sizeForHumans() }} · {{ $document->created_at->format('d.m.Y H:i') }}
+                        {{ $document->sizeForHumans() }} · {{ $document->created_at->display()->format('d.m.Y H:i') }}
                         @if($document->uploadedBy) · {{ $document->uploadedBy->firstname }} {{ $document->uploadedBy->lastname }} @endif
                         @if($document->linked_type === \App\Models\ProjectDocument::LINK_OFFER_IMPORT)
                             <span class="ml-1 px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600">Angebotsimport</span>

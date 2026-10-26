@@ -103,7 +103,7 @@
                     <a href="{{ route('project.document.download', $currentOfferImportDocument->cis_row_id) }}" class="hover:text-primary-600 underline">
                         {{ $currentOfferImportDocument->name }}
                     </a>
-                    <span class="text-gray-400">· {{ $currentOfferImportDocument->created_at->format('d.m.Y H:i') }}</span>
+                    <span class="text-gray-400">· {{ $currentOfferImportDocument->created_at->display()->format('d.m.Y H:i') }}</span>
                 </p>
                 @endif
                 <form wire:submit.prevent="importOfferFile" class="flex items-center gap-2 flex-wrap">

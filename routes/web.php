@@ -36,11 +36,14 @@ Route::get('user_login',function() {
     return redirect()->route("auth.login");
 })->name("login");
 
-Route::get('/Debug/Login',function() {
-    $user = User::where('email','admin@istrator.de')->first();
-    Auth::login($user);
-    return redirect()->route("dashboard");
-});
+// Entwickler-Abkürzung (meldet ohne Passwort als Demo-Administrator an) – ausschließlich lokal/Test, niemals auf einem Server.
+if (app()->environment(['local', 'testing'])) {
+    Route::get('/Debug/Login',function() {
+        $user = User::where('email','admin@istrator.de')->firstOrFail();
+        Auth::login($user);
+        return redirect()->route("dashboard");
+    });
+}
 
 Route::get('/Auth/Login',[AuthController::class,'index'])->name("auth.login");
 Route::post('/Auth/Login',[AuthController::class,'submit'])->name("auth.login.submit");

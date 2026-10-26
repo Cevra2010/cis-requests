@@ -25,7 +25,7 @@
                                 {{ $project->statusLabel() }}
                             </span>
                         </td>
-                        <td class="text-gray-500 text-sm">{{ $project->created_at->format('d.m.Y') }}</td>
+                        <td class="text-gray-500 text-sm">{{ $project->created_at->display()->format('d.m.Y') }}</td>
                         <td class="text-right">
                             <a href="{{ route('project.edit', $project->cis_row_id) }}"
                                onclick="event.stopPropagation()"

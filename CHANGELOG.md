@@ -4,6 +4,12 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.17.0.0 — 2026-10-26
+- Neu: Zeitzone in den Einstellungen (Allgemein → Zeitzone, Standard Europa/Berlin). Sie gilt für die gesamte Anwendung: Eingabe und Anzeige aller Zeitpunkte (Ausschreibungsbeginn/-ende, „Angelegt/Geändert am“, Verlauf, Exporte, E-Mail-Variablen, Dateinamen). Gespeicherte Zeitpunkte bleiben unverändert, nur die Darstellung ändert sich
+- Neu: Einstellungen → E-Mail: SMTP-Server, Port, Verschlüsselung (STARTTLS, SSL/TLS oder keine), Benutzername, Passwort (verschlüsselt gespeichert, wird nie angezeigt), Absenderadresse und -name sowie „Test senden“ mit den eingetragenen Werten, auch ohne zu speichern. Ohne gespeicherte Werte gelten weiter die Standardwerte der Installation. Neue Berechtigung „E-Mail-Versand (SMTP) konfigurieren“ (Administratoren haben sie automatisch)
+- Sicherheit: Die Entwickler-Abkürzung `/Debug/Login` (Anmeldung ohne Passwort als Demo-Administrator) existiert jetzt nur noch in lokaler Entwicklungs-/Testumgebung, nie auf einem Server
+- Tests: 74 automatische Tests
+
 ## 0.16.1.0 — 2026-10-26
 - Bugfix: „Preispflege“ lieferte einen Serverfehler (HTTP 500), weil die Seite noch die alte, mit dem Rechtesystem vom 13.05.2026 entfernte Bereichsprüfung nutzte. Sie ist jetzt über das Recht „Produkte bearbeiten“ geschützt
 - Bugfix: Eine Neuinstallation auf leerer Datenbank (`php artisan migrate`) brach im Wareneingang-Modul ab; behoben

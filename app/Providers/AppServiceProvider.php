@@ -22,6 +22,16 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Zeitzone/SMTP aus den Einstellungen (überschreibt .env/config), siehe RuntimeSettings.
+        \App\Services\RuntimeSettings::apply();
+
+        // $zeitpunkt->display(): derselbe Zeitpunkt in der eingestellten Anzeige-Zeitzone (Kopie, verändert das Original nicht).
+        foreach ([\Carbon\Carbon::class, \Illuminate\Support\Carbon::class] as $carbon) {
+            $carbon::macro('display', function () {
+                return $this->copy()->setTimezone(config('app.display_timezone'));
+            });
+        }
+
         $this->registerMainMenu();
         $this->registerPermissions();
 
@@ -58,6 +68,11 @@ class AppServiceProvider extends ServiceProvider
         );
 
         CisPermissionManager::registerGroup('system', 'System');
+        CisPermissionManager::register(
+            'system.mail',
+            'E-Mail-Versand (SMTP) konfigurieren',
+            description: 'Erlaubt das Einstellen von SMTP-Server, Zugangsdaten und Absender sowie das Senden einer Test-E-Mail.'
+        );
         CisPermissionManager::register(
             'system.scheduler',
             'Planer (Cron) einsehen',

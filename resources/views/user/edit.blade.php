@@ -53,7 +53,7 @@
 
     <div class="cis-card mt-4">
         <p class="text-xs text-gray-400">
-            Erstellt {{ $user->created_at->format('d.m.Y') }} · Geändert {{ $user->updated_at->format('d.m.Y') }}
+            Erstellt {{ $user->created_at->display()->format('d.m.Y') }} · Geändert {{ $user->updated_at->display()->format('d.m.Y') }}
         </p>
     </div>
 </div>

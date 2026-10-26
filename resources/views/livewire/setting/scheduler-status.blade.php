@@ -25,7 +25,7 @@
         <dl class="grid grid-cols-3 gap-4 mt-5 text-sm">
             <div>
                 <dt class="text-xs text-gray-400">Letzte Ausführung</dt>
-                <dd class="text-gray-800 font-medium">{{ $last ? $last->ran_at->timezone(config('app.display_timezone'))->format('d.m.Y H:i:s') : '–' }}</dd>
+                <dd class="text-gray-800 font-medium">{{ $last ? $last->ran_at->display()->format('d.m.Y H:i:s') : '–' }}</dd>
                 @if($last)<dd class="text-xs text-gray-400">vor {{ $ageSec < 120 ? $ageSec . ' s' : round($ageSec / 60) . ' min' }} · {{ $last->sourceLabel() }}</dd>@endif
             </div>
             <div>
@@ -97,7 +97,7 @@
         @forelse($recent as $run)
             <div class="flex items-center gap-3 py-1.5 text-xs border-b border-gray-50 last:border-0">
                 <i class="fa {{ $run->status === 'ok' ? 'fa-circle-check text-emerald-500' : 'fa-circle-xmark text-red-500' }}"></i>
-                <span class="text-gray-700 tabular-nums">{{ $run->ran_at->timezone(config('app.display_timezone'))->format('d.m.Y H:i:s') }}</span>
+                <span class="text-gray-700 tabular-nums">{{ $run->ran_at->display()->format('d.m.Y H:i:s') }}</span>
                 <span class="text-gray-600 truncate flex-1">{{ $run->task }}@if($run->message) <span class="text-red-500">– {{ $run->message }}</span>@endif</span>
                 <span class="text-gray-400">{{ $run->sourceLabel() }}</span>
                 <span class="text-gray-400 tabular-nums w-14 text-right">{{ $run->duration_ms !== null ? $run->duration_ms . ' ms' : '' }}</span>

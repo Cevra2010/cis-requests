@@ -117,8 +117,8 @@
                     @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </form>
                 <p class="text-xs text-gray-400 mt-1.5">
-                    Erstellt {{ $product->created_at->format('d.m.Y') }} ·
-                    Aktualisiert {{ $product->updated_at->format('d.m.Y H:i') }}
+                    Erstellt {{ $product->created_at->display()->format('d.m.Y') }} ·
+                    Aktualisiert {{ $product->updated_at->display()->format('d.m.Y H:i') }}
                 </p>
             </div>
             <div class="shrink-0 text-right">
@@ -179,7 +179,7 @@
                     </td>
                     <td>{{ $child->priceForHumans() }}</td>
                     <td class="text-gray-500 text-sm">{{ $child->price()?->source?->name ?? '–' }}</td>
-                    <td class="text-gray-400 text-sm">{{ $child->updated_at->format('d.m.Y') }}</td>
+                    <td class="text-gray-400 text-sm">{{ $child->updated_at->display()->format('d.m.Y') }}</td>
                     <td class="text-right">
                         <form method="POST" action="{{ route('product.child.detach', [$product, $child]) }}"
                               onsubmit="return confirm('Verknüpfung zu „{{ addslashes($child->name) }}“ entfernen? Das Produkt selbst bleibt erhalten.')">
@@ -260,7 +260,7 @@
                 <tbody>
                     @forelse($prices as $price)
                     <tr>
-                        <td class="text-xs text-gray-500">{{ $price->created_at->format('d.m.Y H:i') }}</td>
+                        <td class="text-xs text-gray-500">{{ $price->created_at->display()->format('d.m.Y H:i') }}</td>
                         <td class="font-medium">{{ $price->amountForHumans() }}</td>
                         <td class="text-sm text-gray-500">{{ $price->source?->name ?? '–' }}</td>
                     </tr>

@@ -72,8 +72,8 @@
         @endforeach
 
         {{-- X-Achse: Datumsbereich --}}
-        <text x="{{ $padLeft }}" y="{{ $height - 6 }}" font-size="8" fill="#9ca3af">{{ $chart['min_date']->format('d.m.Y') }}</text>
-        <text x="{{ $width - $padRight }}" y="{{ $height - 6 }}" text-anchor="end" font-size="8" fill="#9ca3af">{{ $chart['max_date']->format('d.m.Y') }}</text>
+        <text x="{{ $padLeft }}" y="{{ $height - 6 }}" font-size="8" fill="#9ca3af">{{ $chart['min_date']->display()->format('d.m.Y') }}</text>
+        <text x="{{ $width - $padRight }}" y="{{ $height - 6 }}" text-anchor="end" font-size="8" fill="#9ca3af">{{ $chart['max_date']->display()->format('d.m.Y') }}</text>
     </svg>
 
     {{-- Legende --}}

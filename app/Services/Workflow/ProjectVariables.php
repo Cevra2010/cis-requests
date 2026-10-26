@@ -73,7 +73,7 @@ class ProjectVariables
             'kostenschaetzung'     => number_format((float) $estimate['total'], 2, ',', '.') . ' €',
             'anzahl_positionen'    => (string) $estimate['positions_count'],
             'ausgeloest_von'       => $transition ? $transition->actorLabel() : (auth()->user()?->name() ?? 'System'),
-            'datum'                => now()->format('d.m.Y'),
+            'datum'                => now()->display()->format('d.m.Y'),
             'firma'                => (string) Setting::get('company_name'),
         ];
     }

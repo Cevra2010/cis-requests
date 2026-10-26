@@ -32,6 +32,6 @@ class DocumentNaming
     /** Stellt einem bereits fertigen Dateinamen (z.B. eines Uploads) den Download-Zeitstempel voran. */
     public static function withDownloadTimestamp(string $filename): string
     {
-        return now()->format('Y-m-d_H-i-s') . '-' . $filename;
+        return now()->display()->format('Y-m-d_H-i-s') . '-' . $filename;
     }
 }

@@ -48,7 +48,7 @@
 
     <div class="cis-card mt-4">
         <p class="text-xs text-gray-400">
-            {{ $role->users()->count() }} Benutzer · Erstellt {{ $role->created_at->format('d.m.Y') }} · Geändert {{ $role->updated_at->format('d.m.Y') }}
+            {{ $role->users()->count() }} Benutzer · Erstellt {{ $role->created_at->display()->format('d.m.Y') }} · Geändert {{ $role->updated_at->display()->format('d.m.Y') }}
         </p>
     </div>
 </div>

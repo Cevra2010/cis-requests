@@ -92,7 +92,7 @@
                         <td class="text-gray-500 text-sm">
                             {{ $product->price()?->source?->name ?? '–' }}
                         </td>
-                        <td class="text-gray-500 text-sm">{{ $product->created_at->format('d.m.Y') }}</td>
+                        <td class="text-gray-500 text-sm">{{ $product->created_at->display()->format('d.m.Y') }}</td>
                     </tr>
                     @if($product->hasChild())
                     <tr x-show="open" style="display:none" class="bg-gray-50">

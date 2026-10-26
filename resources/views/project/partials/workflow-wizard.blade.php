@@ -64,7 +64,7 @@
             @endif
             @if($project->isLocked())
                 <p class="mt-1.5 text-xs text-gray-400">
-                    <i class="fa fa-lock mr-1"></i>Fixiert seit {{ $project->tender_locked_at?->timezone(config('app.display_timezone'))->format('d.m.Y H:i') }}
+                    <i class="fa fa-lock mr-1"></i>Fixiert seit {{ $project->tender_locked_at?->display()->format('d.m.Y H:i') }}
                     @if($project->lockedByUser())
                         von {{ $project->lockedByUser()->name() }}
                     @endif
@@ -199,7 +199,7 @@
                                 @endif
                                 <span class="font-medium">{{ $entry->to_label }}</span>
                             </p>
-                            <p class="text-xs text-gray-400">{{ $entry->created_at->timezone(config('app.display_timezone'))->format('d.m.Y H:i') }} · {{ $entry->actorLabel() }}</p>
+                            <p class="text-xs text-gray-400">{{ $entry->created_at->display()->format('d.m.Y H:i') }} · {{ $entry->actorLabel() }}</p>
                         </div>
                     </div>
                 @empty
@@ -217,7 +217,7 @@
                             <i class="fa {{ $run->statusIcon() }} mt-0.5 w-4 text-center"></i>
                             <div class="min-w-0">
                                 <p class="text-gray-700">{{ $runType?->label() ?? 'Maßnahme' }}@if($run->summary) <span class="text-gray-400">– {{ $run->summary }}</span>@endif</p>
-                                <p class="text-xs text-gray-400">{{ $run->created_at->timezone(config('app.display_timezone'))->format('d.m.Y H:i') }}</p>
+                                <p class="text-xs text-gray-400">{{ $run->created_at->display()->format('d.m.Y H:i') }}</p>
                             </div>
                         </div>
                     @endforeach

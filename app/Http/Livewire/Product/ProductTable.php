@@ -58,7 +58,7 @@ class ProductTable extends Component
             [
                 'key' => 'created_at', 'label' => 'Erstellt',
                 'sortable' => true, 'filterable' => true,
-                'value' => fn ($p) => optional($p->created_at)->format('d.m.Y'),
+                'value' => fn ($p) => $p->created_at?->display()->format('d.m.Y'),
                 'sortValue' => fn ($p) => $p->created_at,
             ],
         ];

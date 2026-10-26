@@ -26,7 +26,7 @@
             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $project->statusBadgeClasses() }}">
                 {{ $project->statusLabel() }}
             </span>
-            <span class="text-xs text-gray-400">Erstellt {{ $project->created_at->format('d.m.Y') }}</span>
+            <span class="text-xs text-gray-400">Erstellt {{ $project->created_at->display()->format('d.m.Y') }}</span>
             <span class="text-xs text-gray-400">· {{ $project->typeLabel() }}</span>
         </div>
 
