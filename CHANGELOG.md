@@ -4,6 +4,13 @@
 beim Deploy hier ergänzt; Benutzer sehen die Punkte seit ihrer zuletzt gesehenen Version
 automatisch als Hinweis beim nächsten Seitenaufruf.
 
+## 0.16.1.0 — 2026-10-26
+- Bugfix: „Preispflege“ lieferte einen Serverfehler (HTTP 500), weil die Seite noch die alte, mit dem Rechtesystem vom 13.05.2026 entfernte Bereichsprüfung nutzte. Sie ist jetzt über das Recht „Produkte bearbeiten“ geschützt
+- Bugfix: Eine Neuinstallation auf leerer Datenbank (`php artisan migrate`) brach im Wareneingang-Modul ab; behoben
+- Projektverlauf: neuer Abschnitt „Ausgeführte Maßnahmen“ (z.B. versandte E-Mails mit Ergebnis, automatische Sprünge); Zeiten im Verlauf, bei „Fixiert seit“ und im Import/Export erscheinen in Ortszeit. Automatische Wechsel heißen im Verlauf „System (automatisch)“
+- Werksreset räumt jetzt auch die Maßnahmen-/Trigger-Protokolle auf; Standard-Exportvorlagen werden nach einem Reset der Einstellungen nicht doppelt angelegt
+- Qualität: automatische Testsuite (64 Tests) für Workflow, Fixierungen, Trigger, Zeitzonen, E-Mail-Empfänger, Import/Export, Planer und alle Seiten – läuft auf einer eigenen In-Memory-Datenbank (`php artisan test`)
+
 ## 0.16.0.0 — 2026-10-18
 - Workflow: Fixierungen sind jetzt Maßnahmen. Neue Maßnahmen „Produkte fixiert“, „Ausschreibung fixiert“, „Angebote fixiert“ und „Bestellung fixiert“ werden im Workflow-Manager auf eine Schritt-Karte („Beim Erreichen“) gezogen: ab diesem Schritt ist der jeweilige Bereich für alle gesperrt – auch für Administratoren. Bestehende Workflows verhalten sich unverändert (der Schritt „Ausschreibung“ trägt „Produkte fixiert“ und „Ausschreibung fixiert“)
 - Neu: Angebote (Angebotsvergleich, Preise, Import) und Bestellung (Zuordnung) lassen sich fixieren; ein fixierter Bereich ist in der Projektansicht schreibgeschützt. Der Projektkopf zeigt, welche Bereiche fixiert sind

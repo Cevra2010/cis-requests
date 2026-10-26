@@ -49,6 +49,11 @@ class WareneingangServiceProvider extends ModuleServiceProvider
      */
     private function seedDefaultStatusCategories(): void
     {
+        // Auf einer frischen Datenbank (vor "php artisan migrate") gibt es die Tabelle noch nicht – dann später beim nächsten Boot.
+        if (! \Illuminate\Support\Facades\Schema::hasTable('categories')) {
+            return;
+        }
+
         if (Category::ofType('wareneingang.item_status')->exists()) {
             return;
         }

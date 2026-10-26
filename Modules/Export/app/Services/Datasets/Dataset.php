@@ -293,7 +293,14 @@ abstract class Dataset
 
     protected function fmtDate(?\DateTimeInterface $date, bool $withTime = false): string
     {
-        return $date ? $date->format($withTime ? 'd.m.Y H:i' : 'd.m.Y') : '';
+        if (! $date) {
+            return '';
+        }
+
+        // Zeitpunkte erscheinen in Ortszeit (gespeichert wird in UTC); reine Datumsangaben bleiben unverändert.
+        $value = $withTime ? Carbon::instance($date)->setTimezone(config('app.display_timezone')) : $date;
+
+        return $value->format($withTime ? 'd.m.Y H:i' : 'd.m.Y');
     }
 
     /** Vergleicht zwei Namenslisten unabhängig von Reihenfolge/Groß-/Kleinschreibung. */

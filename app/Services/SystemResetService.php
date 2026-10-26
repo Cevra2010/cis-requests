@@ -137,6 +137,8 @@ class SystemResetService
         DB::table('project_product')->delete();
         DB::table('project_last_touch')->delete();
         DB::table('project_status_transitions')->delete();
+        DB::table('workflow_action_runs')->delete();
+        DB::table('workflow_trigger_runs')->delete();
         DB::table('projects')->delete();
 
         DB::table('product_child')->delete();

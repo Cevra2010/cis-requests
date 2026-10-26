@@ -33,6 +33,8 @@ class ProjectWorkflowView
         /** @var array<int, array{when: \Carbon\CarbonInterface, event: string, actions: string[]}> */
         public array $scheduled,
         public Collection $history,
+        /** @var Collection<int, \App\Models\WorkflowActionRun> zuletzt ausgeführte Maßnahmen dieses Projekts (z.B. versandte E-Mails, automatische Sprünge) */
+        public Collection $actionRuns,
         public array $nextActions = [],
     ) {
     }
@@ -98,6 +100,7 @@ class ProjectWorkflowView
             revertBlockedReasons: $revertBlockedReasons,
             scheduled: self::scheduledTriggers($project, $current),
             history: $project->statusTransitions()->with('user')->limit(50)->get(),
+            actionRuns: \App\Models\WorkflowActionRun::with('action')->where('cis_row_id_project', $project->cis_row_id)->orderByDesc('created_at')->limit(25)->get(),
             nextActions: $nextActions,
         );
     }

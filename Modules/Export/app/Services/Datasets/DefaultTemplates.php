@@ -22,6 +22,13 @@ class DefaultTemplates
                 continue;
             }
 
+            // Nach einem Reset der Einstellungen ist die Merkliste leer, die Vorlage aber evtl. noch da – dann nicht doppelt anlegen.
+            if (ExportTemplate::where('dataset', $key)->where('name', $dataset->label() . ' – alle Felder')->exists()) {
+                $done[] = $key;
+                Setting::set('export_default_templates', json_encode($done));
+                continue;
+            }
+
             $template = ExportTemplate::create([
                 'name'               => $dataset->label() . ' – alle Felder',
                 'phase'              => 'pre_tender',

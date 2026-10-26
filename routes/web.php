@@ -128,7 +128,8 @@ Route::middleware(['auth'])->group(function() {
     Route::delete('/Source/Delete/{source}',       [SourceController::class, 'destroy']) ->name('source.destroy');
 
     /** Price */
-    Route::get('/Price',[PriceController::class,'index'])->name("price")->middleware("area:price");
+    // Preispflege: früher über das alte Bereichs-System ("area:price", Tabelle areas seit der Rechte-Migration vom 13.05.2026 entfernt → HTTP 500).
+    Route::get('/Price',[PriceController::class,'index'])->name("price")->middleware("can:product.edit");
 
     /** Projects */
     Route::get('/Projects',                          [ProjectController::class, 'index'])     ->name('project');

@@ -33,7 +33,7 @@ class ProjectStatusTransition extends Model
     public function actorLabel(): string
     {
         if ($this->direction === 'auto') {
-            return 'System (Fristablauf)';
+            return 'System (automatisch)';
         }
 
         return $this->user?->name() ?? 'Unbekannt';

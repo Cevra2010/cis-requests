@@ -64,7 +64,7 @@
             @endif
             @if($project->isLocked())
                 <p class="mt-1.5 text-xs text-gray-400">
-                    <i class="fa fa-lock mr-1"></i>Fixiert seit {{ $project->tender_locked_at?->format('d.m.Y H:i') }}
+                    <i class="fa fa-lock mr-1"></i>Fixiert seit {{ $project->tender_locked_at?->timezone(config('app.display_timezone'))->format('d.m.Y H:i') }}
                     @if($project->lockedByUser())
                         von {{ $project->lockedByUser()->name() }}
                     @endif
@@ -183,7 +183,7 @@
 
     {{-- Verlauf-Modal --}}
     <div x-show="historyOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6" @click.outside="historyOpen = false">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6" @click.outside="historyOpen = false">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-base font-semibold text-gray-900">Verlauf</h3>
                 <button type="button" @click="historyOpen = false" class="text-gray-300 hover:text-gray-600"><i class="fa fa-xmark"></i></button>
@@ -199,13 +199,31 @@
                                 @endif
                                 <span class="font-medium">{{ $entry->to_label }}</span>
                             </p>
-                            <p class="text-xs text-gray-400">{{ $entry->created_at->format('d.m.Y H:i') }} · {{ $entry->actorLabel() }}</p>
+                            <p class="text-xs text-gray-400">{{ $entry->created_at->timezone(config('app.display_timezone'))->format('d.m.Y H:i') }} · {{ $entry->actorLabel() }}</p>
                         </div>
                     </div>
                 @empty
                     <p class="text-sm text-gray-400 italic">Kein Verlauf vorhanden.</p>
                 @endforelse
             </div>
+
+            @if($wizard->actionRuns->isNotEmpty())
+            <div class="mt-5 pt-4 border-t border-gray-100">
+                <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">Ausgeführte Maßnahmen</h4>
+                <div class="space-y-2 max-h-48 overflow-y-auto">
+                    @foreach($wizard->actionRuns as $run)
+                        @php $runType = $run->action ? \App\Services\Workflow\Actions\WorkflowActionTypes::find($run->action->type) : null; @endphp
+                        <div class="flex items-start gap-2.5 text-sm">
+                            <i class="fa {{ $run->statusIcon() }} mt-0.5 w-4 text-center"></i>
+                            <div class="min-w-0">
+                                <p class="text-gray-700">{{ $runType?->label() ?? 'Maßnahme' }}@if($run->summary) <span class="text-gray-400">– {{ $run->summary }}</span>@endif</p>
+                                <p class="text-xs text-gray-400">{{ $run->created_at->timezone(config('app.display_timezone'))->format('d.m.Y H:i') }}</p>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
         </div>
     </div>
 </div>
